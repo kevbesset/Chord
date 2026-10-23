@@ -24,6 +24,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private let edgeHover = EdgeHoverView()
     private lazy var commandBar = CommandBarController(state: state, settings: settings)
     private let toast = ToastView()
+    /// True while a swipe hands its Space to the state, which needs no slide of its own.
+    private var isEndingSwipe = false
     private lazy var peek = makePeek()
     private var settingsWindow: SettingsWindowController?
     private var littleWindows: [LittleWindowController] = []
@@ -330,7 +332,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case .activeSpace:
             let interval = Perf.begin("space.switch")
             let index = state.spaces.firstIndex { $0 === state.activeSpace } ?? 0
-            if index != lastSpaceIndex { sidebar.tabList.slide(forward: index > lastSpaceIndex) }
+            // A swipe has already slid the sidebar to the new Space.
+            if index != lastSpaceIndex, !isEndingSwipe { sidebar.pager.slide(forward: index > lastSpaceIndex) }
             lastSpaceIndex = index
             updateTint(animated: true)
             sidebar.update(state: state)
@@ -907,7 +910,32 @@ extension BrowserWindowController: SidebarDelegate {
     func sidebarRename(_ space: Space) { promptRename(space) }
     func sidebarSetColor(_ space: Space, hex: String) { state.setColor(space, hex: hex) }
     func sidebarDelete(_ space: Space) { confirmDelete(space) }
-    func sidebarSwipe(forward: Bool) { state.selectSpace(offset: forward ? 1 : -1) }
+    /// The window's tint follows the swipe from one Space's colour to the other's.
+    func sidebarSwipeProgress(toward space: Space?, fraction: CGFloat) {
+        guard let space else { return }
+        let color = state.activeSpace.color.blended(withFraction: fraction, of: space.color) ?? space.color
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        tintView.layer?.backgroundColor = color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
+        CATransaction.commit()
+    }
+
+    func sidebarSwipeWillEnd(on space: Space?, duration: TimeInterval) {
+        let color = (space ?? state.activeSpace).color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = Theme.motionCurve
+            context.allowsImplicitAnimation = true
+            self.tintView.layer?.backgroundColor = color
+        }
+    }
+
+    func sidebarSwipeEnded(on space: Space?) {
+        guard let space else { return }
+        isEndingSwipe = true
+        state.selectSpace(space)
+        isEndingSwipe = false
+    }
 
     func sidebarResize(to width: CGFloat, finished: Bool) {
         sidebarWidth.constant = width

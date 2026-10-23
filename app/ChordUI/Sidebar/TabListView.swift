@@ -112,15 +112,6 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     }
 
     /// Slides the list sideways when the Space changes, in the direction of the switch.
-    func slide(forward: Bool) {
-        let transition = CATransition()
-        transition.type = .push
-        transition.subtype = forward ? .fromRight : .fromLeft
-        transition.duration = 0.22
-        transition.timingFunction = Theme.motionCurve
-        layer?.add(transition, forKey: "spaceSwitch")
-    }
-
     // MARK: - Data source
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
@@ -377,12 +368,24 @@ final class SidebarOutlineView: NSOutlineView {
     }
 }
 
-/// Hands horizontal swipes up to the sidebar, which switches Spaces with them.
+/// Hands horizontal swipes up to the sidebar, which switches Spaces with them. The
+/// direction is decided once per gesture, so that a swipe that drifts a little up or
+/// down keeps moving the Spaces, and a scroll keeps scrolling.
 final class SidebarScrollView: NSScrollView {
+    private var horizontal: Bool?
+
     override func scrollWheel(with event: NSEvent) {
-        if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) || event.phase == .ended || event.phase == .cancelled {
+        if event.phase == .began || event.phase == .mayBegin { horizontal = nil }
+        if horizontal == nil, event.scrollingDeltaX != 0 || event.scrollingDeltaY != 0 {
+            horizontal = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
+        }
+        if event.phase == .began {
+            // The sidebar needs the start of every gesture, before the direction is known.
             nextResponder?.scrollWheel(with: event)
-            if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) { return }
+        }
+        if horizontal == true || ((event.phase == .ended || event.phase == .cancelled) && horizontal != false) {
+            if event.phase != .began { nextResponder?.scrollWheel(with: event) }
+            return
         }
         super.scrollWheel(with: event)
     }

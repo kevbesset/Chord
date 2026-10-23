@@ -9,6 +9,7 @@ qui le dépasse ne sort pas.
 | Replier ou déplier la barre latérale | `sidebar.toggle` | 50 ms |
 | Sélectionner un onglet | `tab.select` | 100 ms |
 | Changer de Space | `space.switch` | 100 ms |
+| Suivre le glissement entre Spaces (une étape) | `space.swipe` | 8 ms |
 | Ouvrir un Peek | `peek.open` | 100 ms |
 | Ouvrir ou quitter la split view | `split.toggle` | 100 ms |
 | Ouvrir une petite fenêtre | `littlewindow.open` | 100 ms |

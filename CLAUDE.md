@@ -57,7 +57,7 @@ et corriger les erreurs avant de rendre la main.
   barre latérale redimensionnable, favoris par profil (comme Arc), épinglés avec dossiers,
   vraies icônes des sites (cache disque, reprises d'Arc à l'import), glisser-déposer des
   onglets et dossiers (ordre, dossiers, épingler, favoris, autre Space, liens d'autres apps), Spaces (couleur, nom, ⌃1…⌃9,
-  glisser deux doigts), barre de commande, Peek (⇧-clic, liens sortant d'un épinglé),
+  glisser deux doigts qui suit les doigts comme Arc), favoris en grille aux rangées pleines, barre de commande, Peek (⇧-clic, liens sortant d'un épinglé),
   split view (⌃⇧=, 2 à 4 volets), petite fenêtre (⌥⌘N, liens d'autres apps), barre
   d'adresse en haut ou latérale (⇧⌘D, copie de l'URL au survol avec confirmation), mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
   remappables, import de la barre latérale d'Arc, page d'accueil (quand aucun onglet

@@ -18,9 +18,10 @@ func pasteboardItem(for tab: Tab) -> NSPasteboardItem {
     return item
 }
 
-/// The favorites at the top of the sidebar: tiles shared by the Spaces of one profile,
-/// four per row.
-/// Fewer than four share the full width, like Arc.
+/// The favorites at the top of the sidebar: tiles shared by the Spaces of one profile.
+/// Like Arc, the grid keeps its rows full: six favorites make two rows of three, not a
+/// row of four and a row of two. An odd count is laid out as the even number after it,
+/// which leaves a single gap at the end. Up to four fill a single row.
 final class FavoritesView: NSView {
     weak var delegate: SidebarDelegate?
     private var tiles: [FavoriteTileView] = []
@@ -30,6 +31,7 @@ final class FavoritesView: NSView {
 
     static let tileHeight: CGFloat = 46
     static let spacing: CGFloat = 8
+    static let minimumTileWidth: CGFloat = 36
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -69,14 +71,32 @@ final class FavoritesView: NSView {
 
     /// Room for a drop even when there is no favorite yet, while a tab is dragged.
     private func height(for count: Int) -> CGFloat {
-        let rows = (max(count, dropIndex == nil ? 0 : 1) + 3) / 4
-        return rows == 0 ? 0 : CGFloat(rows) * Self.tileHeight + CGFloat(rows - 1) * Self.spacing
+        let count = max(count, dropIndex == nil ? 0 : 1)
+        guard count > 0 else { return 0 }
+        let columns = Self.columns(for: count, maximum: maximumColumns)
+        let rows = (count + columns - 1) / columns
+        return CGFloat(rows) * Self.tileHeight + CGFloat(rows - 1) * Self.spacing
     }
 
-    private var columns: Int { max(1, min(tiles.count, 4)) }
+    /// Five per row only when the tiles stay wide enough for their icons.
+    private var maximumColumns: Int {
+        bounds.width >= 5 * Self.minimumTileWidth + 4 * Self.spacing ? 5 : 4
+    }
+
+    /// Up to four share one row, stretched to the full width. Beyond, the columns that
+    /// leave the fewest gaps, then the fewest rows: 6 → 3, 8 → 4, 10 → 5, 12 → 4. An odd
+    /// count takes the layout of the next even one.
+    static func columns(for count: Int, maximum: Int) -> Int {
+        guard count > 4 else { return max(count, 1) }
+        let slots = count + count % 2
+        return (3...max(3, maximum)).min { a, b in
+            let rowsA = (slots + a - 1) / a, rowsB = (slots + b - 1) / b
+            return (rowsA * a - slots, rowsA) < (rowsB * b - slots, rowsB)
+        } ?? 4
+    }
 
     private func frame(at index: Int) -> NSRect {
-        let columns = CGFloat(columns)
+        let columns = CGFloat(Self.columns(for: tiles.count, maximum: maximumColumns))
         let width = (bounds.width - (columns - 1) * Self.spacing) / columns
         let column = CGFloat(index % Int(columns))
         let row = CGFloat(index / Int(columns))
@@ -86,6 +106,9 @@ final class FavoritesView: NSView {
 
     override func layout() {
         super.layout()
+        // The number of columns depends on the width, so a resize can change the rows.
+        let height = height(for: tiles.count)
+        if heightConstraint.constant != height { heightConstraint.constant = height }
         for (index, tile) in tiles.enumerated() {
             tile.frame = frame(at: index)
         }

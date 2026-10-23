@@ -12,6 +12,8 @@ public enum Perf {
         "sidebar.toggle": 50,
         "tab.select": 100,
         "space.switch": 100,
+        // One step of the sidebar following the fingers: within a 120 Hz frame.
+        "space.swipe": 8,
         "peek.open": 100,
         "split.toggle": 100,
         "littlewindow.open": 100,
