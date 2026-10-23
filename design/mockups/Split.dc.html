@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Chord — Split view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"SF Pro Text","SF Pro Display",system-ui,"Inter","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#3B4A6B}a:hover{color:#1F2A44}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; background: color-mix(in srgb, {{accent}} 7%, #F4F4F6); color: #1C1C1E; font-size: 13px; line-height: 1.35">
+
+  <!-- ===== Barre latérale ===== -->
+  <div style="width: 256px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 12px 10px 10px 10px; border-right: 1px solid rgba(0,0,0,0.05)">
+
+    <!-- Ligne compacte : feux + navigation + repli -->
+    <div style="display: flex; align-items: center; gap: 2px; height: 28px; padding-left: 4px">
+      <div style="display: flex; gap: 8px; margin-right: 10px">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; display: block"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E; display: block"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #28C840; display: block"></span>
+      </div>
+      <button type="button" aria-label="Page précédente" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #3A3A3C; cursor: pointer; padding: 0">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"></path></svg>
+      </button>
+      <button type="button" aria-label="Page suivante" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #AEAEB2; cursor: pointer; padding: 0">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"></path></svg>
+      </button>
+      <button type="button" aria-label="Recharger" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #3A3A3C; cursor: pointer; padding: 0">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.5-3.6"></path><path d="M13 2.5V6h-3.5"></path></svg>
+      </button>
+      <div style="flex: 1"></div>
+      <button type="button" aria-label="Replier la barre latérale (⌘S)" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6E6E73; cursor: pointer; padding: 0">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2.5"></rect><path d="M6 2.75v10.5"></path></svg>
+      </button>
+    </div>
+
+    <!-- Favoris -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <button type="button" aria-label="Boîte mail" style="height: 46px; border: 0; border-radius: 11px; background: rgba(255,255,255,0.62); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 20px; height: 20px; border-radius: 6px; background: #4A7BF7; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">M</span></button>
+      <button type="button" aria-label="Calendrier" style="height: 46px; border: 0; border-radius: 11px; background: rgba(255,255,255,0.62); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 20px; height: 20px; border-radius: 6px; background: #E5484D; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">23</span></button>
+      <button type="button" aria-label="Tickets" style="height: 46px; border: 0; border-radius: 11px; background: rgba(255,255,255,0.62); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 20px; height: 20px; border-radius: 6px; background: #6E56CF; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">T</span></button>
+      <button type="button" aria-label="Design" style="height: 46px; border: 0; border-radius: 11px; background: rgba(255,255,255,0.62); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 20px; height: 20px; border-radius: 6px; background: #1C1C1E; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">D</span></button>
+    </div>
+
+    <!-- Épinglés -->
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03)">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: {{accent}}; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">C</span>
+        <span style="flex: 1; font-size: 13px; font-weight: 500; color: #1C1C1E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Chord · Perf dashboard</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #24292F; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">G</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">chord/chord · PR #42 Sidebar collapse</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #F05138; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">S</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Swift Concurrency · Documentation</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #0A84FF; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">H</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Human Interface Guidelines · Materials</span>
+      </div>
+    </div>
+
+    <div style="height: 1px; background: rgba(0,0,0,0.07); margin: 0 6px"></div>
+
+    <!-- Aujourd'hui -->
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 10px 4px 10px">
+        <span style="font-size: 11px; font-weight: 600; color: #8E8E93; letter-spacing: 0.2px">AUJOURD'HUI</span>
+        <span style="font-size: 11px; color: #AEAEB2">4</span>
+      </div>
+      <button type="button" style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #6E6E73; cursor: pointer; text-align: left; width: 100%">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"></path></svg>
+        <span style="font-size: 13px">Nouvel onglet</span>
+        <span style="flex: 1"></span>
+        <span style="font-size: 11px; color: #AEAEB2">⌘T</span>
+      </button>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #F48024; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">?</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Animer un NSVisualEffectView sans saccade</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #6E56CF; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">T</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">CHO-118 · Barre latérale repliable</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #1C1C1E; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">W</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Session WWDC · Liquid Glass en pratique</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 8px">
+        <span style="width: 16px; height: 16px; border-radius: 4px; background: #34C759; color: #FFFFFF; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">U</span>
+        <span style="flex: 1; font-size: 13px; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">ungoogled-chromium-macos · building.md</span>
+      </div>
+    </div>
+
+    <div style="flex: 1"></div>
+
+    <!-- Spaces + téléchargements -->
+    <div style="display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 2px">
+      <button type="button" aria-label="Space Chord (actif)" style="display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 0; border-radius: 13px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 2px rgba(0,0,0,0.06); cursor: pointer">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}; display: block"></span>
+        <span style="font-size: 12px; font-weight: 600; color: #1C1C1E">Chord</span>
+      </button>
+      <button type="button" aria-label="Space Travail" style="width: 26px; height: 26px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 8px; height: 8px; border-radius: 50%; background: #C7C7CC; display: block"></span></button>
+      <button type="button" aria-label="Space Perso" style="width: 26px; height: 26px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><span style="width: 8px; height: 8px; border-radius: 50%; background: #C7C7CC; display: block"></span></button>
+      <button type="button" aria-label="Nouveau Space" style="width: 26px; height: 26px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; color: #AEAEB2"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"></path></svg></button>
+      <div style="flex: 1"></div>
+      <button type="button" aria-label="Téléchargements (⇧⌘J)" style="width: 28px; height: 26px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6E6E73; cursor: pointer; padding: 0">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7M5.5 7.5L8 10l2.5-2.5"></path><path d="M3 10.5v1.5a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5-1.5v-1.5"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Split view : dashboard (actif) | PR #42 ===== -->
+  <div style="flex: 1; min-width: 0; box-sizing: border-box; padding: {{pad}} {{pad}} {{pad}} 0; display: flex; gap: 8px">
+
+    <div style="flex: 1 1 0; min-width: 0; border-radius: {{radius}}; background: #FFFFFF; box-shadow: {{shadow}}, 0 0 0 2px color-mix(in srgb, {{accent}} 45%, transparent); overflow: hidden; display: flex; flex-direction: column">
+      <div style="display: flex; align-items: center; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 12px; border-bottom: 1px solid rgba(0,0,0,0.06); background: #FAFAFB">
+        <span style="width: 14px; height: 14px; border-radius: 4px; background: {{accent}}; color: #FFFFFF; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center">C</span>
+        <span style="font-size: 12px; font-weight: 500; color: #1C1C1E">localhost:3000/perf</span>
+        <div style="flex: 1"></div>
+        <button type="button" aria-label="Fermer ce volet" style="width: 22px; height: 22px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #8E8E93; cursor: pointer; padding: 0"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+      </div>
+      <div style="padding: 32px 36px; display: flex; flex-direction: column; gap: 22px; color: #1C1C1E">
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #8E8E93; letter-spacing: 0.3px">CHORD · BUILD 0.1.0-DEV</span><h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px">Budgets de latence</h1></div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 12px; background: #F7F7F9; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04)"><span style="font-size: 12px; color: #6E6E73">Barre de commande</span><span style="font-size: 26px; font-weight: 600; letter-spacing: -0.6px">31 ms</span><span style="font-size: 11px; color: #2E7D4F">Budget 50 ms</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 12px; background: #F7F7F9; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04)"><span style="font-size: 12px; color: #6E6E73">Changement de Space</span><span style="font-size: 26px; font-weight: 600; letter-spacing: -0.6px">72 ms</span><span style="font-size: 11px; color: #2E7D4F">Budget 100 ms</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 12px; background: #F7F7F9; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04)"><span style="font-size: 12px; color: #6E6E73">Démarrage à froid</span><span style="font-size: 26px; font-weight: 600; letter-spacing: -0.6px">1,14 s</span><span style="font-size: 11px; color: #B4530A">Budget 1 s</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); overflow: hidden">
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 10px 16px; background: #F7F7F9; font-size: 11px; font-weight: 600; color: #6E6E73"><span>Interaction</span><span>p50</span><span>p95</span><span>Sautées</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 12px 16px; font-size: 12px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Ouvrir un onglet</span><span>38 ms</span><span>61 ms</span><span>0</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 12px 16px; font-size: 12px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Replier la barre latérale</span><span>8 ms</span><span>14 ms</span><span>0</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 12px 16px; font-size: 12px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Ouvrir un Peek</span><span>44 ms</span><span>79 ms</span><span>1</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 12px 16px; font-size: 12px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Split view · redimensionner</span><span>6 ms</span><span>9 ms</span><span>0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- poignée -->
+    <div style="width: 0; display: flex; align-items: center; justify-content: center; position: relative">
+      <span style="position: absolute; width: 4px; height: 36px; border-radius: 2px; background: rgba(0,0,0,0.18); display: block"></span>
+    </div>
+
+    <div style="flex: 1 1 0; min-width: 0; border-radius: {{radius}}; background: #FFFFFF; box-shadow: {{shadow}}; overflow: hidden; display: flex; flex-direction: column">
+      <div style="display: flex; align-items: center; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 12px; border-bottom: 1px solid rgba(0,0,0,0.06); background: #FAFAFB">
+        <span style="width: 14px; height: 14px; border-radius: 4px; background: #24292F; color: #FFFFFF; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center">G</span>
+        <span style="font-size: 12px; font-weight: 500; color: #1C1C1E">github.com/chord/chord/pull/42</span>
+        <div style="flex: 1"></div>
+        <button type="button" aria-label="Fermer ce volet" style="width: 22px; height: 22px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #8E8E93; cursor: pointer; padding: 0"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+      </div>
+      <div style="padding: 32px 36px; display: flex; flex-direction: column; gap: 18px; color: #1C1C1E">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="font-size: 11px; font-weight: 600; color: #FFFFFF; background: #2E7D4F; padding: 3px 8px; border-radius: 10px">Open</span>
+          <span style="font-size: 12px; color: #6E6E73">kevin wants to merge 3 commits into <span style="font-family: ui-monospace, Menlo, monospace; background: #F2F2F7; padding: 1px 5px; border-radius: 4px">main</span></span>
+        </div>
+        <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.3px">Sidebar collapse with spring animation <span style="color: #8E8E93; font-weight: 400">#42</span></h1>
+        <div style="display: flex; gap: 18px; font-size: 12px; color: #6E6E73; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 10px">
+          <span>Conversation 4</span><span>Commits 3</span><span style="color: #1C1C1E; font-weight: 600; border-bottom: 2px solid #F05138; padding-bottom: 10px; margin-bottom: -12px">Files changed 2</span>
+        </div>
+        <div style="border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); overflow: hidden; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 1.7">
+          <div style="padding: 8px 14px; background: #F7F7F9; color: #3A3A3C; font-family: -apple-system, system-ui, sans-serif; font-weight: 500">Sidebar/SidebarController.swift</div>
+          <div style="padding: 2px 14px; color: #6E6E73; background: #F7FAFF">@@ -42,7 +42,12 @@</div>
+          <div style="padding: 0 14px; color: #3A3A3C">&nbsp;&nbsp;func collapse(animated: Bool) {</div>
+          <div style="padding: 0 14px; background: #FFEEF0; color: #8E1B2A">-&nbsp;&nbsp;&nbsp;&nbsp;widthConstraint.constant = 0</div>
+          <div style="padding: 0 14px; background: #E6FFED; color: #1F6F3A">+&nbsp;&nbsp;&nbsp;&nbsp;let spring = CASpringAnimation(keyPath: "constant")</div>
+          <div style="padding: 0 14px; background: #E6FFED; color: #1F6F3A">+&nbsp;&nbsp;&nbsp;&nbsp;spring.damping = 18; spring.stiffness = 220</div>
+          <div style="padding: 0 14px; background: #E6FFED; color: #1F6F3A">+&nbsp;&nbsp;&nbsp;&nbsp;spring.isAdditive = true   // interruptible</div>
+          <div style="padding: 0 14px; background: #E6FFED; color: #1F6F3A">+&nbsp;&nbsp;&nbsp;&nbsp;widthConstraint.animator().constant = 0</div>
+          <div style="padding: 0 14px; color: #3A3A3C">&nbsp;&nbsp;}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#5B6CFF","options":["#5B6CFF","#2E7D4F","#B4530A","#6E56CF"],"section":"Space"},"edgeless":{"editor":"boolean","default":false,"section":"Apparence"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const edgeless = this.props.edgeless ?? false;
+    return {
+      accent: this.props.accent ?? '#5B6CFF',
+      pad: edgeless ? '0px' : '10px',
+      radius: edgeless ? '0px' : '12px',
+      shadow: edgeless ? 'none' : '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.05)'
+    };
+  }
+}
+</script>
+</body>
+</html>

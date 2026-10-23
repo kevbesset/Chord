@@ -1,0 +1,12 @@
+.DS_Store
+
+# Xcode (the project is generated from app/project.yml)
+app/*.xcodeproj
+app/build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Chromium checkout and build output (tens of gigabytes)
+engine/vendor/
+engine/out/

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Chord — barre latérale repliée</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"SF Pro Text","SF Pro Display",system-ui,"Inter","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#3B4A6B}a:hover{color:#1F2A44}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; background: color-mix(in srgb, {{accent}} 7%, #F4F4F6); color: #1C1C1E; font-size: 13px; line-height: 1.35">
+  <!-- Barre latérale repliée (⌘S) : il ne reste que le cadre de la fenêtre et la page -->
+  <div style="flex: 1; min-width: 0; box-sizing: border-box; padding: {{pad}}; display: flex">
+    <div style="flex: 1; min-width: 0; border-radius: {{radius}}; background: #FFFFFF; box-shadow: {{shadow}}; overflow: hidden; display: flex; flex-direction: column">
+    <div style="padding: 56px 96px; display: flex; flex-direction: column; gap: 28px; max-width: 1180px; box-sizing: border-box; color: #1C1C1E">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between">
+        <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #8E8E93; letter-spacing: 0.3px">CHORD · BUILD 0.1.0-DEV</span><h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.5px">Budgets de latence</h1></div>
+        <span style="font-size: 12px; color: #8E8E93">Dernière mesure il y a 2 min · M3 Pro</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 22px; border-radius: 14px; background: #F7F7F9; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04)"><span style="font-size: 13px; color: #6E6E73">Barre de commande</span><span style="font-size: 32px; font-weight: 600; letter-spacing: -0.8px">31 ms</span><span style="font-size: 12px; color: #2E7D4F">Budget 50 ms · OK</span></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 22px; border-radius: 14px; background: #F7F7F9; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04)"><span style="font-size: 13px; color: #6E6E73">Changement de Space</span><span style="font-size: 32px; font-weight: 600; letter-spacing: -0.8px">72 ms</span><span style="font-size: 12px; color: #2E7D4F">Budget 100 ms · OK</span></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 22px; border-radius: 14px; background: #F7F7F9; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04)"><span style="font-size: 13px; color: #6E6E73">Démarrage à froid</span><span style="font-size: 32px; font-weight: 600; letter-spacing: -0.8px">1,14 s</span><span style="font-size: 12px; color: #B4530A">Budget 1 s · à optimiser</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); overflow: hidden">
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 12px 20px; background: #F7F7F9; font-size: 12px; font-weight: 600; color: #6E6E73"><span>Interaction</span><span>p50</span><span>p95</span><span>Images sautées</span></div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 14px 20px; font-size: 13px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Ouvrir un onglet</span><span>38 ms</span><span>61 ms</span><span>0</span></div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 14px 20px; font-size: 13px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Replier la barre latérale</span><span>8 ms</span><span>14 ms</span><span>0</span></div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 14px 20px; font-size: 13px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Ouvrir un Peek</span><span>44 ms</span><span>79 ms</span><span>1</span></div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 14px 20px; font-size: 13px; border-top: 1px solid rgba(0,0,0,0.05)"><span style="font-weight: 500">Split view · redimensionner</span><span>6 ms</span><span>9 ms</span><span>0</span></div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#5B6CFF","options":["#5B6CFF","#2E7D4F","#B4530A","#6E56CF"],"section":"Space"},"edgeless":{"editor":"boolean","default":false,"section":"Apparence"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const edgeless = this.props.edgeless ?? false;
+    return {
+      accent: this.props.accent ?? '#5B6CFF',
+      pad: edgeless ? '0px' : '10px',
+      radius: edgeless ? '0px' : '12px',
+      shadow: edgeless ? 'none' : '0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.05)'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Chord — petite fenêtre</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"SF Pro Text","SF Pro Display",system-ui,"Inter","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#3B4A6B}a:hover{color:#1F2A44}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; overflow: hidden; font-size: 13px; line-height: 1.35; color: #1C1C1E; background: radial-gradient(55% 55% at 15% 25%, #F7A95B 0%, rgba(247,169,91,0) 70%), radial-gradient(45% 60% at 85% 15%, #E24F8C 0%, rgba(226,79,140,0) 70%), radial-gradient(60% 55% at 65% 90%, #3B6CF6 0%, rgba(59,108,246,0) 70%), radial-gradient(40% 40% at 35% 75%, #7C3AED 0%, rgba(124,58,237,0) 70%), #1A1E3A">
+
+  <!-- Barre de menus macOS -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 26px; display: flex; align-items: center; gap: 18px; padding: 0 16px; font-size: 13px; color: #FFFFFF; background: rgba(0,0,0,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); text-shadow: 0 1px 2px rgba(0,0,0,0.3)">
+    <span style="font-weight: 700">Chord</span><span>Fichier</span><span>Édition</span><span>Affichage</span><span>Historique</span><span>Onglets</span><span>Fenêtre</span><span>Aide</span>
+    <span style="flex: 1"></span>
+    <span>ven. 23 oct.  12:49</span>
+  </div>
+
+  <!-- Une autre app derrière (éditeur), floutée par la distance -->
+  <div style="position: absolute; left: 120px; top: 90px; width: 820px; height: 560px; border-radius: 12px; background: rgba(30,30,34,0.82); box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.12); overflow: hidden; display: flex; flex-direction: column">
+    <div style="height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.06)">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; display: block"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E; display: block"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #28C840; display: block"></span>
+      <span style="margin-left: 10px; font-size: 12px; color: rgba(255,255,255,0.6)">SidebarController.swift — chord</span>
+    </div>
+    <div style="padding: 20px 24px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; line-height: 1.7; color: #D1D1D6">
+      <div><span style="color: #FF7AB2">final class</span> <span style="color: #78C2FF">SidebarController</span> {</div>
+      <div>&nbsp;&nbsp;<span style="color: #FF7AB2">func</span> collapse(animated: <span style="color: #78C2FF">Bool</span>) {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #FF7AB2">let</span> spring = <span style="color: #78C2FF">CASpringAnimation</span>(keyPath: <span style="color: #FFD479">"constant"</span>)</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;spring.damping = <span style="color: #FFD479">18</span>; spring.stiffness = <span style="color: #FFD479">220</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;spring.isAdditive = <span style="color: #FFD479">true</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;widthConstraint.animator().constant = <span style="color: #FFD479">0</span></div>
+      <div>&nbsp;&nbsp;}</div>
+      <div>}</div>
+    </div>
+  </div>
+
+  <!-- Petite fenêtre Chord : un lien ouvert depuis l'éditeur -->
+  <div style="position: absolute; left: 560px; top: 250px; width: 760px; height: 540px; box-sizing: border-box; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; background: rgba(255,255,255,{{glass}}); backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); box-shadow: 0 30px 90px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.3), 0 0 0 1.5px rgba(0,0,0,0.3)">
+
+    <div style="display: flex; align-items: center; gap: 6px; height: 46px; box-sizing: border-box; padding: 0 10px 0 12px">
+      <div style="display: flex; gap: 7px; margin-right: 8px">
+        <span style="width: 11px; height: 11px; border-radius: 50%; background: #FF5F57; display: block"></span>
+        <span style="width: 11px; height: 11px; border-radius: 50%; background: #FEBC2E; display: block"></span>
+        <span style="width: 11px; height: 11px; border-radius: 50%; background: #28C840; display: block"></span>
+      </div>
+      <button type="button" aria-label="Page précédente" style="width: 24px; height: 24px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #3A3A3C; cursor: pointer; padding: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"></path></svg></button>
+      <div style="flex: 1; display: flex; align-items: center; gap: 8px; height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05)">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6E6E73" stroke-width="1.6"><rect x="3.5" y="7" width="9" height="7" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>
+        <span style="font-size: 13px; font-weight: 500; color: #1C1C1E">developer.apple.com</span>
+        <span style="font-size: 12px; color: #6E6E73">/documentation/quartzcore/caspringanimation</span>
+      </div>
+      <button type="button" style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: color-mix(in srgb, {{accent}} 14%, rgba(255,255,255,0.6)); color: #1C1C1E; font-size: 12px; font-weight: 500; cursor: pointer; box-shadow: inset 0 0 0 1px color-mix(in srgb, {{accent}} 30%, transparent)">
+        <span>Ouvrir dans Chord</span>
+        <span style="font-size: 11px; color: #6E6E73">⌘ O</span>
+      </button>
+    </div>
+
+    <div style="flex: 1; margin: 0 8px 8px 8px; border-radius: 10px; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(0,0,0,0.06); overflow: hidden; display: flex; flex-direction: column; padding: 34px 40px; gap: 14px; color: #1C1C1E">
+      <span style="font-size: 12px; font-weight: 600; color: #8E8E93; letter-spacing: 0.3px">CLASS</span>
+      <h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.6px">CASpringAnimation</h1>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #3A3A3C; max-width: 560px">An animation that applies a spring-like force to a layer's properties. Use it for motion that can be interrupted mid-flight and still settle naturally.</p>
+      <div style="margin-top: 6px; padding: 14px 18px; border-radius: 10px; background: #1C1C1E; color: #E5E5EA; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 1.6; max-width: 560px">
+        <div><span style="color: #FF7AB2">class</span> <span style="color: #78C2FF">CASpringAnimation</span> : <span style="color: #78C2FF">CABasicAnimation</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px">
+        <span style="font-size: 15px; font-weight: 600">Topics</span>
+        <span style="font-size: 13px; color: #3B4A6B">damping · stiffness · mass · initialVelocity</span>
+        <span style="font-size: 13px; color: #3B4A6B">settlingDuration</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#5B6CFF","options":["#5B6CFF","#2E7D4F","#B4530A","#6E56CF"],"section":"Space"},"glass":{"editor":"range","default":0.42,"min":0.1,"max":0.9,"step":0.02,"section":"Apparence"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#5B6CFF', glass: this.props.glass ?? 0.42 };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Chord — logo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:-apple-system,"SF Pro Display","SF Pro Text",system-ui,"Inter","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#3B4A6B}a:hover{color:#1F2A44}
+</style>
+</helmet>
+<div style="width: 1440px; height: 560px; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); background: #FFFFFF; color: #1C1C1E">
+
+  <!-- Clair -->
+  <div style="display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 56px 72px; background: #FFFFFF; border-right: 1px solid rgba(0,0,0,0.06); border-bottom: 1px solid rgba(0,0,0,0.06)">
+    <div style="display: flex; align-items: center; gap: 22px">
+      <svg role="img" aria-label="Marque Chord" width="72" height="72" viewBox="-120 -120 240 240" fill="none" stroke-linecap="round">
+        <path d="M70.7,-70.7 A100,100 0 1 0 70.7,70.7" stroke="#1C1C1E" stroke-width="30"></path>
+        <path d="M70.7,70.7 L70.7,-70.7" stroke="{{accent}}" stroke-width="30"></path>
+      </svg>
+      <span style="font-size: 76px; font-weight: 600; letter-spacing: -2.6px; line-height: 1; color: #1C1C1E">Chord</span>
+    </div>
+    <span style="font-size: 12px; font-weight: 700; color: #8E8E93; letter-spacing: 0.6px">LOGO · FOND CLAIR</span>
+  </div>
+
+  <!-- Sombre -->
+  <div style="display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 56px 72px; background: #141414; border-bottom: 1px solid rgba(255,255,255,0.08)">
+    <div style="display: flex; align-items: center; gap: 22px">
+      <svg role="img" aria-label="Marque Chord, fond sombre" width="72" height="72" viewBox="-120 -120 240 240" fill="none" stroke-linecap="round">
+        <path d="M70.7,-70.7 A100,100 0 1 0 70.7,70.7" stroke="#F2F2F7" stroke-width="30"></path>
+        <path d="M70.7,70.7 L70.7,-70.7" stroke="{{accent}}" stroke-width="30"></path>
+      </svg>
+      <span style="font-size: 76px; font-weight: 600; letter-spacing: -2.6px; line-height: 1; color: #F2F2F7">Chord</span>
+    </div>
+    <span style="font-size: 12px; font-weight: 700; color: #8E8E93; letter-spacing: 0.6px">LOGO · FOND SOMBRE</span>
+  </div>
+
+  <!-- Mono + signature -->
+  <div style="display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 48px 72px; background: #F4F4F6; border-right: 1px solid rgba(0,0,0,0.06)">
+    <div style="display: flex; align-items: center; gap: 16px">
+      <svg role="img" aria-label="Marque Chord, monochrome" width="44" height="44" viewBox="-120 -120 240 240" fill="none" stroke-linecap="round" stroke="#1C1C1E">
+        <path d="M70.7,-70.7 A100,100 0 1 0 70.7,70.7" stroke-width="30"></path>
+        <path d="M70.7,70.7 L70.7,-70.7" stroke-width="30"></path>
+      </svg>
+      <span style="font-size: 46px; font-weight: 600; letter-spacing: -1.6px; line-height: 1; color: #1C1C1E">Chord</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 12px; font-weight: 700; color: #8E8E93; letter-spacing: 0.6px">MONOCHROME · TAMPONS, FAVICON, DOCUMENTS</span>
+      <span style="font-size: 13px; color: #6E6E73">Une seule couleur : l'arc et la corde partagent le trait.</span>
+    </div>
+  </div>
+
+  <!-- Signature + usage -->
+  <div style="display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 48px 72px; background: #FFFFFF">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 30px; font-weight: 600; letter-spacing: -0.8px; line-height: 1.15; color: #1C1C1E">The browser that closes the arc.</span>
+      <span style="font-size: 15px; color: #6E6E73">Signature anglaise, pour le README et le site. En français : « Le navigateur qui ferme l'arc. »</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #3A3A3C; line-height: 1.5">
+      <span><span style="font-weight: 600">Typographie :</span> SF Pro Display Semibold, interlettrage resserré (−3,5 %). Jamais en capitales.</span>
+      <span><span style="font-weight: 600">Zone de protection :</span> la hauteur de la corde, tout autour.</span>
+      <span><span style="font-weight: 600">Couleur de la corde :</span> indigo par défaut, ou la couleur du Space actif dans l'app.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#5B6CFF","options":["#5B6CFF","#2E7D4F","#B4530A","#6E56CF"],"section":"Marque"},"$preview":{"width":1440,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#5B6CFF' };
+  }
+}
+</script>
+</body>
+</html>
