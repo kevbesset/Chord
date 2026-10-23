@@ -1,0 +1,385 @@
+import AppKit
+
+/// The non-tab rows of the sidebar list. One shared instance each: outline views
+/// identify rows by object.
+final class ListMarker {
+    enum Kind { case separator, header, newTab }
+    let kind: Kind
+    private init(_ kind: Kind) { self.kind = kind }
+
+    static let separator = ListMarker(.separator)
+    static let header = ListMarker(.header)
+    static let newTab = ListMarker(.newTab)
+}
+
+/// Pinned tabs and their folders, then "Aujourd'hui" with "Nouvel onglet" first, then
+/// today's tabs. An NSOutlineView: rows are recycled, so the list stays fast with many
+/// tabs, and folders open and close like Arc's.
+///
+/// Tabs and folders are dragged to reorder them, into folders, above the separator to
+/// pin them, onto the favorites, onto a Space to move them there. Links dragged in from
+/// other apps open where they are dropped.
+final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate, NSMenuDelegate {
+    weak var delegate: SidebarDelegate?
+
+    private let scrollView = SidebarScrollView()
+    private let outline = SidebarOutlineView()
+    private var space: Space?
+    private var spaces: [Space] = []
+    private var topLevel: [AnyObject] = []
+    private var selectedID: UUID?
+    private var splitIDs: Set<UUID> = []
+    /// True while folders are opened to match the model, so that it is not saved back.
+    private var restoringExpansion = false
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("main"))
+        column.resizingMask = .autoresizingMask
+        outline.addTableColumn(column)
+        outline.outlineTableColumn = column
+        outline.headerView = nil
+        outline.style = .plain
+        outline.backgroundColor = .clear
+        outline.selectionHighlightStyle = .none
+        outline.intercellSpacing = NSSize(width: 0, height: 2)
+        outline.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        outline.indentationPerLevel = 14
+        outline.autoresizesOutlineColumn = false
+        outline.focusRingType = .none
+        outline.draggingDestinationFeedbackStyle = .gap
+        outline.dataSource = self
+        outline.delegate = self
+        outline.target = self
+        outline.action = #selector(rowClicked)
+        outline.isWindowChrome = { [weak self] row in
+            guard let self, let marker = self.outline.item(atRow: row) as? ListMarker else { return row < 0 }
+            return marker.kind != .newTab
+        }
+        outline.registerForDraggedTypes([.chordTab, .chordFolder, .URL])
+        outline.setDraggingSourceOperationMask(.move, forLocal: true)
+        outline.setDraggingSourceOperationMask(.copy, forLocal: false)
+        let menu = NSMenu()
+        menu.delegate = self
+        outline.menu = menu
+
+        scrollView.documentView = outline
+        scrollView.drawsBackground = false
+        scrollView.contentView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.scrollerStyle = .overlay
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    func update(space: Space, spaces: [Space], selectedID: UUID?, splitIDs: Set<UUID>) {
+        self.space = space
+        self.spaces = spaces
+        self.selectedID = selectedID
+        self.splitIDs = splitIDs
+        topLevel = space.pinnedItems.map(\.object)
+            + (space.pinnedItems.isEmpty ? [] : [ListMarker.separator])
+            + [ListMarker.header, ListMarker.newTab]
+            + space.today
+        outline.reloadData()
+        restoringExpansion = true
+        expandSaved(space.pinnedItems)
+        restoringExpansion = false
+    }
+
+    private func expandSaved(_ items: [PinnedItem]) {
+        for case .folder(let folder) in items where folder.isExpanded {
+            outline.expandItem(folder)
+            expandSaved(folder.items)
+        }
+    }
+
+    /// Redraws one tab's row (title, URL or icon changed) without reloading the list.
+    func reloadTab(id: UUID) {
+        guard let tab = space?.allTabs.first(where: { $0.id == id }) else { return }
+        outline.reloadItem(tab)
+    }
+
+    /// Slides the list sideways when the Space changes, in the direction of the switch.
+    func slide(forward: Bool) {
+        let transition = CATransition()
+        transition.type = .push
+        transition.subtype = forward ? .fromRight : .fromLeft
+        transition.duration = 0.22
+        transition.timingFunction = Theme.motionCurve
+        layer?.add(transition, forKey: "spaceSwitch")
+    }
+
+    // MARK: - Data source
+
+    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+        if item == nil { return topLevel.count }
+        return (item as? Folder)?.items.count ?? 0
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+        if let folder = item as? Folder { return folder.items[index].object }
+        return topLevel[index]
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+        item is Folder
+    }
+
+    // MARK: - Delegate
+
+    func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
+        guard let marker = item as? ListMarker else { return Theme.tabRowHeight }
+        switch marker.kind {
+        case .separator: return 13
+        case .header: return 26
+        case .newTab: return Theme.tabRowHeight
+        }
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool { false }
+    func outlineView(_ outlineView: NSOutlineView, shouldShowOutlineCellForItem item: Any) -> Bool { false }
+
+    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+        switch item {
+        case let tab as Tab:
+            let cell = outlineView.makeView(withIdentifier: TabCellView.reuseID, owner: nil) as? TabCellView ?? TabCellView()
+            cell.configure(tab: tab, selected: tab.id == selectedID, inSplit: splitIDs.contains(tab.id))
+            cell.onClose = { [weak self] in self?.delegate?.sidebarClose(tab) }
+            return cell
+        case let folder as Folder:
+            let cell = outlineView.makeView(withIdentifier: FolderCellView.reuseID, owner: nil) as? FolderCellView ?? FolderCellView()
+            cell.configure(folder: folder, expanded: outlineView.isItemExpanded(folder))
+            return cell
+        case let marker as ListMarker:
+            switch marker.kind {
+            case .newTab:
+                return outlineView.makeView(withIdentifier: NewTabCellView.reuseID, owner: nil) as? NewTabCellView ?? NewTabCellView()
+            case .header:
+                let cell = outlineView.makeView(withIdentifier: HeaderCellView.reuseID, owner: nil) as? HeaderCellView ?? HeaderCellView()
+                cell.configure(title: "Aujourd'hui", count: space?.today.count ?? 0)
+                return cell
+            case .separator:
+                return outlineView.makeView(withIdentifier: SeparatorCellView.reuseID, owner: nil) as? SeparatorCellView ?? SeparatorCellView()
+            }
+        default:
+            return nil
+        }
+    }
+
+    func outlineViewItemDidExpand(_ notification: Notification) {
+        folderToggled(notification, expanded: true)
+    }
+
+    func outlineViewItemDidCollapse(_ notification: Notification) {
+        folderToggled(notification, expanded: false)
+    }
+
+    private func folderToggled(_ notification: Notification, expanded: Bool) {
+        guard let folder = notification.userInfo?["NSObject"] as? Folder else { return }
+        (outline.view(atColumn: 0, row: outline.row(forItem: folder), makeIfNecessary: false) as? FolderCellView)?.setExpanded(expanded)
+        guard !restoringExpansion else { return }
+        delegate?.sidebarSetExpanded(folder, expanded)
+    }
+
+    @objc private func rowClicked() {
+        let row = outline.clickedRow
+        guard row >= 0 else { return }
+        switch outline.item(atRow: row) {
+        case let tab as Tab:
+            delegate?.sidebarSelect(tab)
+        case let folder as Folder:
+            if outline.isItemExpanded(folder) {
+                outline.animator().collapseItem(folder)
+            } else {
+                outline.animator().expandItem(folder)
+            }
+        case let marker as ListMarker where marker.kind == .newTab:
+            delegate?.sidebarNewTab()
+        default:
+            break
+        }
+    }
+
+    // MARK: - Drag and drop
+
+    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+        switch item {
+        case let tab as Tab:
+            return pasteboardItem(for: tab)
+        case let folder as Folder:
+            let entry = NSPasteboardItem()
+            entry.setString(folder.id.uuidString, forType: .chordFolder)
+            return entry
+        default:
+            return nil
+        }
+    }
+
+    /// Where a drop lands. In a folder; or at the top level: the pinned tabs down to the
+    /// "Aujourd'hui" header, today's tabs from "Nouvel onglet" down.
+    private func destination(item: Any?, index: Int) -> TabDestination? {
+        guard let space else { return nil }
+        if let folder = item as? Folder {
+            return .pinned(folder, index < 0 ? folder.items.count : index)
+        }
+        guard item == nil else { return nil }
+        let pinnedCount = space.pinnedItems.count
+        let todayStart = pinnedCount + (pinnedCount == 0 ? 0 : 1) + 2
+        let index = index < 0 ? topLevel.count : index
+        if index <= pinnedCount { return .pinned(nil, index) }
+        if index < todayStart - 1 { return .pinned(nil, pinnedCount) }
+        return .today(max(0, index - todayStart))
+    }
+
+    private func draggedFolder(_ info: NSDraggingInfo) -> Folder? {
+        guard let id = info.draggingPasteboard.string(forType: .chordFolder).flatMap(UUID.init(uuidString:)) else { return nil }
+        return space?.folders.first { $0.id == id }
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?,
+                     proposedChildIndex index: Int) -> NSDragOperation {
+        guard let space else { return [] }
+        // On a tab or a marker: drop just above it instead.
+        if item is Tab || item is ListMarker, let object = item as AnyObject? {
+            let parent = space.parent(of: object)
+            let siblings: [AnyObject] = parent?.items.map(\.object) ?? topLevel
+            guard let position = siblings.firstIndex(where: { $0 === object }) else { return [] }
+            outlineView.setDropItem(parent, dropChildIndex: position)
+            return validate(info, item: parent, index: position)
+        }
+        return validate(info, item: item, index: index)
+    }
+
+    private func validate(_ info: NSDraggingInfo, item: Any?, index: Int) -> NSDragOperation {
+        guard let destination = destination(item: item, index: index) else { return [] }
+        if let folder = draggedFolder(info) {
+            // Folders live among pinned tabs only, and never inside themselves.
+            guard case .pinned(let parent, _) = destination else { return [] }
+            if let parent, space?.folder(folder, contains: parent) == true { return [] }
+            return .move
+        }
+        return info.draggingPasteboard.types?.contains(.chordTab) == true ? .move : .copy
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+        guard let destination = destination(item: item, index: index) else { return false }
+        if let folder = draggedFolder(info) {
+            guard case .pinned(let parent, let position) = destination else { return false }
+            delegate?.sidebarMove(folder, into: parent, at: position)
+            return true
+        }
+        let pasteboard = info.draggingPasteboard
+        if let id = pasteboard.string(forType: .chordTab).flatMap(UUID.init(uuidString:)),
+           let tab = delegate?.sidebarTab(withID: id) {
+            delegate?.sidebarMove(tab, to: destination)
+            return true
+        }
+        let urls = (pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL]) ?? []
+        guard !urls.isEmpty else { return false }
+        delegate?.sidebarOpen(urls, at: destination)
+        return true
+    }
+
+    // MARK: - Context menu
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let row = outline.clickedRow
+        switch row >= 0 ? outline.item(atRow: row) : nil {
+        case let tab as Tab:
+            tabMenu(menu, tab)
+        case let folder as Folder:
+            menu.addItem(closureItem("Renommer…") { [weak self] in self?.delegate?.sidebarRename(folder) })
+            menu.addItem(closureItem("Nouveau dossier") { [weak self] in self?.delegate?.sidebarNewFolder(with: nil) })
+            menu.addItem(.separator())
+            menu.addItem(closureItem("Dégrouper") { [weak self] in self?.delegate?.sidebarUngroup(folder) })
+            menu.addItem(closureItem("Supprimer le dossier et ses onglets…") { [weak self] in self?.delegate?.sidebarDelete(folder) })
+        default:
+            menu.addItem(closureItem("Nouveau dossier") { [weak self] in self?.delegate?.sidebarNewFolder(with: nil) })
+            menu.addItem(closureItem("Nouvel onglet") { [weak self] in self?.delegate?.sidebarNewTab() })
+        }
+    }
+
+    private func tabMenu(_ menu: NSMenu, _ tab: Tab) {
+        menu.addItem(closureItem("Ajouter aux favoris") { [weak self] in self?.delegate?.sidebarToggleFavorite(tab) })
+        menu.addItem(closureItem(tab.isPinned ? "Détacher" : "Épingler") { [weak self] in self?.delegate?.sidebarTogglePin(tab) })
+        menu.addItem(closureItem("Nouveau dossier avec cet onglet") { [weak self] in self?.delegate?.sidebarNewFolder(with: tab) })
+        if let space, let folder = space.parent(of: tab) {
+            menu.addItem(closureItem("Sortir du dossier « \(folder.name) »") { [weak self] in
+                let parent = space.parent(of: folder)
+                let position = (space.items(in: parent).firstIndex { $0.object === folder } ?? 0) + 1
+                self?.delegate?.sidebarMove(tab, to: .pinned(parent, position))
+            })
+        }
+        if splitIDs.contains(tab.id) {
+            menu.addItem(closureItem("Retirer de la split view") { [weak self] in self?.delegate?.sidebarRemoveFromSplit(tab) })
+        } else if tab.id != selectedID {
+            menu.addItem(closureItem("Ouvrir en split view") { [weak self] in self?.delegate?.sidebarSplit(tab) })
+        }
+        let others = spaces.filter { $0 !== space }
+        if !others.isEmpty {
+            let move = NSMenuItem(title: "Déplacer vers", action: nil, keyEquivalent: "")
+            let submenu = NSMenu()
+            for other in others {
+                let entry = closureItem(other.name) { [weak self] in self?.delegate?.sidebarMove(tab, toSpace: other) }
+                entry.image = Theme.dot(color: other.color)
+                submenu.addItem(entry)
+            }
+            move.submenu = submenu
+            menu.addItem(move)
+        }
+        menu.addItem(.separator())
+        menu.addItem(closureItem("Copier l'URL") { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
+        menu.addItem(.separator())
+        menu.addItem(closureItem(tab.isPinned ? "Mettre en veille" : "Fermer l'onglet") { [weak self] in self?.delegate?.sidebarClose(tab) })
+    }
+}
+
+/// The list fills most of the sidebar, so its empty space and its non-clickable rows
+/// (headers, separators) move the window like the rest of the sidebar.
+final class SidebarOutlineView: NSOutlineView {
+    /// Whether a row is part of the window chrome. Clicks below the last row always are.
+    var isWindowChrome: (Int) -> Bool = { _ in true }
+
+    override func mouseDown(with event: NSEvent) {
+        let row = self.row(at: convert(event.locationInWindow, from: nil))
+        if row < 0 || isWindowChrome(row) {
+            window?.handleChromeMouseDown(event)
+        } else {
+            super.mouseDown(with: event)
+        }
+    }
+
+    /// Rows start at the left edge, indented only by their depth: no room is kept for
+    /// disclosure triangles, which folders draw themselves.
+    override func frameOfCell(atColumn column: Int, row: Int) -> NSRect {
+        var frame = super.frameOfCell(atColumn: column, row: row)
+        let indent = CGFloat(max(0, level(forRow: row))) * indentationPerLevel
+        frame.origin.x = indent
+        frame.size.width = bounds.width - indent
+        return frame
+    }
+}
+
+/// Hands horizontal swipes up to the sidebar, which switches Spaces with them.
+final class SidebarScrollView: NSScrollView {
+    override func scrollWheel(with event: NSEvent) {
+        if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) || event.phase == .ended || event.phase == .cancelled {
+            nextResponder?.scrollWheel(with: event)
+            if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) { return }
+        }
+        super.scrollWheel(with: event)
+    }
+}

@@ -54,13 +54,14 @@ et corriger les erreurs avant de rendre la main.
 
 - Coquille native fonctionnelle dans ChordDev (moteur WebKit provisoire) : fenêtre en
   verre translucide (aussi inactive), déplaçable depuis tout le vide de la barre latérale,
-  barre latérale redimensionnable, favoris, épinglés, glisser-déposer des onglets (ordre,
-  épingler, favoris, autre Space, liens d'autres apps), Spaces (couleur, nom, ⌃1…⌃9,
+  barre latérale redimensionnable, favoris par profil (comme Arc), épinglés avec dossiers,
+  vraies icônes des sites (cache disque, reprises d'Arc à l'import), glisser-déposer des
+  onglets et dossiers (ordre, dossiers, épingler, favoris, autre Space, liens d'autres apps), Spaces (couleur, nom, ⌃1…⌃9,
   glisser deux doigts), barre de commande, Peek (⇧-clic, liens sortant d'un épinglé),
   split view (⇧⌘D, 2 à 4 volets), petite fenêtre (⌥⌘N, liens d'autres apps), barre
   d'adresse en haut, mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
   remappables, import de la barre latérale d'Arc, session.
-- Pas encore : spike 0 Chromium, dossiers d'épinglés (les dossiers d'Arc sont dépliés),
-  import de l'historique / mots de passe / cookies (côté Chromium), extensions,
+- Pas encore : spike 0 Chromium, import de l'historique / mots de passe / cookies
+  (côté Chromium), vrais profils isolés (cookies séparés par profil), extensions,
   panneau de téléchargements.
 - Licence : pas encore choisie, à trancher avant le premier contributeur externe.

@@ -1,0 +1,58 @@
+# Xcode project definition. Generate with: xcodegen generate
+# Never edit Chord.xcodeproj by hand; it is rebuilt from this file.
+name: Chord
+
+options:
+  bundleIdPrefix: app.chord
+  developmentLanguage: fr
+  deploymentTarget:
+    macOS: "14.0"
+
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    # Local, unsigned development builds. Real signing comes with distribution.
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: NO
+
+targets:
+  ChordUI:
+    type: framework
+    platform: macOS
+    sources:
+      - path: ChordUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.chord.ChordUI
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        INSTALL_PATH: "@rpath"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks"
+
+  ChordDev:
+    type: application
+    platform: macOS
+    sources:
+      - path: ChordDev
+    dependencies:
+      - target: ChordUI
+    settings:
+      base:
+        PRODUCT_NAME: Chord Dev
+        PRODUCT_BUNDLE_IDENTIFIER: app.chord.dev
+        INFOPLIST_FILE: ChordDev/Info.plist
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+
+schemes:
+  ChordDev:
+    build:
+      targets:
+        ChordUI: all
+        ChordDev: all
+    run:
+      config: Debug
