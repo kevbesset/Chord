@@ -44,9 +44,11 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         super.init()
     }
 
-    func present(in host: NSView, mode: Mode, text: String, accent: NSColor) {
+    /// Shows the bar in `host`, centred on `area` (the page area, so that it lines up with
+    /// the page rather than with the whole window and its sidebar).
+    func present(in host: NSView, centeredOn area: NSView, mode: Mode, text: String, accent: NSColor) {
         let interval = Perf.begin("commandbar.open")
-        install(in: host)
+        install(in: host, centeredOn: area)
         self.mode = mode
         self.accent = accent
         field.placeholderString = mode == .split ? "Page à afficher à côté" : "Rechercher ou saisir une adresse"
@@ -70,7 +72,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
     // MARK: - Building (once)
 
-    private func install(in host: NSView) {
+    private func install(in host: NSView, centeredOn area: NSView) {
         guard self.host !== host else { return }
         self.host = host
 
@@ -141,15 +143,19 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         panelHost.addSubview(panel)
         panel.addSubview(column)
 
+        // 680 pt like the mockup, narrower when the page area is.
+        let preferredWidth = panelHost.widthAnchor.constraint(equalToConstant: 680)
+        preferredWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
             scrim.topAnchor.constraint(equalTo: host.topAnchor),
             scrim.leadingAnchor.constraint(equalTo: host.leadingAnchor),
             scrim.trailingAnchor.constraint(equalTo: host.trailingAnchor),
             scrim.bottomAnchor.constraint(equalTo: host.bottomAnchor),
 
-            panelHost.centerXAnchor.constraint(equalTo: host.centerXAnchor),
+            panelHost.centerXAnchor.constraint(equalTo: area.centerXAnchor),
             panelHost.topAnchor.constraint(equalTo: host.topAnchor, constant: 140),
-            panelHost.widthAnchor.constraint(equalToConstant: 680),
+            panelHost.widthAnchor.constraint(lessThanOrEqualTo: area.widthAnchor, constant: -40),
+            preferredWidth,
 
             panel.topAnchor.constraint(equalTo: panelHost.topAnchor),
             panel.leadingAnchor.constraint(equalTo: panelHost.leadingAnchor),

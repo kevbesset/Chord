@@ -422,7 +422,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func presentCommandBar(mode: CommandBarController.Mode, text: String) {
         pendingHide?.cancel()
         if peek.isVisible { peek.dismiss() }
-        commandBar.present(in: rootView, mode: mode, text: text, accent: state.activeSpace.accent)
+        commandBar.present(in: rootView, centeredOn: pageArea, mode: mode, text: text, accent: state.activeSpace.accent)
     }
 
     private func commandActions() -> [CommandItem] {
