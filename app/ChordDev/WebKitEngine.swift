@@ -15,6 +15,10 @@ final class WebKitEngine: NSObject, ChordWebEngine {
     func makePage() -> ChordWebPage {
         WebKitPage(configuration: configuration)
     }
+
+    func cancelDownload(_ id: String) {
+        WebKitDownloads.shared.cancel(id)
+    }
 }
 
 final class WebKitPage: NSObject, ChordWebPage {
@@ -118,6 +122,10 @@ private final class WebKitUIDelegate: NSObject, WKUIDelegate, WKNavigationDelega
     /// Link clicks go through ChordUI first: ⇧-click opens a Peek, ⌘-click a background tab.
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.shouldPerformDownload {
+            decisionHandler(.download)
+            return
+        }
         guard navigationAction.navigationType == .linkActivated,
               navigationAction.targetFrame?.isMainFrame == true,
               let url = navigationAction.request.url else {
@@ -126,5 +134,103 @@ private final class WebKitUIDelegate: NSObject, WKUIDelegate, WKNavigationDelega
         }
         let follow = page?.shouldFollowLink(to: url, modifiers: navigationAction.modifierFlags) ?? true
         decisionHandler(follow ? .allow : .cancel)
+    }
+
+    /// Files the page cannot show, or sent as attachments, are downloaded.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
+        let disposition = (navigationResponse.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+        let attachment = disposition.lowercased().hasPrefix("attachment")
+        decisionHandler(!navigationResponse.canShowMIMEType || attachment ? .download : .allow)
+    }
+
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        if let page { WebKitDownloads.shared.adopt(download, from: page) }
+    }
+
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        if let page { WebKitDownloads.shared.adopt(download, from: page) }
+    }
+}
+
+/// Saves downloads in ~/Downloads and reports them to the page's delegate, like
+/// Chromium's download manager will in the real browser.
+private final class WebKitDownloads: NSObject, WKDownloadDelegate {
+    static let shared = WebKitDownloads()
+
+    private struct Entry {
+        let id: String
+        weak var page: WebKitPage?
+        var destination: URL?
+        var observation: NSKeyValueObservation?
+    }
+
+    private var entries: [ObjectIdentifier: Entry] = [:]
+    private var downloads: [String: WKDownload] = [:]
+
+    func adopt(_ download: WKDownload, from page: WebKitPage) {
+        download.delegate = self
+        let id = UUID().uuidString
+        entries[ObjectIdentifier(download)] = Entry(id: id, page: page)
+        downloads[id] = download
+    }
+
+    func cancel(_ id: String) {
+        downloads[id]?.cancel { _ in }
+    }
+
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String,
+                  completionHandler: @escaping @MainActor (URL?) -> Void) {
+        guard var entry = entries[ObjectIdentifier(download)] else {
+            completionHandler(nil)
+            return
+        }
+        let folder = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
+        let destination = Self.unusedURL(in: folder, for: suggestedFilename)
+        entry.destination = destination
+        let id = entry.id
+        entry.observation = download.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
+            let fraction = progress.fractionCompleted
+            DispatchQueue.main.async { self?.report(id) { page in page.delegate?.page?(page, download: id, didProgress: fraction) } }
+        }
+        entries[ObjectIdentifier(download)] = entry
+        completionHandler(destination)
+        if let page = entry.page { page.delegate?.page?(page, didStartDownload: id, destination: destination) }
+    }
+
+    func downloadDidFinish(_ download: WKDownload) {
+        finish(download, success: true)
+    }
+
+    func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
+        finish(download, success: false)
+    }
+
+    private func finish(_ download: WKDownload, success: Bool) {
+        guard let entry = entries.removeValue(forKey: ObjectIdentifier(download)) else { return }
+        downloads[entry.id] = nil
+        entry.observation?.invalidate()
+        if let page = entry.page {
+            page.delegate?.page?(page, download: entry.id, didFinishAt: success ? entry.destination : nil)
+        }
+    }
+
+    private func report(_ id: String, _ body: (WebKitPage) -> Void) {
+        guard let page = entries.values.first(where: { $0.id == id })?.page else { return }
+        body(page)
+    }
+
+    /// "report.pdf", then "report (1).pdf", "report (2).pdf"… like Safari.
+    private static func unusedURL(in folder: URL, for filename: String) -> URL {
+        let name = filename.isEmpty ? "Téléchargement" : filename
+        var candidate = folder.appendingPathComponent(name)
+        let base = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension
+        var index = 1
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = folder.appendingPathComponent(ext.isEmpty ? "\(base) (\(index))" : "\(base) (\(index)).\(ext)")
+            index += 1
+        }
+        return candidate
     }
 }

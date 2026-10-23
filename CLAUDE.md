@@ -62,8 +62,7 @@ et corriger les erreurs avant de rendre la main.
   d'adresse en haut, mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
   remappables, import de la barre latérale d'Arc, page d'accueil (quand aucun onglet
   n'est ouvert : fermer un onglet ramène au dernier onglet encore actif, jamais à un
-  onglet en veille), session.
+  onglet en veille), téléchargements (panneau façon Arc, ⇧⌘J), session.
 - Pas encore : spike 0 Chromium, import de l'historique / mots de passe / cookies
-  (côté Chromium), vrais profils isolés (cookies séparés par profil), extensions,
-  panneau de téléchargements.
+  (côté Chromium), vrais profils isolés (cookies séparés par profil), extensions.
 - Licence : pas encore choisie, à trancher avant le premier contributeur externe.

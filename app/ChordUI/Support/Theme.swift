@@ -11,6 +11,11 @@ enum Theme {
     /// How strongly the active Space colours the window glass.
     static let spaceTintAlpha: CGFloat = 0.07
     static let tabRowHeight: CGFloat = 32
+    /// The sidebar's first row (traffic lights, panel toggle, navigation). Like Arc, its
+    /// buttons start level with the top of the page card, so the row sits a little lower
+    /// than macOS puts traffic lights.
+    static let titleRowHeight: CGFloat = 30
+    static var titleRowCenter: CGFloat { contentInset + titleRowHeight / 2 }
     /// The window glass: the clearest material, frosted a little so text stays legible.
     /// Together they match the mockup's 42 % white over a 40 px blur.
     static let windowMaterial = NSVisualEffectView.Material.fullScreenUI

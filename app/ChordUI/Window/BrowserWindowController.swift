@@ -26,6 +26,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private lazy var peek = makePeek()
     private var settingsWindow: SettingsWindowController?
     private var littleWindows: [LittleWindowController] = []
+    private lazy var downloadsPopover = makeDownloadsPopover()
 
     private var sidebarWidth: NSLayoutConstraint!
     private var sidebarLeading: NSLayoutConstraint!
@@ -81,6 +82,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     public override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
+        positionTrafficLights()
         if !settings.arcImportOffered, state.isPristine, ArcImport.isAvailable {
             // First launch with Arc on this Mac: offer to bring its sidebar over.
             DispatchQueue.main.async { [weak self] in self?.offerArcImport() }
@@ -230,6 +232,36 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         DispatchQueue.main.async { interval.end() }
     }
 
+    /// Moves the traffic lights down to the sidebar's first row, centred on it like Arc's,
+    /// by making the title bar's container taller and centring the buttons in it (the way
+    /// Electron's trafficLightPosition works). macOS lays the title bar out again on
+    /// resizes, key changes and full screen, so this runs after each of them.
+    private func positionTrafficLights() {
+        guard let window, !window.styleMask.contains(.fullScreen),
+              let close = window.standardWindowButton(.closeButton),
+              let titlebar = close.superview, let container = titlebar.superview else { return }
+        let height = Theme.titleRowCenter * 2
+        var frame = container.frame
+        if frame.height != height || frame.maxY != window.frame.height {
+            frame.size.height = height
+            frame.origin.y = window.frame.height - height
+            container.frame = frame
+        }
+        titlebar.frame = container.bounds
+        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            guard let button = window.standardWindowButton(kind) else { continue }
+            let y = ((height - button.frame.height) / 2).rounded()
+            if button.frame.minY != y { button.setFrameOrigin(NSPoint(x: button.frame.minX, y: y)) }
+        }
+        sidebar.needsLayout = true
+    }
+
+    public func windowDidResize(_ notification: Notification) { positionTrafficLights() }
+    public func windowDidEndLiveResize(_ notification: Notification) { positionTrafficLights() }
+    public func windowDidBecomeKey(_ notification: Notification) { positionTrafficLights() }
+    public func windowDidResignKey(_ notification: Notification) { positionTrafficLights() }
+    public func windowDidExitFullScreen(_ notification: Notification) { positionTrafficLights() }
+
     private func setTrafficLightsHidden(_ hidden: Bool) {
         for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
             window?.standardWindowButton(kind)?.isHidden = hidden
@@ -318,6 +350,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
                 sidebar.updateNavigation(tab: selected)
                 window?.title = selected.displayTitle
             }
+        case .downloadStarted:
+            // Like Arc, a new download shows itself.
+            if window?.isKeyWindow == true, !downloadsPopover.isShown { showDownloads(nil) }
         case .peek(let url):
             presentPeek(url)
         }
@@ -736,11 +771,31 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         alert.beginSheetModal(for: window)
     }
 
-    /// Opens the Downloads folder until Chord has its own downloads panel.
+    /// ⇧⌘J: the downloads panel, above the downloads button, or from the window's
+    /// bottom-left corner while the sidebar is hidden.
     @objc public func showDownloads(_ sender: Any?) {
-        if let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first {
-            NSWorkspace.shared.open(downloads)
+        if downloadsPopover.isShown {
+            downloadsPopover.performClose(nil)
+            return
         }
+        if sidebarMode == .hidden {
+            let corner = NSRect(x: 16, y: 8, width: 1, height: 1)
+            downloadsPopover.show(relativeTo: corner, of: rootView, preferredEdge: .maxY)
+        } else {
+            let anchor = sidebar.downloadsAnchor
+            downloadsPopover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .maxY)
+        }
+    }
+
+    private func makeDownloadsPopover() -> NSPopover {
+        let panel = DownloadsPanelController(downloads: state.downloads)
+        panel.onCancel = { [weak self] id in self?.state.cancelDownload(id) }
+        panel.onDismissFailed = { [weak self] id in self?.state.downloads.remove(id: id) }
+        let popover = NSPopover()
+        popover.contentViewController = panel
+        popover.behavior = .transient
+        popover.animates = true
+        return popover
     }
 
     public func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {

@@ -1,10 +1,9 @@
 import AppKit
 
-/// The Spaces at the bottom of the sidebar: the active one as a named pill,
-/// the others as coloured dots, then a "+" to create one.
+/// The Spaces at the bottom of the sidebar: the active one as a named pill, the others
+/// as coloured dots. The sidebar puts "+" for a new Space at the far right, like Arc.
 final class SpaceSwitcherView: NSStackView {
     weak var sidebarDelegate: SidebarDelegate?
-    private lazy var addButton = IconButton(symbol: "plus", label: "Nouveau Space", target: self, action: #selector(addClicked), size: 24, pointSize: 10)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -21,10 +20,7 @@ final class SpaceSwitcherView: NSStackView {
             chip.delegate = sidebarDelegate
             addArrangedSubview(chip)
         }
-        addArrangedSubview(addButton)
     }
-
-    @objc private func addClicked() { sidebarDelegate?.sidebarAddSpace() }
 }
 
 final class SpaceChipView: NSView {

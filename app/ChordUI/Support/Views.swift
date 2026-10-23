@@ -1,9 +1,11 @@
 import AppKit
 
-/// Borderless SF Symbol button used across the window chrome.
+/// Borderless SF Symbol button used across the window chrome. Like Arc's, it shows a
+/// rounded square under the pointer, a little darker while pressed.
 final class IconButton: NSButton {
     private let pointSize: CGFloat
     private var stopShown = false
+    private var isHovered = false
 
     init(symbol: String, label: String, target: AnyObject?, action: Selector?, size: CGFloat = 26, pointSize: CGFloat = 13) {
         self.pointSize = pointSize
@@ -18,6 +20,8 @@ final class IconButton: NSButton {
         self.action = action
         contentTintColor = .secondaryLabelColor
         translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = (size * 0.25).rounded()
         NSLayoutConstraint.activate([
             widthAnchor.constraint(equalToConstant: size),
             heightAnchor.constraint(equalToConstant: size),
@@ -27,6 +31,46 @@ final class IconButton: NSButton {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     override var mouseDownCanMoveWindow: Bool { false }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isHovered = true
+        refreshBackground()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovered = false
+        refreshBackground()
+    }
+
+    override func highlight(_ flag: Bool) {
+        super.highlight(flag)
+        refreshBackground()
+    }
+
+    override var isEnabled: Bool {
+        didSet { refreshBackground() }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshBackground()
+    }
+
+    private func refreshBackground() {
+        guard isEnabled, isHovered || isHighlighted else {
+            layer?.backgroundColor = nil
+            return
+        }
+        let strength: CGFloat = isHighlighted ? 1.6 : 1
+        let color = isDarkAppearance ? NSColor.white.withAlphaComponent(0.1 * strength) : NSColor.black.withAlphaComponent(0.06 * strength)
+        layer?.backgroundColor = color.cgColor
+    }
 
     /// Turns a reload button into a stop button while the page loads, and back.
     func showsStop(_ stop: Bool) {

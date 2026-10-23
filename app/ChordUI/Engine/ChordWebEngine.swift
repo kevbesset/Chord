@@ -9,6 +9,8 @@ import AppKit
 @objc public protocol ChordWebEngine: AnyObject {
     /// Creates an empty page. Nothing loads until `load(_:)` is called.
     func makePage() -> ChordWebPage
+    /// Stops a download started by one of the engine's pages.
+    @objc optional func cancelDownload(_ id: String)
 }
 
 @objc public protocol ChordWebPage: AnyObject {
@@ -41,4 +43,12 @@ import AppKit
     /// The user clicked a link. Return false when ChordUI handled it elsewhere
     /// (a Peek, a background tab); the engine then cancels the navigation.
     @objc optional func page(_ page: ChordWebPage, shouldFollowLinkTo url: URL, modifiers: NSEvent.ModifierFlags) -> Bool
+
+    /// A download started from the page, saved at `destination`. `id` names it in the
+    /// calls that follow, and for `ChordWebEngine.cancelDownload(_:)`.
+    @objc optional func page(_ page: ChordWebPage, didStartDownload id: String, destination: URL)
+    /// Between 0 and 1.
+    @objc optional func page(_ page: ChordWebPage, download id: String, didProgress fraction: Double)
+    /// `fileURL` is nil when the download failed or was cancelled.
+    @objc optional func page(_ page: ChordWebPage, download id: String, didFinishAt fileURL: URL?)
 }

@@ -14,6 +14,8 @@ public enum StateChange: Equatable {
     case tab(UUID)
     /// A page asked for a link to open in a Peek.
     case peek(URL)
+    /// A download started.
+    case downloadStarted
 }
 
 /// Where a tab goes in the sidebar.
@@ -30,11 +32,16 @@ public final class BrowserState: NSObject {
     public let changes = PassthroughSubject<StateChange, Never>()
     public private(set) var spaces: [Space] = []
     public private(set) var activeSpaceID: UUID
+    /// This session's downloads and the Downloads folder's recent files.
+    public let downloads = Downloads()
 
     /// Favorites by profile. Like Arc, Spaces that share a profile share favorites.
     private var favoritesByProfile: [String: [Tab]] = [:]
     /// How many pages stay alive besides the visible ones. Older tabs go to sleep.
     var maxAwakeTabs = 8
+    /// Pages of tabs closed while their download runs: kept alive until it ends, since
+    /// an engine may stop a download whose page goes away.
+    private var downloadingPages: [String: ChordWebPage] = [:]
     /// Most recent last, for ⇧⌘T.
     private var closedTabs: [(snapshot: TabSnapshot, spaceID: UUID)] = []
 
@@ -681,6 +688,30 @@ extension BrowserState: ChordWebPageDelegate {
             return false
         }
         return true
+    }
+
+    public func page(_ page: ChordWebPage, didStartDownload id: String, destination: URL) {
+        downloads.start(id: id, destination: destination)
+        changes.send(.downloadStarted)
+        // A new tab opened only for this file has nothing to show: close it, like Arc.
+        if let tab = tab(owning: page), tab.section == .today, !page.canGoBack, (page.title ?? "").isEmpty {
+            downloadingPages[id] = page
+            close(tab)
+        }
+    }
+
+    public func page(_ page: ChordWebPage, download id: String, didProgress fraction: Double) {
+        downloads.progress(id: id, fraction: fraction)
+    }
+
+    public func page(_ page: ChordWebPage, download id: String, didFinishAt fileURL: URL?) {
+        downloads.finish(id: id, fileURL: fileURL)
+        downloadingPages[id] = nil
+    }
+
+    /// Stops a running download.
+    public func cancelDownload(_ id: String) {
+        engine.cancelDownload?(id)
     }
 
     /// The last two labels of a host, close enough to a registrable domain here.

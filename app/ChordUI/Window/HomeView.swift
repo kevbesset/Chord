@@ -104,7 +104,6 @@ final class HomeView: NSView {
     /// The Space shown: its colour, name, and its favorites then pinned tabs as shortcuts.
     func update(space: Space, favorites: [Tab]) {
         accent = space.accent
-        mark.accent = space.accent
         greeting.stringValue = Self.greeting()
         subtitle.stringValue = "Space \(space.name) · aucun onglet ouvert"
         needsDisplay = true
@@ -310,10 +309,10 @@ final class HomeTileView: NSView {
     }
 }
 
-/// The mark: an arc in the text colour, closed by its chord in the accent colour
-/// (design/brand/chord-mark.svg).
+/// The mark, as in the brand guide (design/brand/chord-mark.svg): the arc in the text
+/// colour, the chord in Chord's indigo, whatever the Space.
 final class ChordMarkView: NSView {
-    var accent = NSColor(hex: Theme.spacePalette[0]) { didSet { needsDisplay = true } }
+    private let accent = NSColor(hex: Theme.spacePalette[0])
 
     override var isFlipped: Bool { true }
 

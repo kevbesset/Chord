@@ -58,11 +58,15 @@ final class SidebarView: NSView {
     private let resizeHandle = SidebarResizeHandle()
     // The first row shares the title bar with the traffic lights: a touch larger than
     // the other icons, so that they hold their own next to them.
-    private lazy var backButton = IconButton(symbol: "chevron.left", label: "Page précédente (⌘[)", target: self, action: #selector(backClicked), size: 28, pointSize: 15)
-    private lazy var forwardButton = IconButton(symbol: "chevron.right", label: "Page suivante (⌘])", target: self, action: #selector(forwardClicked), size: 28, pointSize: 15)
-    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Recharger (⌘R)", target: self, action: #selector(reloadClicked), size: 28, pointSize: 15)
-    private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: "Barre latérale (⌘S)", target: self, action: #selector(collapseClicked), size: 28, pointSize: 15)
-    private lazy var downloadsButton = IconButton(symbol: "arrow.down.circle", label: "Téléchargements (⇧⌘J)", target: self, action: #selector(downloadsClicked))
+    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Page précédente (⌘[)", target: self, action: #selector(backClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var forwardButton = IconButton(symbol: "arrow.right", label: "Page suivante (⌘])", target: self, action: #selector(forwardClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Recharger (⌘R)", target: self, action: #selector(reloadClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: "Barre latérale (⌘S)", target: self, action: #selector(collapseClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var downloadsButton = IconButton(symbol: "tray.and.arrow.down", label: "Téléchargements (⇧⌘J)", target: self, action: #selector(downloadsClicked), size: 28, pointSize: 14)
+    private lazy var addSpaceButton = IconButton(symbol: "plus", label: "Nouveau Space", target: self, action: #selector(addSpaceClicked), size: 28, pointSize: 13)
+
+    /// Where the downloads panel opens from.
+    var downloadsAnchor: NSView { downloadsButton }
 
     private var favoritesTopToPill: NSLayoutConstraint!
     private var favoritesTopToRow: NSLayoutConstraint!
@@ -166,8 +170,10 @@ final class SidebarView: NSView {
 
         let bottomRow = NSStackView()
         bottomRow.orientation = .horizontal
-        bottomRow.addView(spaceSwitcher, in: .leading)
-        bottomRow.addView(downloadsButton, in: .trailing)
+        // Like Arc: downloads on the left, the Spaces centred, a new Space on the right.
+        bottomRow.addView(downloadsButton, in: .leading)
+        bottomRow.addView(spaceSwitcher, in: .center)
+        bottomRow.addView(addSpaceButton, in: .trailing)
 
         for view in [floatingBackground, topRow, addressPill, favorites, tabList, bottomRow, resizeHandle] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -193,7 +199,7 @@ final class SidebarView: NSView {
             // The first row shares the title bar with the traffic lights.
             topRowCenter, topRowLeading,
             topRow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            topRow.heightAnchor.constraint(equalToConstant: 28),
+            topRow.heightAnchor.constraint(equalToConstant: Theme.titleRowHeight),
 
             addressPill.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 8),
             addressPill.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
@@ -209,7 +215,7 @@ final class SidebarView: NSView {
             tabList.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             tabList.bottomAnchor.constraint(equalTo: bottomRow.topAnchor, constant: -6),
 
-            bottomRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            bottomRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             bottomRow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             bottomRow.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
             bottomRow.heightAnchor.constraint(equalToConstant: 30),
@@ -248,7 +254,8 @@ final class SidebarView: NSView {
         swipeDistance += fingers
         if !swipeFired, abs(swipeDistance) > 60 {
             swipeFired = true
-            delegate?.sidebarSwipe(forward: swipeDistance < 0)
+            // Like Arc: fingers moving right bring the next Space.
+            delegate?.sidebarSwipe(forward: swipeDistance > 0)
         }
     }
 
@@ -270,6 +277,7 @@ final class SidebarView: NSView {
     @objc private func reloadClicked() { delegate?.sidebarReload() }
     @objc private func collapseClicked() { delegate?.sidebarToggle() }
     @objc private func downloadsClicked() { delegate?.sidebarShowDownloads() }
+    @objc private func addSpaceClicked() { delegate?.sidebarAddSpace() }
 }
 
 /// The sidebar's right edge: drag it to change the sidebar's width.
