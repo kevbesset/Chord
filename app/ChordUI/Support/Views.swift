@@ -2,7 +2,11 @@ import AppKit
 
 /// Borderless SF Symbol button used across the window chrome.
 final class IconButton: NSButton {
+    private let pointSize: CGFloat
+    private var stopShown = false
+
     init(symbol: String, label: String, target: AnyObject?, action: Selector?, size: CGFloat = 26, pointSize: CGFloat = 13) {
+        self.pointSize = pointSize
         super.init(frame: NSRect(x: 0, y: 0, width: size, height: size))
         image = Theme.symbol(symbol, size: pointSize)
         imagePosition = .imageOnly
@@ -23,6 +27,15 @@ final class IconButton: NSButton {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     override var mouseDownCanMoveWindow: Bool { false }
+
+    /// Turns a reload button into a stop button while the page loads, and back.
+    func showsStop(_ stop: Bool) {
+        guard stop != stopShown else { return }
+        stopShown = stop
+        image = Theme.symbol(stop ? "xmark" : "arrow.clockwise", size: stop ? pointSize - 1 : pointSize)
+        toolTip = stop ? "Arrêter (⌘.)" : "Recharger (⌘R)"
+        setAccessibilityLabel(stop ? "Arrêter le chargement" : "Recharger")
+    }
 }
 
 /// A site's icon. Until the real one is known (or when the site has none), a coloured

@@ -7,6 +7,8 @@ final class ContentCardView: NSView {
     private(set) var accessory: NSView?
     private var edgeless = false
     private var hostedConstraints: [NSLayoutConstraint] = []
+    private let loadingBar = LoadingBarView()
+    private var loadingBarTop: NSLayoutConstraint?
     private let emptyLabel = NSTextField(labelWithString: "⌘T pour ouvrir un onglet")
 
     override init(frame frameRect: NSRect) {
@@ -18,10 +20,27 @@ final class ContentCardView: NSView {
         emptyLabel.textColor = .tertiaryLabelColor
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(emptyLabel)
+        loadingBar.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(loadingBar)
         NSLayoutConstraint.activate([
             emptyLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            loadingBar.leadingAnchor.constraint(equalTo: leadingAnchor),
+            loadingBar.trailingAnchor.constraint(equalTo: trailingAnchor),
+            loadingBar.heightAnchor.constraint(equalToConstant: LoadingBarView.height),
         ])
+        pinLoadingBar()
+    }
+
+    /// The loading line along the top of the page, under the bar above it if any.
+    func setLoading(_ loading: Bool, accent: NSColor) {
+        loadingBar.setLoading(loading, accent: accent)
+    }
+
+    private func pinLoadingBar() {
+        loadingBarTop?.isActive = false
+        loadingBarTop = loadingBar.topAnchor.constraint(equalTo: accessory?.bottomAnchor ?? topAnchor)
+        loadingBarTop?.isActive = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -72,7 +91,8 @@ final class ContentCardView: NSView {
         emptyLabel.isHidden = view != nil
         if let view {
             view.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(view, positioned: .below, relativeTo: accessory)
+            // Under the loading line, which must stay above the page.
+            addSubview(view, positioned: .below, relativeTo: loadingBar)
         }
         pinHostedView()
     }
@@ -80,6 +100,7 @@ final class ContentCardView: NSView {
     private func pinHostedView() {
         NSLayoutConstraint.deactivate(hostedConstraints)
         hostedConstraints = []
+        pinLoadingBar()
         guard let view = hostedView, view.superview === self else { return }
         hostedConstraints = [
             view.topAnchor.constraint(equalTo: accessory?.bottomAnchor ?? topAnchor),

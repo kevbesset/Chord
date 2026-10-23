@@ -161,6 +161,11 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             column.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
             column.bottomAnchor.constraint(equalTo: panel.bottomAnchor),
 
+            // Every row of the column spans the panel: a nested stack view would otherwise
+            // shrink to its content and drift to one side.
+            header.widthAnchor.constraint(equalTo: column.widthAnchor),
+            results.widthAnchor.constraint(equalTo: column.widthAnchor),
+            footer.widthAnchor.constraint(equalTo: column.widthAnchor),
             header.heightAnchor.constraint(equalToConstant: 60),
             footer.heightAnchor.constraint(equalToConstant: 36),
         ])

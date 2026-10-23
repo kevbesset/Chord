@@ -50,12 +50,15 @@ public enum MainMenu {
         ]))
 
         main.addItem(submenu("Affichage", [
-            item("Masquer la barre latérale", #selector(C.toggleSidebar(_:)), "s"),
+            item("Masquer la barre latérale", #selector(C.toggleSidebarVisibility(_:)), "s"),
+            hidden(item("Barre latérale (second raccourci)", #selector(C.toggleSidebarVisibility(_:)), "b", tag: 2)),
             item("Split view", #selector(C.toggleSplitView(_:)), "d", [.command, .shift]),
             item("Barre d'adresse en haut", #selector(C.toggleAddressBarPosition(_:))),
             item("Mode edgeless", #selector(C.toggleEdgeless(_:))),
             .separator(),
             item("Recharger la page", #selector(C.reloadPage(_:)), "r"),
+            item("Recharger sans le cache", #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
+            item("Arrêter le chargement", #selector(C.stopLoading(_:)), "."),
             .separator(),
             item("Plein écran", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
         ]))
@@ -203,6 +206,14 @@ public enum MainMenu {
             let name = NSStringFromSelector(action)
             item.identifier = NSUserInterfaceItemIdentifier(tag == 0 ? name : "\(name)#\(tag)")
         }
+        return item
+    }
+
+    /// An item that is not shown in the menu but still answers its shortcut: a second
+    /// shortcut for an action (⌘B besides ⌘S for the sidebar).
+    private static func hidden(_ item: NSMenuItem) -> NSMenuItem {
+        item.isHidden = true
+        item.allowsKeyEquivalentWhenHidden = true
         return item
     }
 

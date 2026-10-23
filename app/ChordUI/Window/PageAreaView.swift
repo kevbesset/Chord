@@ -13,6 +13,8 @@ final class PageAreaView: NSView {
     }
 
     let toolbar = PageToolbarView()
+    /// Shown when the Space has no tab open.
+    let home = HomeView()
     private var panes: [PaneView] = []
     private var dividers: [SplitDividerView] = []
     private var fractions: [CGFloat] = [1]
@@ -40,7 +42,7 @@ final class PageAreaView: NSView {
 
     // MARK: - Content
 
-    /// Shows the given tabs with their page views. An empty list shows the empty state.
+    /// Shows the given tabs with their page views. An empty list shows the home page.
     func show(tabs: [Tab], views: [NSView], activeID: UUID?) {
         let count = max(1, tabs.count)
         if count != panes.count || tabs.map(\.id) != self.tabs.map(\.id) {
@@ -57,7 +59,7 @@ final class PageAreaView: NSView {
         let split = tabs.count > 1
         for (index, pane) in panes.enumerated() {
             let tab = tabs.indices.contains(index) ? tabs[index] : nil
-            pane.card.show(views.indices.contains(index) ? views[index] : nil)
+            pane.card.show(tabs.isEmpty ? home : (views.indices.contains(index) ? views[index] : nil))
             if split, let tab {
                 pane.header.update(tab: tab)
                 pane.card.setAccessory(pane.header)
@@ -65,6 +67,7 @@ final class PageAreaView: NSView {
                 pane.card.setAccessory(toolbarOnTop ? toolbar : nil)
             }
             pane.isActivePane = split && tab?.id == activeID
+            pane.card.setLoading(tab?.page?.isLoading ?? false, accent: accent)
         }
         toolbar.update(tab: tabs.first { $0.id == activeID } ?? tabs.first)
         updateClickMonitor()
@@ -74,6 +77,7 @@ final class PageAreaView: NSView {
     /// The URL or navigation state of a shown tab changed.
     func refresh(tab: Tab) {
         guard let index = tabs.firstIndex(where: { $0 === tab }) else { return }
+        panes[index].card.setLoading(tab.page?.isLoading ?? false, accent: accent)
         if tabs.count > 1 { panes[index].header.update(tab: tab) }
         if tab.id == activeID || tabs.count == 1 { toolbar.update(tab: tab) }
     }

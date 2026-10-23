@@ -72,6 +72,14 @@ public final class Space {
 
     public var color: NSColor { NSColor(hex: colorHex) }
 
+    /// The colour for accents (the mark's chord, selection, the active split pane). A
+    /// neutral Space (grey, black or white, as Arc themes can be) has no accent of its
+    /// own, so it gets Chord's indigo; its tint keeps its own colour.
+    public var accent: NSColor {
+        let color = self.color.usingColorSpace(.sRGB) ?? self.color
+        return color.saturationComponent < 0.15 ? NSColor(hex: Theme.spacePalette[0]) : self.color
+    }
+
     /// Every pinned tab, folders flattened, in sidebar order.
     var pinned: [Tab] { pinnedItems.flatMap(\.tabs) }
 

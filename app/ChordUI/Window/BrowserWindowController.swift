@@ -106,6 +106,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         edgeHover.onExit = { [weak self] in self?.pendingReveal?.cancel() }
         pageArea.onAction = { [weak self] action in self?.handle(action) }
         pageArea.moreMenu = { [weak self] in self?.moreMenu() ?? NSMenu() }
+        pageArea.home.onSearch = { [weak self] in self?.newTab(nil) }
+        pageArea.home.onOpen = { [weak self] tab in self?.sidebarSelect(tab) }
 
         // Back to front: frost, tint, pages, edge strip, sidebar. Overlays go on top later.
         for view in [frostView, tintView, pageArea, edgeHover, sidebar] as [NSView] {
@@ -153,7 +155,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         cardLeadingFree.constant = inset
         sidebarWidth.constant = settings.sidebarWidth
         if sidebarMode == .hidden { sidebarLeading.constant = -(settings.sidebarWidth + 32) }
-        pageArea.setStyle(edgeless: edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.color)
+        pageArea.setStyle(edgeless: edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.accent)
         sidebar.setAddressBarOnTop(settings.addressBarOnTop)
         commandBar.isGlass = settings.commandBarGlass
         let appearance = settings.appearance.nsAppearance
@@ -183,7 +185,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             context.allowsImplicitAnimation = animated
             self.tintView.layer?.backgroundColor = color
         }
-        pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.color)
+        pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.accent)
     }
 
     // MARK: - Sidebar modes
@@ -285,6 +287,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case .spaces:
             updateTint(animated: true)
             sidebar.update(state: state)
+            showSelectedPage(focus: false)
         case .tabs:
             sidebar.update(state: state)
             showSelectedPage(focus: false)
@@ -327,6 +330,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         let tabs = state.visibleTabs
         let views = tabs.map { state.page(for: $0).view }
         let selected = state.selectedTab
+        if tabs.isEmpty { pageArea.home.update(space: state.activeSpace, favorites: state.favorites) }
         pageArea.show(tabs: tabs, views: views, activeID: selected?.id)
         window?.title = selected?.displayTitle ?? "Chord"
         if focus, let view = selected?.page?.view, !commandBar.isVisible, !peek.isVisible {
@@ -351,7 +355,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         switch action {
         case .back: goBack(nil)
         case .forward: goForward(nil)
-        case .reload: reloadPage(nil)
+        case .reload: reloadOrStop()
         case .address: openLocation(nil)
         case .split: toggleSplitView(nil)
         case .copyURL: copyURL(nil)
@@ -380,7 +384,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func presentCommandBar(mode: CommandBarController.Mode, text: String) {
         pendingHide?.cancel()
         if peek.isVisible { peek.dismiss() }
-        commandBar.present(in: rootView, mode: mode, text: text, accent: state.activeSpace.color)
+        commandBar.present(in: rootView, mode: mode, text: text, accent: state.activeSpace.accent)
     }
 
     private func commandActions() -> [CommandItem] {
@@ -393,7 +397,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             CommandItem(section: "Actions", title: "Nouvel onglet dans le Space \(state.activeSpace.name)", symbol: "plus", shortcut: "⌘T",
                         action: .run { [weak self] in self?.newTab(nil) }),
             CommandItem(section: "Actions", title: sidebarMode == .docked ? "Masquer la barre latérale" : "Afficher la barre latérale",
-                        symbol: "sidebar.left", shortcut: "⌘S", action: .run { [weak self] in self?.toggleSidebar(nil) }),
+                        symbol: "sidebar.left", shortcut: "⌘S", action: .run { [weak self] in self?.toggleSidebarVisibility(nil) }),
             CommandItem(section: "Actions", title: "Copier l'URL", symbol: "link", shortcut: "⇧⌘C",
                         action: .run { [weak self] in self?.copyURL(nil) }),
         ]
@@ -449,7 +453,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func presentPeek(_ url: URL) {
         if commandBar.isVisible { commandBar.dismiss() }
         let inset = sidebarMode == .docked ? settings.sidebarWidth : 0
-        peek.present(url: url, in: rootView, contentInset: inset, accent: state.activeSpace.color)
+        peek.present(url: url, in: rootView, contentInset: inset, accent: state.activeSpace.accent)
     }
 
     // MARK: - Little windows
@@ -458,7 +462,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// The host calls this for links opened from other apps.
     public func openLittleWindow(url: URL?) {
         let interval = Perf.begin("littlewindow.open")
-        let little = LittleWindowController(engine: state.engine, settings: settings, url: url, accent: state.activeSpace.color)
+        let little = LittleWindowController(engine: state.engine, settings: settings, url: url, accent: state.activeSpace.accent)
         little.onOpenInChord = { [weak self] page in
             guard let self else { return }
             self.state.openTab(url: page.url ?? URL(string: "about:blank")!, adopting: page)
@@ -592,7 +596,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         state.reopenClosedTab()
     }
 
-    @objc public func toggleSidebar(_ sender: Any?) {
+    /// ⌘S, and ⌘B. Not named `toggleSidebar:`: AppKit's windows answer that action for
+    /// their own split-view sidebars and disable it, so the menu item never reached Chord.
+    @objc public func toggleSidebarVisibility(_ sender: Any?) {
         setSidebarMode(sidebarMode == .docked ? .hidden : .docked, animated: true)
     }
 
@@ -633,6 +639,21 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     @objc public func reloadPage(_ sender: Any?) {
         state.selectedTab?.page?.reload()
+    }
+
+    /// ⇧⌘R: reload without the cache, falling back to a plain reload.
+    @objc public func reloadPageIgnoringCache(_ sender: Any?) {
+        guard let page = state.selectedTab?.page else { return }
+        if let reloadIgnoringCache = page.reloadIgnoringCache { reloadIgnoringCache() } else { page.reload() }
+    }
+
+    @objc public func stopLoading(_ sender: Any?) {
+        state.selectedTab?.page?.stopLoading()
+    }
+
+    /// The reload buttons turn into stop buttons while the page loads, like Arc's.
+    private func reloadOrStop() {
+        if state.selectedTab?.page?.isLoading == true { stopLoading(nil) } else { reloadPage(nil) }
     }
 
     @objc public func goBack(_ sender: Any?) {
@@ -727,8 +748,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case #selector(toggleAddressBarPosition(_:)):
             menuItem.state = settings.addressBarOnTop ? .on : .off
             return true
-        case #selector(toggleSidebar(_:)):
-            menuItem.title = sidebarMode == .docked ? "Masquer la barre latérale" : "Afficher la barre latérale"
+        case #selector(toggleSidebarVisibility(_:)):
+            // The hidden ⌘B item keeps its own name in the shortcut settings.
+            if menuItem.tag == 0 {
+                menuItem.title = sidebarMode == .docked ? "Masquer la barre latérale" : "Afficher la barre latérale"
+            }
             return true
         case #selector(toggleSplitView(_:)):
             menuItem.title = state.isSplit ? "Quitter la split view" : "Split view"
@@ -749,7 +773,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return state.selectedTab?.page?.canGoBack ?? false
         case #selector(goForward(_:)):
             return state.selectedTab?.page?.canGoForward ?? false
-        case #selector(reloadPage(_:)), #selector(copyURL(_:)):
+        case #selector(stopLoading(_:)):
+            return state.selectedTab?.page?.isLoading ?? false
+        case #selector(reloadPage(_:)), #selector(reloadPageIgnoringCache(_:)), #selector(copyURL(_:)):
             return state.selectedTab != nil
         case #selector(closeTab(_:)):
             return state.selectedTab != nil || commandBar.isVisible || peek.isVisible
@@ -770,8 +796,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 extension BrowserWindowController: SidebarDelegate {
     func sidebarGoBack() { goBack(nil) }
     func sidebarGoForward() { goForward(nil) }
-    func sidebarReload() { reloadPage(nil) }
-    func sidebarToggle() { toggleSidebar(nil) }
+    func sidebarReload() { reloadOrStop() }
+    func sidebarToggle() { toggleSidebarVisibility(nil) }
     func sidebarAddressClicked() { openLocation(nil) }
     func sidebarNewTab() { newTab(nil) }
 

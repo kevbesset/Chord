@@ -72,6 +72,7 @@ final class PageToolbarView: NSView {
         backButton.isEnabled = tab?.page?.canGoBack ?? false
         forwardButton.isEnabled = tab?.page?.canGoForward ?? false
         reloadButton.isEnabled = tab != nil
+        reloadButton.showsStop(tab?.page?.isLoading ?? false)
         copyButton.isEnabled = tab?.url != nil
         address.update(url: tab?.url)
     }

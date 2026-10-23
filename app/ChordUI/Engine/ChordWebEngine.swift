@@ -28,6 +28,8 @@ import AppKit
     func goBack()
     func goForward()
     func reload()
+    /// Reloads without the cache (⇧⌘R): every resource comes from the network again.
+    @objc optional func reloadIgnoringCache()
     func stopLoading()
 }
 

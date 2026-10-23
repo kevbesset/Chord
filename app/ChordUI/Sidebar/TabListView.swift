@@ -149,7 +149,6 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     }
 
     func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool { false }
-    func outlineView(_ outlineView: NSOutlineView, shouldShowOutlineCellForItem item: Any) -> Bool { false }
 
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
         switch item {
@@ -200,10 +199,11 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         case let tab as Tab:
             delegate?.sidebarSelect(tab)
         case let folder as Folder:
-            if outline.isItemExpanded(folder) {
-                outline.animator().collapseItem(folder)
-            } else {
-                outline.animator().expandItem(folder)
+            let expand = !outline.isItemExpanded(folder)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.2
+                context.allowsImplicitAnimation = true
+                if expand { outline.expandItem(folder) } else { outline.collapseItem(folder) }
             }
         case let marker as ListMarker where marker.kind == .newTab:
             delegate?.sidebarNewTab()
@@ -362,8 +362,12 @@ final class SidebarOutlineView: NSOutlineView {
         }
     }
 
+    /// No disclosure triangle: folders draw their own chevron. Hiding it here rather than
+    /// through `shouldShowOutlineCellForItem`, which also stops folders from collapsing.
+    override func frameOfOutlineCell(atRow row: Int) -> NSRect { .zero }
+
     /// Rows start at the left edge, indented only by their depth: no room is kept for
-    /// disclosure triangles, which folders draw themselves.
+    /// disclosure triangles.
     override func frameOfCell(atColumn column: Int, row: Int) -> NSRect {
         var frame = super.frameOfCell(atColumn: column, row: row)
         let indent = CGFloat(max(0, level(forRow: row))) * indentationPerLevel

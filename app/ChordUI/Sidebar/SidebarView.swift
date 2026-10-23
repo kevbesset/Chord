@@ -56,15 +56,19 @@ final class SidebarView: NSView {
     private let floatingTint = NSView()
     private let addressPill = AddressPillView()
     private let resizeHandle = SidebarResizeHandle()
-    private lazy var backButton = IconButton(symbol: "chevron.left", label: "Page précédente (⌘[)", target: self, action: #selector(backClicked))
-    private lazy var forwardButton = IconButton(symbol: "chevron.right", label: "Page suivante (⌘])", target: self, action: #selector(forwardClicked))
-    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Recharger (⌘R)", target: self, action: #selector(reloadClicked))
-    private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: "Barre latérale (⌘S)", target: self, action: #selector(collapseClicked))
+    // The first row shares the title bar with the traffic lights: a touch larger than
+    // the other icons, so that they hold their own next to them.
+    private lazy var backButton = IconButton(symbol: "chevron.left", label: "Page précédente (⌘[)", target: self, action: #selector(backClicked), size: 28, pointSize: 15)
+    private lazy var forwardButton = IconButton(symbol: "chevron.right", label: "Page suivante (⌘])", target: self, action: #selector(forwardClicked), size: 28, pointSize: 15)
+    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Recharger (⌘R)", target: self, action: #selector(reloadClicked), size: 28, pointSize: 15)
+    private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: "Barre latérale (⌘S)", target: self, action: #selector(collapseClicked), size: 28, pointSize: 15)
     private lazy var downloadsButton = IconButton(symbol: "arrow.down.circle", label: "Téléchargements (⇧⌘J)", target: self, action: #selector(downloadsClicked))
 
     private var favoritesTopToPill: NSLayoutConstraint!
     private var favoritesTopToRow: NSLayoutConstraint!
     private var listTop: NSLayoutConstraint!
+    private var topRowCenter: NSLayoutConstraint!
+    private var topRowLeading: NSLayoutConstraint!
     private var swipeDistance: CGFloat = 0
     private var swipeFired = false
     private var hasFavorites = false
@@ -89,7 +93,7 @@ final class SidebarView: NSView {
         let space = state.activeSpace
         let selectedID = state.selectedTab?.id
         let splitIDs = state.isSplit ? Set(state.visibleTabs.map(\.id)) : []
-        favorites.update(favorites: state.favorites, selectedID: selectedID, splitIDs: splitIDs, accent: space.color)
+        favorites.update(favorites: state.favorites, selectedID: selectedID, splitIDs: splitIDs, accent: space.accent)
         hasFavorites = !state.favorites.isEmpty
         listTop.constant = hasFavorites ? 12 : 0
         tabList.update(space: space, spaces: state.spaces, selectedID: selectedID, splitIDs: splitIDs)
@@ -102,6 +106,7 @@ final class SidebarView: NSView {
         backButton.isEnabled = tab?.page?.canGoBack ?? false
         forwardButton.isEnabled = tab?.page?.canGoForward ?? false
         reloadButton.isEnabled = tab != nil
+        reloadButton.showsStop(tab?.page?.isLoading ?? false)
         addressPill.update(url: tab?.url)
     }
 
@@ -150,10 +155,11 @@ final class SidebarView: NSView {
         let topRow = NSStackView()
         topRow.orientation = .horizontal
         topRow.spacing = 2
-        topRow.addView(backButton, in: .leading)
-        topRow.addView(forwardButton, in: .leading)
-        topRow.addView(reloadButton, in: .leading)
-        topRow.addView(collapseButton, in: .trailing)
+        // Panel toggle next to the traffic lights, page navigation on the right.
+        topRow.addView(collapseButton, in: .leading)
+        topRow.addView(backButton, in: .trailing)
+        topRow.addView(forwardButton, in: .trailing)
+        topRow.addView(reloadButton, in: .trailing)
 
         addressPill.onClick = { [weak self] in self?.delegate?.sidebarAddressClicked() }
         resizeHandle.onDrag = { [weak self] width, finished in self?.delegate?.sidebarResize(to: width, finished: finished) }
@@ -171,6 +177,8 @@ final class SidebarView: NSView {
         favoritesTopToPill = favorites.topAnchor.constraint(equalTo: addressPill.bottomAnchor, constant: 12)
         favoritesTopToRow = favorites.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 10)
         listTop = tabList.topAnchor.constraint(equalTo: favorites.bottomAnchor, constant: 0)
+        topRowCenter = topRow.centerYAnchor.constraint(equalTo: topAnchor, constant: 14)
+        topRowLeading = topRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.trafficLightsWidth)
 
         NSLayoutConstraint.activate([
             floatingBackground.topAnchor.constraint(equalTo: topAnchor, constant: 4),
@@ -183,10 +191,9 @@ final class SidebarView: NSView {
             floatingTint.bottomAnchor.constraint(equalTo: floatingBackground.bottomAnchor),
 
             // The first row shares the title bar with the traffic lights.
-            topRow.topAnchor.constraint(equalTo: topAnchor, constant: 1),
-            topRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.trafficLightsWidth),
+            topRowCenter, topRowLeading,
             topRow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            topRow.heightAnchor.constraint(equalToConstant: 26),
+            topRow.heightAnchor.constraint(equalToConstant: 28),
 
             addressPill.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 8),
             addressPill.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
@@ -212,6 +219,20 @@ final class SidebarView: NSView {
             resizeHandle.trailingAnchor.constraint(equalTo: trailingAnchor, constant: 2),
             resizeHandle.widthAnchor.constraint(equalToConstant: 6),
         ])
+    }
+
+    /// Lines the first row up with the traffic lights, wherever macOS draws them: centred
+    /// on the same height, starting just after the green button.
+    override func layout() {
+        if let close = window?.standardWindowButton(.closeButton), let zoom = window?.standardWindowButton(.zoomButton),
+           let container = close.superview {
+            let center = convert(NSPoint(x: close.frame.midX, y: close.frame.midY), from: container)
+            let top = isFlipped ? center.y : bounds.height - center.y
+            let leading = convert(NSPoint(x: zoom.frame.maxX, y: 0), from: container).x + 8
+            if abs(topRowCenter.constant - top) > 0.5 { topRowCenter.constant = top }
+            if abs(topRowLeading.constant - leading) > 0.5 { topRowLeading.constant = leading }
+        }
+        super.layout()
     }
 
     // MARK: - Swipe between Spaces, like Arc

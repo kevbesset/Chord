@@ -187,6 +187,7 @@ final class PeekController: NSObject, ChordWebPageDelegate {
     func pageDidUpdate(_ page: ChordWebPage) {
         guard page === self.page else { return }
         panel.updateHeader(url: page.url, title: page.title)
+        panel.setLoading(page.isLoading)
     }
 
     func page(_ page: ChordWebPage, wantsNewTabWith url: URL) {
@@ -241,6 +242,10 @@ final class PeekPanelView: NSView {
 
     func updateHeader(url: URL?, title: String?) {
         header.update(url: url, title: title)
+    }
+
+    func setLoading(_ loading: Bool) {
+        card.setLoading(loading, accent: header.openButton.accent)
     }
 }
 

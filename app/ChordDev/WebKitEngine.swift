@@ -55,6 +55,7 @@ final class WebKitPage: NSObject, ChordWebPage {
     func goBack() { webView.goBack() }
     func goForward() { webView.goForward() }
     func reload() { webView.reload() }
+    func reloadIgnoringCache() { webView.reloadFromOrigin() }
     func stopLoading() { webView.stopLoading() }
 
     fileprivate func requestNewTab(_ url: URL) {

@@ -197,8 +197,6 @@ public final class BrowserState: NSObject {
         let wasSelected = space.selectedTabID == tab.id
         let wasVisible = visibleTabs.contains { $0 === tab }
         let splitPartners = space.split.filter { $0 != tab.id }
-        let tabs = space.allTabs
-        let index = tabs.firstIndex { $0 === tab } ?? 0
 
         // Like Arc, favorites and pinned tabs are never removed: they go back to sleep.
         tab.page = nil
@@ -210,12 +208,16 @@ public final class BrowserState: NSObject {
         removeFromSplits(tab)
 
         if wasSelected {
+            // Back to the other pane of a split, else to the most recently used tab that is
+            // still awake, like Arc. Sleeping tabs are not woken up: with none awake, the
+            // Space shows Chord's home page.
             let next: Tab?
             if let partner = splitPartners.first.flatMap({ id in self.tab(withID: id) }), wasVisible {
                 next = partner
             } else {
-                let others = tabs.filter { $0 !== tab }
-                next = others.isEmpty ? nil : others[min(index, others.count - 1)]
+                next = sidebarTabs(in: space)
+                    .filter { $0 !== tab && $0.page != nil }
+                    .max { $0.lastSelected < $1.lastSelected }
             }
             space.selectedTabID = next?.id
             if let next, space.id == activeSpaceID {

@@ -60,7 +60,9 @@ et corriger les erreurs avant de rendre la main.
   glisser deux doigts), barre de commande, Peek (⇧-clic, liens sortant d'un épinglé),
   split view (⇧⌘D, 2 à 4 volets), petite fenêtre (⌥⌘N, liens d'autres apps), barre
   d'adresse en haut, mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
-  remappables, import de la barre latérale d'Arc, session.
+  remappables, import de la barre latérale d'Arc, page d'accueil (quand aucun onglet
+  n'est ouvert : fermer un onglet ramène au dernier onglet encore actif, jamais à un
+  onglet en veille), session.
 - Pas encore : spike 0 Chromium, import de l'historique / mots de passe / cookies
   (côté Chromium), vrais profils isolés (cookies séparés par profil), extensions,
   panneau de téléchargements.

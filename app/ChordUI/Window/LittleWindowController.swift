@@ -211,6 +211,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     func pageDidUpdate(_ page: ChordWebPage) {
         guard page === self.page else { return }
         updateAddress(url: page.url)
+        card.setLoading(page.isLoading, accent: openButton.accent)
         window?.title = page.title ?? "Petite fenêtre"
     }
 
