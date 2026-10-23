@@ -256,7 +256,7 @@ final class PeekHeaderView: NSView {
     private let tile = FaviconTileView(size: 16)
     private let titleLabel = NSTextField(labelWithString: "")
     private let urlLabel = NSTextField(labelWithString: "")
-    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split view avec la page courante (⇧⌘D)", target: self, action: #selector(splitClicked), size: 28, pointSize: 13)
+    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split view avec la page courante (⌃⇧=)", target: self, action: #selector(splitClicked), size: 28, pointSize: 13)
     private lazy var closeButton = IconButton(symbol: "xmark", label: "Fermer (esc)", target: self, action: #selector(closeClicked), size: 28, pointSize: 12)
 
     override init(frame frameRect: NSRect) {

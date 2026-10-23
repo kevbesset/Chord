@@ -14,6 +14,7 @@ protocol SidebarDelegate: AnyObject {
     func sidebarSplit(_ tab: Tab)
     func sidebarRemoveFromSplit(_ tab: Tab)
     func sidebarCopyURL(_ tab: Tab)
+    func sidebarCopyAddress()
     func sidebarTab(withID id: UUID) -> Tab?
     func sidebarMove(_ tab: Tab, to destination: TabDestination)
     func sidebarMove(_ tab: Tab, toSpace space: Space)
@@ -166,6 +167,7 @@ final class SidebarView: NSView {
         topRow.addView(reloadButton, in: .trailing)
 
         addressPill.onClick = { [weak self] in self?.delegate?.sidebarAddressClicked() }
+        addressPill.onCopy = { [weak self] in self?.delegate?.sidebarCopyAddress() }
         resizeHandle.onDrag = { [weak self] width, finished in self?.delegate?.sidebarResize(to: width, finished: finished) }
 
         let bottomRow = NSStackView()
@@ -267,8 +269,16 @@ final class SidebarView: NSView {
         addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil))
     }
 
-    override func mouseEntered(with event: NSEvent) { delegate?.sidebarMouseEntered() }
-    override func mouseExited(with event: NSEvent) { delegate?.sidebarMouseExited() }
+    // Like Arc, the address's copy button shows while the pointer is anywhere in the sidebar.
+    override func mouseEntered(with event: NSEvent) {
+        addressPill.showsCopyButton = true
+        delegate?.sidebarMouseEntered()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        addressPill.showsCopyButton = false
+        delegate?.sidebarMouseExited()
+    }
 
     // MARK: - Actions
 

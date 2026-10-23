@@ -23,6 +23,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private let pageArea = PageAreaView()
     private let edgeHover = EdgeHoverView()
     private lazy var commandBar = CommandBarController(state: state, settings: settings)
+    private let toast = ToastView()
     private lazy var peek = makePeek()
     private var settingsWindow: SettingsWindowController?
     private var littleWindows: [LittleWindowController] = []
@@ -383,10 +384,12 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         }
     }
 
+    /// Every way of copying an address ends here, so that each one shows the toast.
     private func copy(_ url: URL?) {
         guard let url else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        toast.show("URL copiée", symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
     }
 
     private func handle(_ action: PageBarAction) {
@@ -429,7 +432,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         let selected = state.selectedTab
         var actions = [
             CommandItem(section: "Actions", title: state.isSplit ? "Quitter la split view" : "Ouvrir en split view",
-                        symbol: "rectangle.split.2x1", shortcut: "⇧⌘D", action: .run { [weak self] in self?.toggleSplitView(nil) }),
+                        symbol: "rectangle.split.2x1", shortcut: "⌃⇧=", action: .run { [weak self] in self?.toggleSplitView(nil) }),
             CommandItem(section: "Actions", title: "Ouvrir dans une petite fenêtre", symbol: "macwindow.on.rectangle", shortcut: "⌥⌘N",
                         action: .run { [weak self] in self?.openLittleWindow(url: self?.state.selectedTab?.url) }),
             CommandItem(section: "Actions", title: "Nouvel onglet dans le Space \(state.activeSpace.name)", symbol: "plus", shortcut: "⌘T",
@@ -459,7 +462,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             CommandItem(section: "Actions", title: "Space suivant", symbol: "arrow.right.square", shortcut: "⌥⌘→",
                         action: .run { [weak self] in self?.nextSpace(nil) }),
             CommandItem(section: "Actions", title: settings.addressBarOnTop ? "Barre d'adresse dans la barre latérale" : "Barre d'adresse en haut",
-                        symbol: "menubar.rectangle", action: .run { [weak self] in self?.toggleAddressBarPosition(nil) }),
+                        symbol: "menubar.rectangle", shortcut: "⇧⌘D", action: .run { [weak self] in self?.toggleAddressBarPosition(nil) }),
             CommandItem(section: "Actions", title: settings.edgeless ? "Désactiver le mode edgeless" : "Activer le mode edgeless",
                         symbol: "rectangle.inset.filled", action: .run { [weak self] in self?.toggleEdgeless(nil) }),
             CommandItem(section: "Actions", title: "Importer depuis Arc", symbol: "square.and.arrow.down",
@@ -643,7 +646,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         setSidebarMode(sidebarMode == .docked ? .hidden : .docked, animated: true)
     }
 
-    /// ⇧⌘D: from a Peek, puts it beside the page; otherwise opens a split by asking for
+    /// ⌃⇧=: from a Peek, puts it beside the page; otherwise opens a split by asking for
     /// the second page in the command bar, or leaves the split on screen.
     @objc public func toggleSplitView(_ sender: Any?) {
         let interval = Perf.begin("split.toggle")
@@ -874,6 +877,7 @@ extension BrowserWindowController: SidebarDelegate {
     func sidebarSplit(_ tab: Tab) { state.addToSplit(tab) }
     func sidebarRemoveFromSplit(_ tab: Tab) { state.removeFromSplit(tab) }
     func sidebarCopyURL(_ tab: Tab) { copy(tab.url) }
+    func sidebarCopyAddress() { copyURL(nil) }
     func sidebarTab(withID id: UUID) -> Tab? { state.tab(withID: id) }
     func sidebarMove(_ tab: Tab, to destination: TabDestination) { state.move(tab, to: destination) }
     func sidebarMove(_ tab: Tab, toSpace space: Space) { state.move(tab, to: .today(0), in: space) }

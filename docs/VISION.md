@@ -73,7 +73,7 @@ Un utilisateur d'Arc doit se sentir chez lui dès la première minute. La v1 rep
 | Spaces | Contextes séparés, glisser pour changer | Teinte discrète, changement < 100 ms |
 | Barre de commande | Tout au clavier (⌘L) | La pièce maîtresse : verre, résultats groupés, raccourcis visibles |
 | Peek | Aperçu d'un lien sans quitter la page | Fenêtre flottante à ressort, « Ouvrir dans un onglet », split view direct |
-| Split view | Plusieurs pages côte à côte (⇧⌘D) | Chaque volet porte sa propre adresse ; volet actif cerclé de la couleur du Space ; redimensionnement à 120 images/s |
+| Split view | Plusieurs pages côte à côte (⌃⇧=) | Chaque volet porte sa propre adresse ; volet actif cerclé de la couleur du Space ; redimensionnement à 120 images/s |
 | Petite fenêtre (Little Arc) | Mini-fenêtre flottante pour un lien ouvert depuis une autre app (⌥⌘N) | En verre, « Ouvrir dans Chord » ; nom définitif à trouver |
 
 Deux dispositions de la barre d'adresse sont prévues dès la v1 : dans la barre latérale (par défaut, comme Arc) ou intégrée en haut de la page, en 32 px, avec les actions à droite (style Safari).
@@ -102,7 +102,8 @@ La personnalisation et les raccourcis clavier sont des piliers, pas des options.
 | ⌘L | Barre de commande |
 | ⌘T | Nouvel onglet |
 | ⌘S | Replier / déplier la barre latérale |
-| ⇧⌘D | Split view |
+| ⌃⇧= | Split view |
+| ⇧⌘D | Barre d'adresse en haut ou dans la barre latérale |
 | ⌥⌘N | Petite fenêtre |
 | ⇧⌘C | Copier l'URL |
 | ⌃Tab | Onglet suivant |

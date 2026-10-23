@@ -14,7 +14,7 @@ final class PageToolbarView: NSView {
     private lazy var backButton = IconButton(symbol: "chevron.left", label: "Page précédente (⌘[)", target: self, action: #selector(backClicked), size: 24, pointSize: 12)
     private lazy var forwardButton = IconButton(symbol: "chevron.right", label: "Page suivante (⌘])", target: self, action: #selector(forwardClicked), size: 24, pointSize: 12)
     private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Recharger (⌘R)", target: self, action: #selector(reloadClicked), size: 24, pointSize: 12)
-    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split view (⇧⌘D)", target: self, action: #selector(splitClicked), size: 24, pointSize: 12)
+    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split view (⌃⇧=)", target: self, action: #selector(splitClicked), size: 24, pointSize: 12)
     private lazy var copyButton = IconButton(symbol: "link", label: "Copier l'URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
     private lazy var moreButton = IconButton(symbol: "ellipsis", label: "Plus d'actions", target: self, action: #selector(moreClicked), size: 24, pointSize: 12)
     private let address = ToolbarAddressView()

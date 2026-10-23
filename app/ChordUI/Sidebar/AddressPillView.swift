@@ -1,13 +1,24 @@
 import AppKit
 
-/// The address shown in the sidebar. A click opens the command bar on the current URL.
+/// The address shown in the sidebar. A click opens the command bar on the current URL;
+/// the link button on the right, shown while the pointer is in the sidebar, copies it.
 final class AddressPillView: NSView {
     var onClick: (() -> Void)?
+    var onCopy: (() -> Void)?
+
+    /// Set by the sidebar on hover; the button only shows when there is an address.
+    var showsCopyButton = false {
+        didSet { refreshCopyButton() }
+    }
 
     private let icon = NSImageView()
     private let hostLabel = NSTextField(labelWithString: "")
     private let pathLabel = NSTextField(labelWithString: "")
     private let environmentLabel = NSTextField(labelWithString: "")
+    private lazy var copyButton = IconButton(symbol: "link", label: "Copier l'URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
+    private var hasURL = false
+    private var environmentToEdge: NSLayoutConstraint!
+    private var environmentToButton: NSLayoutConstraint!
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -28,6 +39,10 @@ final class AddressPillView: NSView {
         environmentLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         environmentLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(environmentLabel)
+        copyButton.isHidden = true
+        addSubview(copyButton)
+        environmentToEdge = environmentLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12)
+        environmentToButton = environmentLabel.trailingAnchor.constraint(equalTo: copyButton.leadingAnchor, constant: -4)
 
         let stack = NSStackView(views: [icon, hostLabel, pathLabel])
         stack.orientation = .horizontal
@@ -39,8 +54,10 @@ final class AddressPillView: NSView {
             stack.trailingAnchor.constraint(lessThanOrEqualTo: environmentLabel.leadingAnchor, constant: -6),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor),
             icon.widthAnchor.constraint(equalToConstant: 14),
-            environmentLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            environmentToEdge,
             environmentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            copyButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
+            copyButton.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         setAccessibilityElement(true)
@@ -58,6 +75,8 @@ final class AddressPillView: NSView {
             pathLabel.stringValue = ""
             environmentLabel.stringValue = ""
             setAccessibilityLabel("Rechercher ou saisir une adresse")
+            hasURL = false
+            refreshCopyButton()
             return
         }
         let host = url.host ?? url.absoluteString
@@ -67,7 +86,20 @@ final class AddressPillView: NSView {
         icon.image = Theme.symbol(url.scheme == "https" ? "lock.fill" : "globe", size: 11)
         environmentLabel.stringValue = Self.environment(of: url) ?? ""
         setAccessibilityLabel("Adresse : \(url.absoluteString)")
+        hasURL = true
+        refreshCopyButton()
     }
+
+    private func refreshCopyButton() {
+        let shown = showsCopyButton && hasURL
+        guard copyButton.isHidden == shown else { return }
+        copyButton.isHidden = !shown
+        // The environment badge makes room for the button rather than sliding under it.
+        environmentToEdge.isActive = !shown
+        environmentToButton.isActive = shown
+    }
+
+    @objc private func copyClicked() { onCopy?() }
 
     /// Developers jump between environments all day: name the one this page is on.
     static func environment(of url: URL) -> String? {

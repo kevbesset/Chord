@@ -52,8 +52,9 @@ public enum MainMenu {
         main.addItem(submenu("Affichage", [
             item("Masquer la barre latérale", #selector(C.toggleSidebarVisibility(_:)), "s"),
             hidden(item("Barre latérale (second raccourci)", #selector(C.toggleSidebarVisibility(_:)), "b", tag: 2)),
-            item("Split view", #selector(C.toggleSplitView(_:)), "d", [.command, .shift]),
-            item("Barre d'adresse en haut", #selector(C.toggleAddressBarPosition(_:))),
+            // Arc's shortcuts: ⌃⇧= for the split view, ⇧⌘D for the address bar's place.
+            item("Split view", #selector(C.toggleSplitView(_:)), "=", [.control, .shift]),
+            item("Barre d'adresse en haut", #selector(C.toggleAddressBarPosition(_:)), "d", [.command, .shift]),
             item("Mode edgeless", #selector(C.toggleEdgeless(_:))),
             .separator(),
             item("Recharger la page", #selector(C.reloadPage(_:)), "r"),
@@ -134,7 +135,7 @@ public enum MainMenu {
 
         var stored: String { "\(key)|\(modifiers.rawValue)" }
 
-        /// "⇧⌘D", in the order macOS shows modifiers.
+        /// "⇧⌘C", in the order macOS shows modifiers.
         public var display: String {
             guard !key.isEmpty else { return "—" }
             var text = ""

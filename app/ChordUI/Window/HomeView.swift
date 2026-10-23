@@ -42,7 +42,7 @@ final class HomeView: NSView {
         quickGrid.alignment = .top
         shortcuts.orientation = .horizontal
         shortcuts.spacing = 22
-        for (keys, label) in [("⌘T", "Nouvel onglet"), ("⌘L", "Adresse"), ("⇧⌘D", "Split view"), ("⌘S", "Barre latérale"), ("⌥⌘N", "Petite fenêtre")] {
+        for (keys, label) in [("⌘T", "Nouvel onglet"), ("⌘L", "Adresse"), ("⌃⇧=", "Split view"), ("⌘S", "Barre latérale"), ("⌥⌘N", "Petite fenêtre")] {
             shortcuts.addArrangedSubview(Self.shortcut(keys, label))
         }
         shortcutsTitle.stringValue = "RACCOURCIS"

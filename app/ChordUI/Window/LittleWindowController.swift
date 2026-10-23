@@ -14,6 +14,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     private let frost = GlassFrostView()
     private let tint = NSView()
     private let card = ContentCardView()
+    private let toast = ToastView()
     private let addressPill = NSView()
     private let addressField = NSTextField()
     private let openButton = OpenInSpaceButton()
@@ -233,6 +234,9 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         guard let url = page?.url else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        if let root = window?.contentView {
+            toast.show("URL copiée", symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
+        }
     }
 
     // MARK: - Delegates

@@ -10,7 +10,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         case newTab
         /// The result replaces the current page (⌘↩ still opens a new tab).
         case currentTab
-        /// The result opens beside the current page, in a split view (⇧⌘D).
+        /// The result opens beside the current page, in a split view (⌃⇧=).
         case split
     }
 

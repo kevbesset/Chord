@@ -53,7 +53,7 @@ public final class Space {
     var today: [Tab]
     /// May point at a favorite of the Space's profile.
     var selectedTabID: UUID?
-    /// The tabs shown side by side (⇧⌘D), left to right. Empty, or two to four tabs.
+    /// The tabs shown side by side (⌃⇧=), left to right. Empty, or two to four tabs.
     var split: [UUID]
 
     static let defaultProfile = "default"
