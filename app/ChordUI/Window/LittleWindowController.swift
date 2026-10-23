@@ -31,6 +31,8 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         window.isMovableByWindowBackground = true
         window.tabbingMode = .disallowed
         window.minSize = NSSize(width: 420, height: 300)
+        // Like the main window: no shadow, so no dark outline around the glass.
+        window.hasShadow = false
         window.title = "Petite fenêtre"
         // A compact toolbar makes the title bar 46 px tall, so the traffic lights sit
         // centred in the same row as the address.

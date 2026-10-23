@@ -60,6 +60,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         window.tabbingMode = .disallowed
         window.minSize = NSSize(width: 720, height: 480)
         window.title = "Chord"
+        // No system shadow: macOS draws its dark outline as part of the shadow, a black
+        // line all around the glass. Without it the glass meets the desktop cleanly.
+        window.hasShadow = false
         super.init(window: window)
         window.delegate = self
 
