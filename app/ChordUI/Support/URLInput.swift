@@ -5,7 +5,12 @@ import Foundation
 /// Developer-friendly: `localhost:3000`, `127.0.0.1:8080/api`, `app.test` and
 /// `printer.local` open over plain HTTP.
 enum URLInput {
-    private static let schemes: Set<String> = ["http", "https", "file", "about", "data", "view-source"]
+    /// Typed with their scheme, these always open rather than search, Chromium's internal
+    /// pages (`chrome://extensions`) included.
+    private static let schemes: Set<String> = [
+        "http", "https", "file", "about", "data", "view-source",
+        "chrome", "chrome-extension", "chrome-untrusted", "devtools",
+    ]
     private static let localTLDs: Set<String> = ["localhost", "local", "test", "internal", "lan", "home"]
 
     static func url(from input: String) -> URL? {
@@ -32,5 +37,26 @@ enum URLInput {
             return URL(string: "https://" + text)
         }
         return nil
+    }
+}
+
+extension URL {
+    /// The address's first part as the address bars show it: the host and port for the
+    /// web, the scheme too for anything else (`chrome://extensions`, `file://`).
+    var displayHost: String {
+        let host = self.host ?? ""
+        let hostAndPort = port.map { "\(host):\($0)" } ?? host
+        guard let scheme, scheme != "http", scheme != "https" else { return hostAndPort.isEmpty ? absoluteString : hostAndPort }
+        return hostAndPort.isEmpty ? absoluteString : "\(scheme)://\(hostAndPort)"
+    }
+
+    /// The address bars' icon: a lock for HTTPS, a gear for the browser's own pages.
+    var addressSymbol: String {
+        switch scheme {
+        case "https": return "lock.fill"
+        case "http": return "globe"
+        case "chrome", "chrome-extension", "chrome-untrusted", "devtools", "about": return "gearshape"
+        default: return "doc"
+        }
     }
 }

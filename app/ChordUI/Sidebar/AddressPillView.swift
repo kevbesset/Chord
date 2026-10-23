@@ -79,11 +79,10 @@ final class AddressPillView: NSView {
             refreshCopyButton()
             return
         }
-        let host = url.host ?? url.absoluteString
-        hostLabel.stringValue = url.port.map { "\(host):\($0)" } ?? host
+        hostLabel.stringValue = url.displayHost
         hostLabel.textColor = .labelColor
         pathLabel.stringValue = url.path == "/" ? "" : url.path
-        icon.image = Theme.symbol(url.scheme == "https" ? "lock.fill" : "globe", size: 11)
+        icon.image = Theme.symbol(url.addressSymbol, size: 11)
         environmentLabel.stringValue = Self.environment(of: url) ?? ""
         setAccessibilityLabel("Adresse : \(url.absoluteString)")
         hasURL = true

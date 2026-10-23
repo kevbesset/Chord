@@ -9,6 +9,9 @@ final class WebKitEngine: NSObject, ChordWebEngine {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         configuration.preferences.isElementFullscreenEnabled = true
+        for scheme in InternalPageHandler.schemes {
+            configuration.setURLSchemeHandler(InternalPageHandler.shared, forURLScheme: scheme)
+        }
         return configuration
     }()
 
@@ -233,4 +236,42 @@ private final class WebKitDownloads: NSObject, WKDownloadDelegate {
         }
         return candidate
     }
+}
+
+/// Chromium's internal pages (`chrome://extensions`, `chrome://settings`…) do not exist in
+/// WebKit: rather than an error, say that they come with the Chromium engine.
+final class InternalPageHandler: NSObject, WKURLSchemeHandler {
+    static let shared = InternalPageHandler()
+    static let schemes = ["chrome", "chrome-extension", "chrome-untrusted", "devtools"]
+
+    func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
+        guard let url = task.request.url else { return }
+        let address = url.absoluteString
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+        let html = """
+        <!doctype html>
+        <html lang="fr"><head><meta charset="utf-8"><title>\(address)</title>
+        <style>
+          :root { color-scheme: light dark; }
+          body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center;
+                 font: 14px -apple-system, system-ui; background: Canvas; color: CanvasText; }
+          main { max-width: 440px; padding: 24px; text-align: center; }
+          h1 { font-size: 20px; font-weight: 600; margin: 0 0 10px; }
+          p { margin: 0 0 8px; line-height: 1.5; opacity: .7; }
+          code { font: 13px ui-monospace, SFMono-Regular, monospace; }
+        </style></head>
+        <body><main>
+          <h1>Page interne de Chromium</h1>
+          <p><code>\(address)</code> sera disponible avec le moteur Chromium de Chord.</p>
+          <p>Chord Dev utilise un moteur WebKit provisoire pour développer l'interface : il n'a pas ces pages.</p>
+        </main></body></html>
+        """
+        let data = Data(html.utf8)
+        task.didReceive(URLResponse(url: url, mimeType: "text/html", expectedContentLength: data.count, textEncodingName: "utf-8"))
+        task.didReceive(data)
+        task.didFinish()
+    }
+
+    func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
 }

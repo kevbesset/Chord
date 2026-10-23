@@ -131,11 +131,10 @@ final class ToolbarAddressView: NSView {
             setAccessibilityLabel("Rechercher ou saisir une adresse")
             return
         }
-        let host = url.host ?? url.absoluteString
-        hostLabel.stringValue = url.port.map { "\(host):\($0)" } ?? host
+        hostLabel.stringValue = url.displayHost
         hostLabel.textColor = .labelColor
         pathLabel.stringValue = url.path == "/" ? "" : url.path
-        icon.image = Theme.symbol(url.scheme == "https" ? "lock.fill" : "globe", size: 10)
+        icon.image = Theme.symbol(url.addressSymbol, size: 10)
         setAccessibilityLabel("Adresse : \(url.absoluteString)")
     }
 
