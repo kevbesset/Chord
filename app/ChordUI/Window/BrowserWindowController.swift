@@ -500,10 +500,13 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// The host calls this for links opened from other apps.
     public func openLittleWindow(url: URL?) {
         let interval = Perf.begin("littlewindow.open")
-        let little = LittleWindowController(engine: state.engine, settings: settings, url: url, accent: state.activeSpace.accent)
-        little.onOpenInChord = { [weak self] page in
+        // Like Little Arc: the page goes to the last Space used, unless another is picked.
+        let little = LittleWindowController(engine: state.engine, settings: settings, url: url,
+                                            space: state.activeSpace, spaces: { [weak self] in self?.state.spaces ?? [] })
+        little.onOpenInChord = { [weak self] page, space in
             guard let self else { return }
-            self.state.openTab(url: page.url ?? URL(string: "about:blank")!, adopting: page)
+            let target = self.state.spaces.contains { $0 === space } ? space : self.state.activeSpace
+            self.state.openTab(url: page.url ?? URL(string: "about:blank")!, adopting: page, in: target)
             self.window?.makeKeyAndOrderFront(nil)
         }
         little.onNewTab = { [weak self] url in self?.state.openTab(url: url) }

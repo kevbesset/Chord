@@ -1,9 +1,10 @@
 import AppKit
 
 /// The little window (Little Arc): a small glass window for a link opened from another
-/// app, or ⌥⌘N. "Ouvrir dans Chord" (⌘O) moves the page into the main window as a tab.
+/// app, or ⌥⌘N. "Ouvrir dans" (⌘O) moves the page into the main window as a tab of the
+/// Space it names: the last Space used, or another one picked from its chevron.
 final class LittleWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate, ChordWebPageDelegate {
-    var onOpenInChord: ((ChordWebPage) -> Void)?
+    var onOpenInChord: ((ChordWebPage, Space) -> Void)?
     var onNewTab: ((URL) -> Void)?
     var onClose: ((LittleWindowController) -> Void)?
 
@@ -15,11 +16,17 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     private let card = ContentCardView()
     private let addressPill = NSView()
     private let addressField = NSTextField()
-    private let openButton = AccentPillButton(title: "Ouvrir dans Chord", shortcut: "⌘ O")
-    private lazy var backButton = IconButton(symbol: "chevron.left", label: "Page précédente (⌘[)", target: self, action: #selector(goBack(_:)), size: 24, pointSize: 12)
+    private let openButton = OpenInSpaceButton()
+    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Page précédente (⌘[)", target: self, action: #selector(goBack(_:)), size: 26, pointSize: 13)
+    private let spaces: () -> [Space]
+    private(set) var targetSpace: Space
 
-    init(engine: ChordWebEngine, settings: ChordSettings, url: URL?, accent: NSColor) {
+    /// `space` is where "Ouvrir dans" sends the page until another one is picked;
+    /// `spaces` lists the choices when the picker opens.
+    init(engine: ChordWebEngine, settings: ChordSettings, url: URL?, space: Space, spaces: @escaping () -> [Space]) {
         self.settings = settings
+        self.spaces = spaces
+        targetSpace = space
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 540),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -47,7 +54,8 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         let page = engine.makePage()
         page.delegate = self
         self.page = page
-        build(accent: accent)
+        build()
+        setTarget(space)
         card.show(page.view)
         if let url {
             page.load(url)
@@ -67,7 +75,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
 
     // MARK: - Layout
 
-    private func build(accent: NSColor) {
+    private func build() {
         guard let window else { return }
         root.material = Theme.windowMaterial
         root.blendingMode = .behindWindow
@@ -75,7 +83,6 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         root.onOpenInChord = { [weak self] in self?.openInChord() }
         window.contentView = root
         tint.wantsLayer = true
-        tint.layer?.backgroundColor = accent.withAlphaComponent(Theme.spaceTintAlpha).cgColor
 
         addressPill.wantsLayer = true
         addressPill.layer?.cornerRadius = 9
@@ -94,8 +101,8 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         addressField.translatesAutoresizingMaskIntoConstraints = false
         addressPill.addSubview(addressField)
 
-        openButton.accent = accent
-        openButton.onClick = { [weak self] in self?.openInChord() }
+        openButton.onOpen = { [weak self] in self?.openInChord() }
+        openButton.onPickSpace = { [weak self] anchor in self?.showSpaceMenu(from: anchor) }
 
         for view in [frost, tint, backButton, addressPill, openButton, card] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -163,8 +170,33 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         guard let page else { return }
         card.show(nil)
         self.page = nil
-        onOpenInChord?(page)
+        onOpenInChord?(page, targetSpace)
         window?.close()
+    }
+
+    // MARK: - Target Space
+
+    /// The Space "Ouvrir dans" sends the page to. The window takes its tint and accent,
+    /// like Little Arc takes the Space's theme.
+    private func setTarget(_ space: Space) {
+        targetSpace = space
+        openButton.configure(space: space)
+        tint.layer?.backgroundColor = space.color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
+        card.setLoading(page?.isLoading ?? false, accent: space.accent)
+    }
+
+    private func showSpaceMenu(from anchor: NSView) {
+        let menu = NSMenu()
+        let header = NSMenuItem(title: "Ouvrir dans le Space", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+        for space in spaces() {
+            let item = closureItem(space.name) { [weak self] in self?.setTarget(space) }
+            item.image = Theme.dot(color: space.color, size: 12)
+            item.state = space === targetSpace ? .on : .off
+            menu.addItem(item)
+        }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: -6), in: anchor)
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
@@ -213,7 +245,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     func pageDidUpdate(_ page: ChordWebPage) {
         guard page === self.page else { return }
         updateAddress(url: page.url)
-        card.setLoading(page.isLoading, accent: openButton.accent)
+        card.setLoading(page.isLoading, accent: targetSpace.accent)
         window?.title = page.title ?? "Petite fenêtre"
     }
 
@@ -233,5 +265,125 @@ final class LittleRootView: NSVisualEffectView {
             return true
         }
         return super.performKeyEquivalent(with: event)
+    }
+}
+
+/// "Ouvrir dans ● Perso ⌘O ⌄", tinted with the Space's colour. The main part opens the
+/// page in that Space; the chevron, past a thin divider, picks another Space.
+final class OpenInSpaceButton: NSView {
+    var onOpen: (() -> Void)?
+    /// Called with the view the Space menu should open from.
+    var onPickSpace: ((NSView) -> Void)?
+
+    private let dot = NSView()
+    private let nameLabel = NSTextField(labelWithString: "")
+    private let divider = NSView()
+    private let chevronArea = NSView()
+    private var accent = NSColor.controlAccentColor
+    private var isPressed = false
+
+    static let chevronWidth: CGFloat = 24
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        translatesAutoresizingMaskIntoConstraints = false
+        let label = NSTextField(labelWithString: "Ouvrir dans")
+        label.font = .systemFont(ofSize: 12, weight: .medium)
+        nameLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        nameLabel.lineBreakMode = .byTruncatingTail
+        nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let hint = NSTextField(labelWithString: "⌘ O")
+        hint.font = .systemFont(ofSize: 11)
+        hint.textColor = .secondaryLabelColor
+        dot.wantsLayer = true
+        dot.layer?.cornerRadius = 4
+        let chevron = NSImageView(image: Theme.symbol("chevron.down", size: 9, weight: .semibold) ?? NSImage())
+        chevron.contentTintColor = .secondaryLabelColor
+        divider.wantsLayer = true
+
+        let stack = NSStackView(views: [label, dot, nameLabel, hint])
+        stack.spacing = 6
+        stack.setCustomSpacing(4, after: dot)
+        stack.setCustomSpacing(8, after: nameLabel)
+        for view in [stack, divider, chevronArea, chevron] as [NSView] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
+        }
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 28),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            stack.trailingAnchor.constraint(equalTo: divider.leadingAnchor, constant: -8),
+            nameLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 120),
+            dot.widthAnchor.constraint(equalToConstant: 8),
+            dot.heightAnchor.constraint(equalToConstant: 8),
+            divider.widthAnchor.constraint(equalToConstant: 1),
+            divider.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            divider.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+            divider.trailingAnchor.constraint(equalTo: chevronArea.leadingAnchor),
+            chevronArea.trailingAnchor.constraint(equalTo: trailingAnchor),
+            chevronArea.topAnchor.constraint(equalTo: topAnchor),
+            chevronArea.bottomAnchor.constraint(equalTo: bottomAnchor),
+            chevronArea.widthAnchor.constraint(equalToConstant: Self.chevronWidth),
+            chevron.centerXAnchor.constraint(equalTo: chevronArea.centerXAnchor),
+            chevron.centerYAnchor.constraint(equalTo: chevronArea.centerYAnchor),
+        ])
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    func configure(space: Space) {
+        accent = space.accent
+        nameLabel.stringValue = space.name
+        dot.layer?.backgroundColor = space.color.cgColor
+        toolTip = "Ouvrir la page dans le Space \(space.name) (⌘O)"
+        setAccessibilityLabel("Ouvrir dans le Space \(space.name)")
+        needsDisplay = true
+    }
+
+    override var wantsUpdateLayer: Bool { true }
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func updateLayer() {
+        let base = isDarkAppearance ? NSColor(hex: "#3A3A3C") : NSColor.white
+        layer?.cornerRadius = 8
+        layer?.backgroundColor = (base.blended(withFraction: isPressed ? 0.24 : 0.14, of: accent) ?? base).cgColor
+        layer?.borderWidth = 1
+        layer?.borderColor = accent.withAlphaComponent(0.3).cgColor
+        divider.layer?.backgroundColor = accent.withAlphaComponent(0.3).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    private func inChevron(_ event: NSEvent) -> Bool {
+        convert(event.locationInWindow, from: nil).x >= bounds.width - Self.chevronWidth
+    }
+
+    /// The Space menu opens on mouse down, like any pop-up button.
+    override func mouseDown(with event: NSEvent) {
+        if inChevron(event) {
+            onPickSpace?(chevronArea)
+            return
+        }
+        isPressed = true
+        needsDisplay = true
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard isPressed else { return }
+        isPressed = false
+        needsDisplay = true
+        if bounds.contains(convert(event.locationInWindow, from: nil)), !inChevron(event) { onOpen?() }
+    }
+
+    override func accessibilityPerformPress() -> Bool {
+        onOpen?()
+        return true
     }
 }

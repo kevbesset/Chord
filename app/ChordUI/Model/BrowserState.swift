@@ -158,16 +158,17 @@ public final class BrowserState: NSObject {
 
     // MARK: - Tabs
 
-    /// Opens a tab at the top of today's tabs. `page`, when given, is adopted as it is
-    /// (from a Peek or a little window) instead of loading the URL again.
+    /// Opens a tab at the top of today's tabs, in the active Space or in `space`. `page`,
+    /// when given, is adopted as it is (from a Peek or a little window) instead of
+    /// loading the URL again.
     @discardableResult
-    public func openTab(url: URL, select: Bool = true, adopting page: ChordWebPage? = nil) -> Tab {
+    public func openTab(url: URL, select: Bool = true, adopting page: ChordWebPage? = nil, in space: Space? = nil) -> Tab {
         let tab = Tab(url: page?.url ?? url, title: page?.title ?? url.host ?? "")
         if let page {
             page.delegate = self
             tab.page = page
         }
-        activeSpace.today.insert(tab, at: 0)
+        (space ?? activeSpace).today.insert(tab, at: 0)
         changes.send(.tabs)
         if select { self.select(tab) }
         scheduleSave()
