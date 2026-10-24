@@ -23,23 +23,25 @@ DevTools, profils, mots de passe) et on remplace ce que les utilisateurs voient.
 │   //content          WebContents, processus de rendu, GPU                  │
 └────────────────────────────────────────────────────────────────────────────┘
 
-Pour le développement de l'interface uniquement :
-ChordDev.app = ChordUI.framework + moteur WebKit provisoire (jamais livré)
+ChordUI.framework n'est pas lié à Chromium : //chord le charge à l'exécution. Pour
+travailler l'interface, `engine/scripts/run.sh` recompile ChordUI seul et relance Chord
+(quelques secondes, sans recompiler Chromium).
 ```
 
 ## Règles
 
 1. **ChordUI ne connaît aucun moteur.** Il ne dépend que des protocoles de
-   `app/ChordUI/Engine/ChordWebEngine.swift`. Aucun `import WebKit` dans ChordUI.
-   C'est ce qui permet d'itérer sur l'interface en quelques secondes avec ChordDev,
-   sans recompiler Chromium, et de brancher d'autres moteurs plus tard.
+   `app/ChordUI/Engine/ChordWebEngine.swift`, jamais d'en-tête de Chromium ni de
+   WebKit. C'est ce qui permet de recompiler l'interface sans Chromium, et de brancher
+   d'autres moteurs plus tard.
 2. **ChordUI ne crée jamais `NSApplication`.** Dans le vrai navigateur, c'est Chromium
    qui possède l'application et la boucle d'événements (`BrowserCrApplication`).
-   ChordUI fournit des fenêtres et un menu ; l'hôte (ChordDev ou Chromium) les installe.
+   ChordUI fournit des fenêtres et un menu, par `ChordUIHost` ; Chromium les installe.
 3. **ChordUI est la source de vérité de l'organisation** : Spaces, épinglés, « Aujourd'hui ».
    Côté Chromium, un `Browser` par fenêtre et son `TabStripModel` contiennent tous les
    onglets de la fenêtre, pour que les API d'extension (`chrome.tabs`, `chrome.windows`)
-   fonctionnent. Le pont garde les deux synchronisés. À valider pendant le spike 0.
+   fonctionnent. Le pont garde les deux synchronisés (validé : `chrome.tabs` voit les
+   onglets de Chord, un onglet créé par une extension arrive dans ChordUI).
 4. **Les protocoles sont `@objc`** pour que des classes Objective-C++ puissent s'y
    conformer sans passer par l'interopérabilité C++ de Swift.
 

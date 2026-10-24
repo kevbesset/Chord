@@ -61,6 +61,8 @@ public enum MainMenu {
             item("Recharger sans le cache", #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
             item("Arrêter le chargement", #selector(C.stopLoading(_:)), "."),
             .separator(),
+            item("Outils de développement", #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
+            .separator(),
             item("Plein écran", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
         ]))
 

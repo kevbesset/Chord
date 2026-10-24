@@ -1,0 +1,26 @@
+Chord: normal browsers get Chord's window.
+--- a/chrome/browser/ui/views/frame/browser_window_factory.cc
++++ b/chrome/browser/ui/views/frame/browser_window_factory.cc
+@@ -27,11 +27,22 @@
+ #include "chromeos/components/kiosk/kiosk_utils.h"
+ #endif
+ 
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
++
+ // static
+ std::unique_ptr<BrowserWindow, BrowserWindowDeleter>
+ BrowserWindow::CreateBrowserWindow(BrowserWindowInterface* browser,
+                                    bool user_gesture,
+                                    bool in_tab_dragging) {
++#if BUILDFLAG(IS_MAC)
++  // Normal browsers show their tabs in Chord's window.
++  if (auto window = chord::MaybeCreateBrowserWindow(browser)) {
++    return window;
++  }
++#endif
++
+   if (webui_browser::IsWebUIBrowserEnabled() &&
+       browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL) {
+     return std::unique_ptr<BrowserWindow, BrowserWindowDeleter>(

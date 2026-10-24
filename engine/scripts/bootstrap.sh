@@ -26,6 +26,9 @@ need brew       "installer Homebrew : https://brew.sh"
 need ninja      "brew install ninja"
 need node       "brew install node"
 need gsha256sum "brew install coreutils"
+need go         "brew install go"
+need esbuild    "brew install esbuild"
+need tsc        "brew install typescript"
 need perl       "fourni avec macOS"
 
 if command -v python3 >/dev/null 2>&1; then

@@ -2,18 +2,29 @@ import AppKit
 
 /// What ChordUI needs from a browser engine.
 ///
-/// ChordUI never talks to WebKit or Chromium directly. The development app (ChordDev)
-/// implements these protocols with WebKit; the real browser implements them in
-/// Objective-C++ on top of Chromium's WebContents. They are `@objc` so that
-/// Objective-C++ classes can conform without Swift/C++ interop.
-@objc public protocol ChordWebEngine: AnyObject {
+/// ChordUI never talks to Chromium directly: //chord implements these protocols in
+/// Objective-C++ on top of Chromium's WebContents (engine/chord/browser/chord_engine.mm).
+/// They are `@objc` so that Objective-C++ classes can conform without Swift/C++
+/// interop, under fixed Objective-C names that `engine/chord/browser/chord_ui.h`
+/// mirrors. Keeping the engine behind them also leaves room for other engines later.
+@objc(ChordWebEngine) public protocol ChordWebEngine: AnyObject {
     /// Creates an empty page. Nothing loads until `load(_:)` is called.
     func makePage() -> ChordWebPage
     /// Stops a download started by one of the engine's pages.
     @objc optional func cancelDownload(_ id: String)
+    /// Receives the pages the engine opens by itself. Set once by ChordUI.
+    @objc optional func setDelegate(_ delegate: ChordWebEngineDelegate?)
 }
 
-@objc public protocol ChordWebPage: AnyObject {
+@objc(ChordWebEngineDelegate) public protocol ChordWebEngineDelegate: AnyObject {
+    /// The engine opened a page by itself: a link to a new tab, `window.open`, an
+    /// extension's tab. `opener` is the page it came from, when there is one.
+    func engine(_ engine: ChordWebEngine, didOpen page: ChordWebPage, opener: ChordWebPage?, inBackground: Bool)
+    /// The page closed itself (`window.close()`, an extension): its tab goes away.
+    func engine(_ engine: ChordWebEngine, didClose page: ChordWebPage)
+}
+
+@objc(ChordWebPage) public protocol ChordWebPage: AnyObject {
     /// The view that renders the page. ChordUI places it inside the content card.
     var view: NSView { get }
     var url: URL? { get }
@@ -33,9 +44,13 @@ import AppKit
     /// Reloads without the cache (⇧⌘R): every resource comes from the network again.
     @objc optional func reloadIgnoringCache()
     func stopLoading()
+    /// ChordUI shows this page as the selected tab: the engine makes it its active one.
+    @objc optional func didBecomeActive()
+    /// Opens or closes the page's developer tools (⌥⌘I).
+    @objc optional func toggleDevTools()
 }
 
-@objc public protocol ChordWebPageDelegate: AnyObject {
+@objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {
     /// The URL, title, loading or navigation state changed.
     func pageDidUpdate(_ page: ChordWebPage)
     /// The page wants a link opened in a new tab (target=_blank, window.open).

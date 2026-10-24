@@ -66,6 +66,7 @@ public final class BrowserState: NSObject {
             activeSpaceID = first.id
         }
         super.init()
+        engine.setDelegate?(self)
     }
 
     // MARK: - Reading
@@ -718,5 +719,19 @@ extension BrowserState: ChordWebPageDelegate {
     /// The last two labels of a host, close enough to a registrable domain here.
     static func site(of host: String) -> String {
         host.split(separator: ".").suffix(2).joined(separator: ".")
+    }
+}
+
+extension BrowserState: ChordWebEngineDelegate {
+    /// A page the engine opened by itself goes to the top of today's tabs, in the Space
+    /// of the page that opened it.
+    public func engine(_ engine: ChordWebEngine, didOpen page: ChordWebPage, opener: ChordWebPage?, inBackground: Bool) {
+        guard tab(owning: page) == nil else { return }
+        let space = opener.flatMap { tab(owning: $0) }.flatMap { owningSpace(of: $0) }
+        openTab(url: page.url ?? URL(string: "about:blank")!, select: !inBackground, adopting: page, in: space)
+    }
+
+    public func engine(_ engine: ChordWebEngine, didClose page: ChordWebPage) {
+        if let tab = tab(owning: page) { close(tab) }
     }
 }

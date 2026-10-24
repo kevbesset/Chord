@@ -1,0 +1,17 @@
+# Chord's GN arguments, appended to ungoogled-chromium's (flags.gn, flags.macos.gn).
+# Development build: fast to rebuild, not for distribution.
+is_official_build = false
+is_debug = false
+chrome_pgo_phase = 0
+use_thin_lto = false
+symbol_level = 0
+blink_symbol_level = 0
+v8_symbol_level = 0
+dcheck_always_on = false
+# Xcode 27's macOS 27 SDK is not readable by Chromium 155's linker: use the 26.5 SDK
+# of the Command Line Tools, the one Chromium 155 is built with. GN wants it inside
+# the output directory: build.sh links it there.
+mac_sdk_path = "//out/Chord/sdk/MacOSX26.5.sdk"
+# Precompiled headers fail with ungoogled-chromium's clang (official builds never use
+# them).
+enable_precompiled_headers = false

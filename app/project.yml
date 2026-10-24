@@ -1,5 +1,8 @@
 # Xcode project definition. Generate with: xcodegen generate
 # Never edit Chord.xcodeproj by hand; it is rebuilt from this file.
+#
+# Only ChordUI: Chord itself is Chromium with ChordUI loaded into it
+# (engine/scripts/build.sh, engine/scripts/run.sh).
 name: Chord
 
 options:
@@ -34,25 +37,8 @@ targets:
         INSTALL_PATH: "@rpath"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks"
 
-  ChordDev:
-    type: application
-    platform: macOS
-    sources:
-      - path: ChordDev
-    dependencies:
-      - target: ChordUI
-    settings:
-      base:
-        PRODUCT_NAME: Chord Dev
-        PRODUCT_BUNDLE_IDENTIFIER: app.chord.dev
-        INFOPLIST_FILE: ChordDev/Info.plist
-        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
-
 schemes:
-  ChordDev:
+  ChordUI:
     build:
       targets:
         ChordUI: all
-        ChordDev: all
-    run:
-      config: Debug

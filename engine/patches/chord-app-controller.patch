@@ -1,0 +1,47 @@
+Chord: the Dock icon and links from other apps go to Chord; Chromium's menu bridges stay off.
+--- a/chrome/browser/app_controller_mac.mm
++++ b/chrome/browser/app_controller_mac.mm
+@@ -152,6 +152,7 @@
+ #include "ui/menus/cocoa/menu_controller.h"
+ #include "ui/native_theme/native_theme.h"
+ #include "url/gurl.h"
++#include "chord/browser/chord_hooks.h"  // nogncheck
+ 
+ namespace {
+ 
+@@ -1855,6 +1856,10 @@
+   // If the browser is currently trying to quit, don't do anything and return NO
+   // to prevent AppKit from doing anything.
+   if (browser_shutdown::IsTryingToQuit())
++    return NO;
++
++  // Chord's window comes back instead of a new Chromium window.
++  if (chord::HandleReopen())
+     return NO;
+ 
+   // Bring all browser windows to the front. Specifically, this brings them in
+@@ -2056,6 +2061,10 @@
+ }
+ 
+ - (void)application:(NSApplication*)sender openURLs:(NSArray<NSURL*>*)urls {
++  // Links from other apps open in a little window, like Little Arc.
++  if (chord::OpenURLs(urls)) {
++    return;
++  }
+   StartupTabs startupTabs;
+   for (NSURL* url in urls) {
+     // Handle the google-chrome:// scheme (and chromium://).
+@@ -2271,6 +2280,13 @@
+     }
+   }
+ 
++  // Chord's menu is ChordUI's: there are no bookmarks or history menus of
++  // Chromium's to keep up to date.
++  if (chord::IsEnabled()) {
++    _lastProfile = profile;
++    return;
++  }
++
+   NSMenuItem* bookmarkItem = [NSApp.mainMenu itemWithTag:IDC_BOOKMARKS_MENU];
+   BOOL hidden = bookmarkItem.hidden;
+   if (profile != nullptr) {

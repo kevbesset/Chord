@@ -1,0 +1,15 @@
+Chord: link //chord into the browser.
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -1654,6 +1654,11 @@
+     public_deps += [ "//printing" ]
+   }
+ 
++  if (is_mac) {
++    # Chord's interface (engine/chord).
++    public_deps += [ "//chord:browser" ]
++  }
++
+   if (is_chromeos) {
+     public_deps += [
+       "//ash/constants",

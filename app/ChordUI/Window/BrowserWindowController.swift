@@ -379,6 +379,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             window?.makeFirstResponder(view)
         }
         sidebar.updateNavigation(tab: selected)
+        selected?.page?.didBecomeActive?()
     }
 
     private func focusPage() {
@@ -698,6 +699,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         state.selectedTab?.page?.stopLoading()
     }
 
+    /// ⌥⌘I, when the engine has developer tools (Chromium's DevTools).
+    @objc public func toggleDevTools(_ sender: Any?) {
+        state.selectedTab?.page?.toggleDevTools?()
+    }
+
     /// The reload buttons turn into stop buttons while the page loads, like Arc's.
     private func reloadOrStop() {
         if state.selectedTab?.page?.isLoading == true { stopLoading(nil) } else { reloadPage(nil) }
@@ -840,6 +846,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return state.selectedTab?.page?.canGoBack ?? false
         case #selector(goForward(_:)):
             return state.selectedTab?.page?.canGoForward ?? false
+        case #selector(toggleDevTools(_:)):
+            return (state.selectedTab?.page as AnyObject?)?.responds(to: #selector(ChordWebPage.toggleDevTools)) ?? false
         case #selector(stopLoading(_:)):
             return state.selectedTab?.page?.isLoading ?? false
         case #selector(reloadPage(_:)), #selector(reloadPageIgnoringCache(_:)), #selector(copyURL(_:)):

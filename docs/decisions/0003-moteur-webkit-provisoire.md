@@ -1,6 +1,6 @@
 # 0003 — Moteur WebKit provisoire pour développer l'interface
 
-**Statut :** acceptée, 23 octobre 2026
+**Statut :** remplacée par 0004 (24 octobre 2026). Acceptée le 23 octobre 2026
 
 ## Contexte
 

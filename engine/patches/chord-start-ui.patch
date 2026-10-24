@@ -1,0 +1,21 @@
+Chord: start ChordUI once the browser has started.
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -224,6 +224,7 @@
+ #include "chrome/browser/infobars/browser_infobar_manager.h"
+ #include "chrome/browser/infobars/infobar_features.h"
+ #include "chrome/browser/mac/chrome_browser_main_extra_parts_mac.h"
++#include "chord/browser/chord_hooks.h"  // nogncheck
+ #include "chrome/browser/shutdown_watchdog_mac.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
+@@ -821,6 +822,9 @@
+ 
+ #if BUILDFLAG(IS_MAC)
+   main_parts->AddParts(std::make_unique<ChromeBrowserMainExtraPartsMac>());
++  if (auto chord_parts = chord::CreateBrowserMainExtraParts()) {
++    main_parts->AddParts(std::move(chord_parts));
++  }
+ #endif
+ 
+ #if BUILDFLAG(IS_CHROMEOS)

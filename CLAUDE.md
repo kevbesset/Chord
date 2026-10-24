@@ -14,11 +14,18 @@ interface native en Swift / AppKit. Projet solo de Kevin, développé avec l'IA.
 
 ## Construire et lancer
 
+Chord, c'est Chromium (ungoogled-chromium) avec ChordUI chargé dedans. Une fois :
+
 ```bash
-cd app
-xcodegen generate                      # après tout ajout/suppression de fichier
-xcodebuild -project Chord.xcodeproj -scheme ChordDev -configuration Debug -derivedDataPath build build
-open "build/Build/Products/Debug/Chord Dev.app"
+engine/scripts/bootstrap.sh && engine/scripts/prepare.sh
+engine/scripts/build.sh          # plusieurs heures la première fois ; à relancer
+                                 # quand //chord ou engine/patches changent
+```
+
+Au quotidien, pour l'interface (quelques secondes, sans recompiler Chromium) :
+
+```bash
+engine/scripts/run.sh            # recompile ChordUI, le remet dans Chord.app, relance
 ```
 
 `Chord.xcodeproj` est généré depuis `app/project.yml` et ignoré par git : on modifie
@@ -27,10 +34,10 @@ et corriger les erreurs avant de rendre la main.
 
 ## Règles
 
-- **ChordUI ne connaît aucun moteur.** Jamais d'`import WebKit` dans `app/ChordUI`.
-  Tout passe par les protocoles `@objc` de `app/ChordUI/Engine/ChordWebEngine.swift`.
-  Le moteur WebKit de `app/ChordDev` est provisoire et ne sert qu'au développement de
-  l'interface ; le vrai moteur est Chromium.
+- **ChordUI ne connaît aucun moteur.** Jamais d'en-tête de Chromium (ni d'`import
+  WebKit`) dans `app/ChordUI` : tout passe par les protocoles `@objc` de
+  `app/ChordUI/Engine/ChordWebEngine.swift`, que `engine/chord` implémente. Chromium est
+  le seul moteur, développement compris (`docs/decisions/0004`).
 - **ChordUI ne crée jamais `NSApplication`** : dans le vrai navigateur, Chromium la possède.
 - **AppKit, pas SwiftUI**, pour tout ce qui est sur le chemin critique (fenêtre, barre
   latérale, barre de commande). SwiftUI toléré pour les réglages.
@@ -52,7 +59,7 @@ et corriger les erreurs avant de rendre la main.
 
 ## État actuel
 
-- Coquille native fonctionnelle dans ChordDev (moteur WebKit provisoire) : fenêtre en
+- Interface native complète (ChordUI), sur Chromium : fenêtre en
   verre translucide (aussi inactive), déplaçable depuis tout le vide de la barre latérale,
   barre latérale redimensionnable, favoris par profil (comme Arc), épinglés avec dossiers,
   vraies icônes des sites (cache disque, reprises d'Arc à l'import), glisser-déposer des
@@ -63,6 +70,13 @@ et corriger les erreurs avant de rendre la main.
   remappables, import de la barre latérale d'Arc, page d'accueil (quand aucun onglet
   n'est ouvert : fermer un onglet ramène au dernier onglet encore actif, jamais à un
   onglet en veille), téléchargements (panneau façon Arc, ⇧⌘J), session.
-- Pas encore : spike 0 Chromium, import de l'historique / mots de passe / cookies
-  (côté Chromium), vrais profils isolés (cookies séparés par profil), extensions.
+- **Chord sur Chromium** (spike 0, `engine/`) : ChordUI tourne dans Chromium 155
+  (ungoogled-chromium), construit par `engine/scripts/build.sh`. Vérifié : les pages
+  s'affichent dans les fenêtres de Chord, les extensions marchent (scripts de contenu,
+  `chrome.tabs`, onglets ouverts par une extension adoptés par ChordUI). DevTools (⌥⌘I,
+  fenêtre séparée) écrits mais pas encore essayés à l'écran.
+- Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
+  Peek au ⇧-clic, téléchargements dans le panneau de Chord, invites de permission,
+  plein écran vidéo dans l'interface, recherche dans la page, import de l'historique /
+  mots de passe / cookies, vrais profils isolés.
 - Licence : pas encore choisie, à trancher avant le premier contributeur externe.

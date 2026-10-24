@@ -226,6 +226,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     @objc func goBack(_ sender: Any?) { page?.goBack() }
     @objc func goForward(_ sender: Any?) { page?.goForward() }
     @objc func reloadPage(_ sender: Any?) { page?.reload() }
+    @objc func toggleDevTools(_ sender: Any?) { page?.toggleDevTools?() }
     @objc func openLocation(_ sender: Any?) { focusAddress() }
     @objc func newTab(_ sender: Any?) { focusAddress() }
     @objc func closeTab(_ sender: Any?) { window?.close() }

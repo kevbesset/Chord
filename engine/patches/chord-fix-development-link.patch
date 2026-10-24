@@ -1,0 +1,25 @@
+Chord: development (non-official) builds link without a helper ungoogled-chromium removes.
+--- a/chrome/browser/enterprise/signin/profile_management_disclaimer_service.cc
++++ b/chrome/browser/enterprise/signin/profile_management_disclaimer_service.cc
+@@ -514,18 +514,9 @@
+ 
+   if (profile_separation_policies_for_testing_.has_value() ||
+       user_choice_for_testing_.has_value()) {
+-    CHECK_IS_TEST();
+-    state_->profile_creation_controller =
+-        ManagedProfileCreationController::CreateManagedProfileForTesting(
+-            &profile_.get(), GetExtendedAccountInfo(state_->account_id),
+-            // The access point always has a value if the account_id is set.
+-            *state_->access_point,
+-            base::BindOnce(&ProfileManagementDisclaimerService::
+-                               OnManagedProfileCreationResult,
+-                           weak_ptr_factory_.GetWeakPtr()),
+-            profile_separation_policies_for_testing_,
+-            user_choice_for_testing_);
+-    return;
++    // Chord: ungoogled-chromium drops the definition of this testing helper,
++    // which only official builds strip away (see engine/patches/README.md).
++    NOTREACHED();
+   }
+ 
+   state_->user_cloud_signin_restriction_policy_fetcher =

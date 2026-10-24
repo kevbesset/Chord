@@ -1,0 +1,49 @@
+# Copyright 2026 The Chord Authors
+# Chord's code inside Chromium. Linked into the browser through //chrome (see
+# engine/patches/), it loads ChordUI.framework at run time and gives it Chromium's
+# pages.
+
+assert(is_mac, "Chord's interface is macOS only")
+
+source_set("browser") {
+  sources = [
+    "browser/chord_browser_main_extra_parts.mm",
+    "browser/chord_browser_window.h",
+    "browser/chord_browser_window.mm",
+    "browser/chord_engine.h",
+    "browser/chord_engine.mm",
+    "browser/chord_hooks.h",
+    "browser/chord_ui.h",
+  ]
+
+  deps = [
+    "//base",
+    "//chrome/browser",
+    "//chrome/browser/devtools",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui",
+    "//chrome/browser/ui:browser_window_deleter",
+    "//chrome/browser/ui/browser_active_state_manager",
+    "//chrome/browser/ui/browser_window:create_browser_window",
+    "//chrome/browser/ui/exclusive_access",
+    "//chrome/browser/ui/find_bar",
+    "//chrome/browser/ui/location_bar",
+    "//chrome/browser/ui/tabs:tab_strip",
+    "//chrome/browser/ui/views:bubble_anchor_util_views",
+    "//chrome/common",
+    "//components/input",
+    "//components/os_crypt/common:switches",
+    "//components/tabs:public",
+    "//components/web_modal",
+    "//content/public/browser",
+    "//net",
+    "//third_party/blink/public/common",
+    "//ui/base",
+    "//ui/color",
+    "//ui/gfx",
+    "//ui/native_theme",
+    "//url",
+  ]
+
+  frameworks = [ "AppKit.framework" ]
+}
