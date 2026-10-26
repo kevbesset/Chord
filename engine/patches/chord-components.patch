@@ -1,0 +1,25 @@
+Chord: Chromium's update client works and reaches Google's server again (ungoogled-chromium stopped its update checks and cut off the address), for the Widevine module (protected videos), Chromium's own lists and the Web Store extensions' updates.
+--- a/components/component_updater/component_updater_url_constants.cc
++++ b/components/component_updater/component_updater_url_constants.cc
+@@ -15,9 +15,9 @@
+ // The value of |kDefaultUrlSource| can be overridden with
+ // --component-updater=url-source=someurl.
+ const char kUpdaterJSONDefaultUrl[] =
+-    "https://update.9oo91eapis.qjz9zk/service/update2/json";
++    "https://update.googleapis.com/service/update2/json";
+ 
+ const char kUpdaterJSONFallbackUrl[] =
+-    "http://update.9oo91eapis.qjz9zk/service/update2/json";
++    "https://update.googleapis.com/service/update2/json";
+ 
+ }  // namespace component_updater
+--- a/components/update_client/update_checker.cc
++++ b/components/update_client/update_checker.cc
+@@ -106,7 +106,6 @@
+     scoped_refptr<UpdateContext> context,
+     const base::flat_map<std::string, std::string>& additional_attributes,
+     UpdateCheckCallback update_check_callback) {
+-  return;
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+ 
+   update_check_callback_ = std::move(update_check_callback);

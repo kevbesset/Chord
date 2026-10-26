@@ -1,0 +1,26 @@
+Chord: its own data folder (~/Library/Application Support/Chord) and keychain item ("Chord Safe Storage"), apart from a Chromium on the same Mac.
+--- a/chrome/app/app-Info.plist
++++ b/chrome/app/app-Info.plist
+@@ -153,6 +153,8 @@
+ 	<string>AppIcon</string>
+ 	<key>CFBundleIdentifier</key>
+ 	<string>${CHROMIUM_BUNDLE_ID}</string>
++	<key>CrProductDirName</key>
++	<string>Chord</string>
+ 	<key>CFBundleInfoDictionaryVersion</key>
+ 	<string>6.0</string>
+ 	<key>CFBundleName</key>
+--- a/components/os_crypt/common/keychain_password_mac.mm
++++ b/components/os_crypt/common/keychain_password_mac.mm
+@@ -35,8 +35,9 @@
+ const char kDefaultServiceName[] = "Chrome Safe Storage";
+ const char kDefaultAccountName[] = "Chrome";
+ #else
+-const char kDefaultServiceName[] = "Chromium Safe Storage";
+-const char kDefaultAccountName[] = "Chromium";
++// Chord: its own key, apart from a Chromium installed on the same Mac.
++const char kDefaultServiceName[] = "Chord Safe Storage";
++const char kDefaultAccountName[] = "Chord";
+ #endif
+ 
+ // These values are persisted to logs. Entries should not be renumbered and

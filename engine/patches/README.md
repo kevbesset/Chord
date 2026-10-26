@@ -24,6 +24,9 @@ Règles, pour que la mise à jour toutes les quatre semaines reste un simple reb
 | `chord-app-controller.patch` | L'icône du Dock rouvre la fenêtre de Chord ; les liens d'autres apps vont à une petite fenêtre ; les menus Signets et Historique de Chromium ne sont plus tenus à jour, le menu étant celui de ChordUI (`app_controller_mac.mm`) |
 | `chord-context-menus.patch` | Le clic droit sur une page affiche son menu dans les fenêtres de Chord, qui n'ont pas de widget Views ; Chord retire les entrées dont l'interface en exige un (Caster, traduire, code QR, Lens…) (`render_view_context_menu_mac_cocoa.mm`) |
 | `chord-product-icon.patch` | L'icône du produit dans les pages internes (« À propos » du menu des paramètres, pages d'aide) est le symbole de Chord ; le logo des en-têtes vient de `engine/branding` (`settings/icons.html.ts`, `cr_elements/icons.html.ts`) |
+| `chord-own-data.patch` | Chord a son propre dossier de données (`~/Library/Application Support/Chord`) et sa propre clé de trousseau (« Chord Safe Storage »), à part d'un Chromium installé sur le même Mac (`app-Info.plist`, `keychain_password_mac.mm`) |
+| `chord-web-store.patch` | Le vrai Chrome Web Store : ses pages peuvent installer des extensions, qui s'y mettent à jour ; la substitution de domaines d'ungoogled-chromium l'avait coupé (`extension_urls.cc`, `_api_features.json`), et ses patchs avaient vidé le téléchargement et l'installation (`webstore_installer.cc`) |
+| `chord-components.patch` | Le client de mise à jour de Chromium vérifie de nouveau et rejoint Google, pour le module Widevine (vidéos protégées), les listes de Chromium et les mises à jour des extensions du Web Store (`component_updater_url_constants.cc`, `update_checker.cc`) |
 
 Les points d'appel sont déclarés dans `engine/chord/browser/chord_hooks.h`.
 `--disable-chord-ui` au lancement rend à Chromium son interface, pour déboguer.

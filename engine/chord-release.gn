@@ -1,0 +1,6 @@
+# Chord's release build (engine/scripts/build.sh --release), what Chord ships: on top of
+# chord.gn, an official build with link-time optimization. Slower to build, faster and
+# smaller to run. Still no PGO (its profiles come from Google) and no symbols.
+is_official_build = true
+use_thin_lto = true
+mac_sdk_path = "//out/Release/sdk/MacOSX26.5.sdk"

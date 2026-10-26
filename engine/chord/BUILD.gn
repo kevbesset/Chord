@@ -14,6 +14,8 @@ source_set("browser") {
     "browser/chord_browser_window.mm",
     "browser/chord_context_menu.h",
     "browser/chord_context_menu.mm",
+    "browser/chord_data_migration.h",
+    "browser/chord_data_migration.mm",
     "browser/chord_engine.h",
     "browser/chord_engine.mm",
     "browser/chord_extensions.h",
@@ -28,6 +30,8 @@ source_set("browser") {
 
   deps = [
     "//base",
+    ":branded_string_ids",
+    "//chrome/app:branded_strings",
     "//chrome/app:command_ids",
     "//chrome/browser",
     "//chrome/browser/autocomplete",
@@ -59,12 +63,14 @@ source_set("browser") {
     "//components/input",
     "//components/keyed_service/core",
     "//components/omnibox/browser",
+    "//components/os_crypt/common:keychain_password_mac",
     "//components/os_crypt/common:switches",
     "//components/page_info",
     "//components/password_manager/core/browser",
     "//components/permissions",
     "//components/prefs",
     "//components/remote_cocoa/common:mojo",
+    "//components/strings:components_branded_strings",
     "//components/tabs:public",
     "//components/web_modal",
     "//content/public/browser",
@@ -92,5 +98,21 @@ source_set("browser") {
   frameworks = [
     "AppKit.framework",
     "Security.framework",
+  ]
+}
+
+# The ids of Chromium's branded strings, for chord_browser_main_extra_parts.mm, which
+# names Chord where they name Chromium.
+action("branded_string_ids") {
+  script = "tools/branded_string_ids.py"
+  inputs = [
+    "$root_gen_dir/chrome/grit/branded_strings.h",
+    "$root_gen_dir/components/strings/grit/components_branded_strings.h",
+  ]
+  outputs = [ "$target_gen_dir/branded_string_ids.inc" ]
+  args = rebase_path(outputs, root_build_dir) + rebase_path(inputs, root_build_dir)
+  deps = [
+    "//chrome/app:branded_strings",
+    "//components/strings:components_branded_strings",
   ]
 }

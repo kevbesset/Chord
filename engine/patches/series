@@ -10,3 +10,6 @@ chord-second-launch.patch
 chord-permission-prompts.patch
 chord-context-menus.patch
 chord-product-icon.patch
+chord-own-data.patch
+chord-web-store.patch
+chord-components.patch

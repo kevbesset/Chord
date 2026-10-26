@@ -2,18 +2,30 @@
 # Builds Chord on Chromium: ChordUI with Xcode, then Chromium with //chord, then puts
 # ChordUI inside the app. Run engine/scripts/prepare.sh once before.
 #
-#   engine/scripts/build.sh            # out/Chord/Chord.app
-#   engine/scripts/build.sh --gen      # also regenerate the GN build files
+#   engine/scripts/build.sh              # out/Chord/Chord.app, for development
+#   engine/scripts/build.sh --release    # out/Release/Chord.app, what Chord ships
+#   engine/scripts/build.sh --gen        # also regenerate the GN build files
 #
-# Development settings: no LTO, no PGO, no symbols. The first build takes a few hours,
-# the next ones only rebuild what changed.
+# Development settings (chord.gn): no LTO, no PGO, no symbols. Release (chord-release.gn
+# on top): an official build with link-time optimization. The first build of each takes
+# a few hours, the next ones only rebuild what changed. The app is then signed
+# (sign.sh).
 set -euo pipefail
 
 ENGINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO_DIR="$(cd "$ENGINE_DIR/.." && pwd)"
 ROOT="$ENGINE_DIR/vendor/ungoogled-chromium-macos"
 SRC="$ROOT/build/src"
+RELEASE=false
+GEN=false
+for arg in "$@"; do
+  case "$arg" in
+    --release) RELEASE=true ;;
+    --gen) GEN=true ;;
+  esac
+done
 OUT="$SRC/out/Chord"
+$RELEASE && OUT="$SRC/out/Release"
 export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 export SDKROOT="${SDKROOT:-/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk}"
 
@@ -40,17 +52,23 @@ done < "$ENGINE_DIR/patches/series"
 # the resources are not rebuilt each time.
 rsync -rc "$ENGINE_DIR/branding/src/" "$SRC/"
 
-if [ ! -f "$OUT/args.gn" ] || [ "${1:-}" = "--gen" ]; then
+if [ ! -f "$OUT/args.gn" ] || $GEN; then
   mkdir -p "$OUT/sdk"
   ln -sfn "$SDKROOT" "$OUT/sdk/MacOSX26.5.sdk"
-  # ungoogled-chromium's arguments, minus those chord.gn sets (GN refuses to assign
-  # an argument twice), then chord.gn's.
-  ours="$(grep -oE '^[a-z_0-9]+' "$ENGINE_DIR/chord.gn" | sort -u)"
+  # Chord's arguments: chord.gn, and for a release chord-release.gn over it.
+  chord_args="$(cat "$ENGINE_DIR/chord.gn")"
+  if $RELEASE; then
+    release_keys="$(grep -oE '^[a-z_0-9]+' "$ENGINE_DIR/chord-release.gn" | sort -u)"
+    chord_args="$(grep -vE "^($(echo $release_keys | tr ' ' '|'))[[:space:]]*=" <<< "$chord_args"; cat "$ENGINE_DIR/chord-release.gn")"
+  fi
+  # ungoogled-chromium's arguments, minus those Chord sets (GN refuses to assign an
+  # argument twice), then Chord's.
+  ours="$(grep -oE '^[a-z_0-9]+' <<< "$chord_args" | sort -u)"
   {
     cat "$ROOT/ungoogled-chromium/flags.gn" "$ROOT/flags.macos.gn" \
       | grep -vE "^($(echo $ours | tr ' ' '|'))[[:space:]]*="
     echo 'target_cpu = "arm64"'
-    cat "$ENGINE_DIR/chord.gn"
+    echo "$chord_args"
   } > "$OUT/args.gn"
   (cd "$SRC" && ./out/gn gen "$OUT")
 fi
@@ -64,7 +82,10 @@ caffeinate -i ninja -C "$OUT" chrome
 
 APP="$OUT/Chord.app"
 FRAMEWORKS="$APP/Contents/Frameworks"
-rm -rf "$FRAMEWORKS/ChordUI.framework"
-cp -R "$REPO_DIR/app/build/release/ChordUI.framework" "$FRAMEWORKS/"
-codesign --force --sign - "$FRAMEWORKS/ChordUI.framework" >/dev/null 2>&1 || true
+for framework in ChordUI Sparkle; do
+  rm -rf "$FRAMEWORKS/$framework.framework"
+  [ -d "$REPO_DIR/app/build/release/$framework.framework" ] && \
+    cp -R "$REPO_DIR/app/build/release/$framework.framework" "$FRAMEWORKS/"
+done
+"$ENGINE_DIR/scripts/sign.sh" "$APP"
 echo "Prêt : $APP"

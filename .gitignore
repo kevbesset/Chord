@@ -10,3 +10,9 @@ xcuserdata/
 # Chromium checkout and build output (tens of gigabytes)
 engine/vendor/
 engine/out/
+
+# Packaged releases (engine/scripts/package.sh)
+dist/
+
+# Sparkle private key, if exported here (docs/RELEASING.md): never in the repository
+sparkle-key

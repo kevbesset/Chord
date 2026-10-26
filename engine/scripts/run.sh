@@ -39,7 +39,13 @@ fi
 if $INSTALL; then
   rm -rf "$APP/Contents/Frameworks/ChordUI.framework"
   cp -R "$FRAMEWORK" "$APP/Contents/Frameworks/"
-  codesign --force --sign - "$APP/Contents/Frameworks/ChordUI.framework" >/dev/null 2>&1 || true
+  # Sparkle (updates) comes with ChordUI.
+  SPARKLE="$(dirname "$FRAMEWORK")/Sparkle.framework"
+  if [ -d "$SPARKLE" ]; then
+    rm -rf "$APP/Contents/Frameworks/Sparkle.framework"
+    cp -R "$SPARKLE" "$APP/Contents/Frameworks/"
+  fi
+  "$ENGINE_DIR/scripts/sign.sh" "$APP" --quick >/dev/null
 fi
 
 open "$APP"

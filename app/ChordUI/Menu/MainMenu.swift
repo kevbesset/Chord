@@ -15,6 +15,8 @@ public enum MainMenu {
 
         main.addItem(submenu(appName, [
             item("À propos de \(appName)", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+            // Handled by ChordUIHost's updater (Sparkle).
+            item("Rechercher les mises à jour…", Selector(("checkForUpdates:"))),
             .separator(),
             item("Réglages…", #selector(C.showSettings(_:)), ","),
             .separator(),
@@ -247,16 +249,21 @@ public enum MainMenu {
         return item
     }
 
-    /// An item that is not shown in the menu but still answers its shortcut: a second
-    /// shortcut for an action (⌘B besides ⌘S for the sidebar).
     /// Points the items with these actions at `target` instead of the responder chain.
     public static func setTarget(_ target: AnyObject, for actions: [Selector], in menu: NSMenu) {
-        for item in menu.items {
-            if let action = item.action, actions.contains(action) { item.target = target }
-            if let submenu = item.submenu { setTarget(target, for: actions, in: submenu) }
+        items(with: actions, in: menu).forEach { $0.target = target }
+    }
+
+    /// The items of `menu` and its submenus with one of these actions.
+    static func items(with actions: [Selector], in menu: NSMenu) -> [NSMenuItem] {
+        menu.items.flatMap { item -> [NSMenuItem] in
+            let own = item.action.map(actions.contains) == true ? [item] : []
+            return own + (item.submenu.map { items(with: actions, in: $0) } ?? [])
         }
     }
 
+    /// An item that is not shown in the menu but still answers its shortcut: a second
+    /// shortcut for an action (⌘B besides ⌘S for the sidebar).
     private static func hidden(_ item: NSMenuItem) -> NSMenuItem {
         item.isHidden = true
         item.allowsKeyEquivalentWhenHidden = true

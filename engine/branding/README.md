@@ -9,4 +9,8 @@ C'est le logo de Chord là où les pages internes de Chromium montrent le sien
   clair (`chrome://theme/current-channel-logo`), rendu depuis `design/brand/chord-mark.svg` ;
 - `ui/webui/resources/images/chrome_logo_dark.svg` : le symbole sur fond sombre.
 
+- `chrome/app/theme/chromium/mac/Assets.car` et `app.icns` : l'icône de l'app (Dock,
+  Finder), compilée par `icon/make-icon.sh` depuis `icon/AppIcon.icon` (format Icon
+  Composer : fond indigo, arc blanc, corde en verre).
+
 Les PNG se refont depuis le SVG si le symbole change.

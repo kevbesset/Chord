@@ -15,6 +15,7 @@
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "base/path_service.h"
+#include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
 #include "net/base/apple/url_conversions.h"
@@ -30,11 +31,15 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chord/browser/chord_arc_import.h"
+#include "chord/browser/chord_data_migration.h"
 #include "chrome/common/chrome_constants.h"
+#include "chrome/grit/branded_strings.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_service.h"
+#include "components/strings/grit/components_branded_strings.h"
+#include "ui/base/resource/resource_bundle.h"
 #include "components/os_crypt/common/os_crypt_switches.h"
 
 namespace chord {
@@ -149,24 +154,37 @@ void StartChordUI() {
   g_started = true;
   ChordEngine* engine = [[ChordEngine alloc] initWithProfile:profile];
   SetSharedEngine(engine);
-  // ChordUI's session (Spaces, tabs, folders). A separate `--user-data-dir`
-  // (tests, a second profile folder) gets its own, inside it.
-  NSURL* support = [[NSFileManager.defaultManager
-      URLsForDirectory:NSApplicationSupportDirectory
-             inDomains:NSUserDomainMask].firstObject
-      URLByAppendingPathComponent:@"Chord"
-                      isDirectory:YES];
-  const base::CommandLine& command_line = *base::CommandLine::ForCurrentProcess();
-  if (command_line.HasSwitch(switches::kUserDataDir)) {
-    support = [NSURL
-        fileURLWithPath:base::SysUTF8ToNSString(
-                            command_line.GetSwitchValuePath(switches::kUserDataDir)
-                                .Append("ChordUI")
-                                .value())
-            isDirectory:YES];
-  }
+  // ChordUI's session (Spaces, tabs, folders), in the data folder.
+  NSURL* support = [NSURL
+      fileURLWithPath:base::SysUTF8ToNSString(
+                          profiles->user_data_dir().Append("ChordUI").value())
+          isDirectory:YES];
   [Host() startWithEngine:engine appName:@"Chord" supportDirectory:support];
   GoBackToTabOnPictureInPictureDoubleClick();
+}
+
+// Chromium's own pages (settings, "About") name the product in every language:
+// Chord's name instead, except where the strings credit the Chromium project.
+void NameChordInChromiumStrings() {
+  static constexpr int kBrandedStrings[] = {
+#include "chord/branded_string_ids.inc"
+  };
+  ui::ResourceBundle& bundle = ui::ResourceBundle::GetSharedInstance();
+  for (int id : kBrandedStrings) {
+    std::u16string text = bundle.GetLocalizedString(id);
+    if (text.find(u"Chromium") == std::u16string::npos) {
+      continue;
+    }
+    std::u16string lower = base::ToLowerASCII(text);
+    if (lower.find(u"authors") != std::u16string::npos ||
+        lower.find(u"auteurs") != std::u16string::npos ||
+        lower.find(u"open source") != std::u16string::npos ||
+        lower.find(u"open-source") != std::u16string::npos) {
+      continue;
+    }
+    base::ReplaceSubstringsAfterOffset(&text, 0, u"Chromium", u"Chord");
+    bundle.OverrideLocaleStringResource(id, text);
+  }
 }
 
 class ChordBrowserMainExtraParts : public ChromeBrowserMainExtraParts {
@@ -180,8 +198,13 @@ class ChordBrowserMainExtraParts : public ChromeBrowserMainExtraParts {
   // Before any profile opens: the site storage of the Arc profiles imported last
   // time joins their Chord profiles.
   void PreProfileInit() override {
+    // After the locale is final: reloading it clears these.
+    NameChordInChromiumStrings();
     base::FilePath user_data_dir;
     if (base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir)) {
+      UpdateDataEncryption(user_data_dir,
+                           base::CommandLine::ForCurrentProcess()->HasSwitch(
+                               os_crypt::switches::kUseMockKeychain));
       MergePendingArcSiteStorage(user_data_dir);
     }
   }
@@ -207,13 +230,15 @@ bool IsEnabled() {
 
 std::unique_ptr<ChromeBrowserMainExtraParts> CreateBrowserMainExtraParts() {
   RecordFatalErrors();
-#if !defined(OFFICIAL_BUILD)
-  // A development build is signed anew at each build, so macOS would ask for the
+  MoveDataIntoChordFolder();
+  // A build signed ad hoc is signed anew at each build, so macOS would ask for the
   // keychain item that encrypts cookies every time, and every page load waits for
-  // that answer. Development builds keep that key in a mock keychain instead.
-  base::CommandLine::ForCurrentProcess()->AppendSwitch(
-      os_crypt::switches::kUseMockKeychain);
-#endif
+  // that answer. Such builds keep that key in a mock keychain instead. Signed with
+  // a certificate (engine/scripts/sign.sh), Chord uses the real keychain.
+  if (IsSignedAdHoc()) {
+    base::CommandLine::ForCurrentProcess()->AppendSwitch(
+        os_crypt::switches::kUseMockKeychain);
+  }
   if (!IsEnabled()) {
     return nullptr;
   }

@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 
 /// ChordUI's entry point for the app that hosts it: Chromium (engine/chord).
 ///
@@ -15,6 +16,9 @@ public final class ChordUIHost: NSObject {
     private static let appActions = AppActions()
     /// Links that arrived before the window existed.
     private static var pendingURLs: [URL] = []
+    /// Chord's own updates, in the builds that say where to find them:
+    /// engine/scripts/package.sh writes the feed and its public key into Info.plist.
+    private static var updater: SPUStandardUpdaterController?
 
     /// Installs the menu and opens the browser window. `supportDirectory` keeps the
     /// session (Spaces, tabs, folders).
@@ -25,6 +29,7 @@ public final class ChordUIHost: NSObject {
         NSWindow.allowsAutomaticWindowTabbing = false
         let menu = MainMenu.build(appName: appName)
         MainMenu.setTarget(appActions, for: [#selector(AppActions.newWindow(_:)), #selector(AppActions.newPrivateWindow(_:))], in: menu)
+        startUpdater(menu: menu)
         NSApp.mainMenu = menu
 
         self.engine = engine
@@ -40,6 +45,21 @@ public final class ChordUIHost: NSObject {
         pendingURLs.forEach { controller.openLittleWindow(url: $0) }
         pendingURLs = []
         DispatchQueue.main.async { launch.end() }
+    }
+
+    /// Checks for updates in the background and installs them at the next launch, as Arc
+    /// does; « Rechercher les mises à jour… » checks now. Without a feed (development
+    /// builds) the item is hidden.
+    private static func startUpdater(menu: NSMenu) {
+        let check = #selector(SPUStandardUpdaterController.checkForUpdates(_:))
+        guard Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") != nil,
+              Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil else {
+            MainMenu.items(with: [check], in: menu).forEach { $0.isHidden = true }
+            return
+        }
+        let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        MainMenu.setTarget(updater, for: [check], in: menu)
+        self.updater = updater
     }
 
     /// A new browser window on the shared Spaces (⌘N), next to the current one.

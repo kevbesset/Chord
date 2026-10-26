@@ -28,6 +28,8 @@ Au quotidien, pour l'interface (quelques secondes, sans recompiler Chromium) :
 engine/scripts/run.sh            # recompile ChordUI, le remet dans Chord.app, relance
 ```
 
+Pour partager : `build.sh --release`, `package.sh`, `release.sh` (`docs/RELEASING.md`).
+
 Dans Xcode, le schéma **Chord** fait la même chose : Build (⌘B) ou Run (⌘R) compile
 ChordUI, l'installe dans Chord.app et relance Chord (journal : `app/build/run-chord.log`).
 
@@ -103,7 +105,12 @@ et corriger les erreurs avant de rendre la main.
 - Après un plantage, le lancement suivant écrit un rapport lisible dans
   `~/Library/Logs/Chord/latest-crash.md` (pile du fil fautif, message d'erreur de
   Chromium s'il y en a un, capté par //chord dans `last-fatal.txt`) et le propose.
-- Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
-  Peek au ⇧-clic, téléchargements dans le panneau de Chord,
+- Pas encore côté Chromium : Peek au ⇧-clic, téléchargements dans le panneau de Chord,
   plein écran vidéo dans l'interface, recherche dans la page.
-- Licence : pas encore choisie, à trancher avant le premier contributeur externe.
+- Partage : Chord signé par le meilleur certificat du Mac (`engine/scripts/sign.sh`),
+  données dans `~/Library/Application Support/Chord` (celles des anciens builds y sont
+  déplacées et rechiffrées avec la clé du Trousseau), nom et icône de Chord partout,
+  Chrome Web Store et composants (Widevine) rétablis, mises à jour Sparkle,
+  `package.sh` (image disque) et `release.sh` (version GitHub), voir `docs/RELEASING.md`.
+  Pas encore de Developer ID : pas de notarisation.
+- Licence : GPL-3.0 (`LICENSE`, décision 0005).

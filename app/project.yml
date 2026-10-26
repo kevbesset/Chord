@@ -22,12 +22,21 @@ settings:
     DEVELOPMENT_TEAM: ""
     ENABLE_HARDENED_RUNTIME: NO
 
+packages:
+  # Chord's own updates (SUFeedURL and SUPublicEDKey are set in release builds by
+  # engine/scripts/package.sh). Its framework goes into Chord.app next to ChordUI.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.6.4
+
 targets:
   ChordUI:
     type: framework
     platform: macOS
     sources:
       - path: ChordUI
+    dependencies:
+      - package: Sparkle
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.chord.ChordUI
