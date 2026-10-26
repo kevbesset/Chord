@@ -59,8 +59,8 @@ final class SidebarView: NSView {
     let pager = SpacePagerView()
     var tabList: TabListView { pager.current.tabList }
     let spaceSwitcher = SpaceSwitcherView()
-    /// Floating, the sidebar has its own glass: the window's (the desktop shows
-    /// through, not the page under it), frosted and tinted the same way.
+    /// Floating, the sidebar has its own glass over the page: the page shows through it,
+    /// blurred, frosted and tinted like the window glass.
     private let floatingBackground = NSVisualEffectView()
     private let floatingFrost = GlassFrostView()
     private let floatingTint = SpaceTintView()
@@ -156,7 +156,7 @@ final class SidebarView: NSView {
         wantsLayer = true
 
         floatingBackground.material = Theme.windowMaterial
-        floatingBackground.blendingMode = .behindWindow
+        floatingBackground.blendingMode = .withinWindow
         floatingBackground.state = .active
         floatingBackground.wantsLayer = true
         floatingBackground.layer?.cornerRadius = 14
