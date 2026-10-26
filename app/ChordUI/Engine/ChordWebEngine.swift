@@ -48,6 +48,13 @@ import AppKit
     @objc optional func didBecomeActive()
     /// Opens or closes the page's developer tools (⌥⌘I).
     @objc optional func toggleDevTools()
+    /// The developer tools docked in the page's area (right, left or bottom, chosen in
+    /// the tools themselves), nil when they are closed or in their own window. They
+    /// fill the area; the page goes where `pageFrame(withDevToolsIn:)` says.
+    @objc optional var devToolsView: NSView? { get }
+    /// Where the page goes in an area of `size` while its tools are docked, with a
+    /// top-left origin.
+    @objc optional func pageFrame(withDevToolsIn size: NSSize) -> NSRect
 }
 
 @objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {

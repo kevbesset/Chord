@@ -1,0 +1,31 @@
+Chord: launching Chord again brings its window back, instead of a new tab.
+--- a/chrome/browser/ui/startup/startup_browser_creator.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator.cc
+@@ -3,6 +3,11 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/startup/startup_browser_creator.h"
++
++#include "build/build_config.h"
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
+ 
+ #include <stddef.h>
+ 
+@@ -1553,8 +1558,15 @@
+     const base::FilePath& cur_dir,
+     const StartupProfilePathInfo& profile_path_info) {
+   if (profile_path_info.mode == StartupProfileMode::kError) {
++    return;
++  }
++
++#if BUILDFLAG(IS_MAC)
++  // Chord brings its window back, with the links it was given.
++  if (chord::HandleSecondLaunch(command_line)) {
+     return;
+   }
++#endif
+ 
+   Profile* profile = nullptr;
+   if (profile_path_info.mode == StartupProfileMode::kBrowserWindow) {

@@ -50,6 +50,8 @@
 - (void)reloadIgnoringCache;
 - (void)didBecomeActive;
 - (void)toggleDevTools;
+@property(nonatomic, readonly, strong) NSView* devToolsView;
+- (NSRect)pageFrameWithDevToolsIn:(NSSize)size;
 @end
 
 @protocol ChordWebEngine;

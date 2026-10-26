@@ -657,6 +657,7 @@ public final class BrowserState: NSObject {
 
 extension BrowserState: ChordWebPageDelegate {
     public func pageDidUpdate(_ page: ChordWebPage) {
+        PageHostView.pageDidUpdate(page)
         guard let tab = tab(owning: page) else { return }
         if let url = page.url { tab.url = url }
         if let title = page.title, !title.isEmpty { tab.title = title }

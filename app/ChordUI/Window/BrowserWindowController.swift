@@ -370,7 +370,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private func showSelectedPage(focus: Bool) {
         let tabs = state.visibleTabs
-        let views = tabs.map { state.page(for: $0).view }
+        let views = tabs.map { PageHostView.host(for: state.page(for: $0)) as NSView }
         let selected = state.selectedTab
         if tabs.isEmpty { pageArea.home.update(space: state.activeSpace, favorites: state.favorites) }
         pageArea.show(tabs: tabs, views: views, activeID: selected?.id)

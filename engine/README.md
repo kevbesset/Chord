@@ -68,7 +68,9 @@ Chord tourne sur Chromium 155. Vérifié par le protocole DevTools : les pages
 s'affichent dans les fenêtres de ChordUI (petite fenêtre comprise) ; une extension
 non empaquetée injecte ses scripts de contenu dans les pages de Chord ; `chrome.tabs`
 voit les onglets de Chord ; un onglet créé par une extension apparaît dans les onglets
-du jour. Reste à essayer à l'écran : la fenêtre principale, les DevTools (⌥⌘I).
+du jour. Les DevTools (⌥⌘I) s'ancrent dans la fenêtre de Chord : ils remplissent la
+zone de la page (`PageHostView` dans ChordUI) et la page prend la place que leur
+disposition lui laisse, comme dans `DevtoolsUIController` de Chromium.
 
 En build de développement, la clé de chiffrement des cookies est dans un trousseau
 simulé : sinon macOS demande l'accès au Trousseau à chaque build (la signature change)

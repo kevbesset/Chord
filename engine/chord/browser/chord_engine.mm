@@ -2,6 +2,8 @@
 
 #import "chord/browser/chord_engine.h"
 
+#include "chord/browser/chord_hooks.h"
+
 #include <map>
 #include <memory>
 #include <set>
@@ -10,6 +12,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/no_destructor.h"
 #include "base/strings/sys_string_conversions.h"
+#include "chrome/browser/devtools/devtools_contents_resizing_strategy.h"
 #include "chrome/browser/devtools/devtools_toggle_action.h"
 #include "chrome/browser/devtools/devtools_window.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
@@ -308,6 +311,29 @@ class PageObserver : public content::WebContentsObserver {
   }
 }
 
+// Docked DevTools: their WebContents fills the page's area, the page sits where the
+// DevTools' layout leaves room (the same strategy as Chromium's DevtoolsUIController).
+- (NSView*)devToolsView {
+  content::WebContents* devtools =
+      _webContents ? DevToolsWindow::GetInTabWebContents(_webContents, nullptr)
+                   : nullptr;
+  return devtools ? devtools->GetNativeView().GetNativeNSView() : nil;
+}
+
+- (NSRect)pageFrameWithDevToolsIn:(NSSize)size {
+  gfx::Rect container(0, 0, size.width, size.height);
+  DevToolsContentsResizingStrategy strategy;
+  if (!_webContents ||
+      !DevToolsWindow::GetInTabWebContents(_webContents, &strategy)) {
+    return container.ToCGRect();
+  }
+  gfx::Rect devtools_bounds;
+  gfx::Rect contents_bounds;
+  ApplyDevToolsContentsResizingStrategy(strategy, container, &devtools_bounds,
+                                        &contents_bounds);
+  return contents_bounds.ToCGRect();
+}
+
 @end
 
 // MARK: - Tabs Chromium opens or closes by itself
@@ -488,6 +514,20 @@ void WatchBrowser(BrowserWindowInterface* browser) {
 
 void UnwatchBrowser(BrowserWindowInterface* browser) {
   TabWatcher::Get().Unwatch(browser->GetTabStripModel());
+}
+
+bool CanDockDevTools(BrowserWindowInterface* browser) {
+  return IsEnabled() && browser &&
+         browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL;
+}
+
+// Later, outside DevTools' own update (it may be tearing down).
+void UpdateDevTools(content::WebContents* inspected) {
+  if (ChordPage* page = PageFor(inspected)) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [page notifyUpdate];
+    });
+  }
 }
 
 }  // namespace chord

@@ -9,6 +9,8 @@
 #include "base/command_line.h"
 #include "base/logging.h"
 #include "base/strings/sys_string_conversions.h"
+#include "net/base/apple/url_conversions.h"
+#include "url/gurl.h"
 #import "chord/browser/chord_browser_window.h"
 #import "chord/browser/chord_engine.h"
 #import "chord/browser/chord_ui.h"
@@ -61,11 +63,22 @@ void StartChordUI() {
   g_started = true;
   ChordEngine* engine = [[ChordEngine alloc] initWithProfile:profile];
   SetSharedEngine(engine);
+  // ChordUI's session (Spaces, tabs, folders). A separate `--user-data-dir`
+  // (tests, a second profile folder) gets its own, inside it.
   NSURL* support = [[NSFileManager.defaultManager
       URLsForDirectory:NSApplicationSupportDirectory
              inDomains:NSUserDomainMask].firstObject
       URLByAppendingPathComponent:@"Chord"
                       isDirectory:YES];
+  const base::CommandLine& command_line = *base::CommandLine::ForCurrentProcess();
+  if (command_line.HasSwitch(switches::kUserDataDir)) {
+    support = [NSURL
+        fileURLWithPath:base::SysUTF8ToNSString(
+                            command_line.GetSwitchValuePath(switches::kUserDataDir)
+                                .Append("ChordUI")
+                                .value())
+            isDirectory:YES];
+  }
   [Host() startWithEngine:engine appName:@"Chord" supportDirectory:support];
 }
 
@@ -114,6 +127,25 @@ std::unique_ptr<BrowserWindow, BrowserWindowDeleter> MaybeCreateBrowserWindow(
   }
   return std::unique_ptr<BrowserWindow, BrowserWindowDeleter>(
       new ChordBrowserWindow(browser));
+}
+
+bool HandleSecondLaunch(const base::CommandLine& command_line) {
+  if (!g_started) {
+    return false;
+  }
+  NSMutableArray<NSURL*>* urls = [NSMutableArray array];
+  for (const auto& arg : command_line.GetArgs()) {
+    GURL url(arg);
+    if (url.is_valid() && (url.SchemeIsHTTPOrHTTPS() || url.SchemeIsFile())) {
+      [urls addObject:net::NSURLWithGURL(url)];
+    }
+  }
+  if (urls.count) {
+    [Host() openURLs:urls];
+  } else {
+    [Host() reopen];
+  }
+  return true;
 }
 
 bool HandleReopen() {

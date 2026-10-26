@@ -14,6 +14,14 @@ class BrowserWindow;
 class BrowserWindowInterface;
 class ChromeBrowserMainExtraParts;
 
+namespace base {
+class CommandLine;
+}
+
+namespace content {
+class WebContents;
+}
+
 #if defined(__OBJC__)
 #import <Foundation/Foundation.h>
 #endif
@@ -31,6 +39,19 @@ std::unique_ptr<BrowserWindow, BrowserWindowDeleter> MaybeCreateBrowserWindow(
 
 // Whether Chord's interface replaces Chromium's for this process.
 bool IsEnabled();
+
+// chrome/browser/ui/startup/startup_browser_creator.cc: Chord was launched again
+// while running. Returns true when Chord brought its window back and opened the
+// links of `command_line`, instead of Chromium opening a new tab.
+bool HandleSecondLaunch(const base::CommandLine& command_line);
+
+// chrome/browser/devtools/devtools_window.cc: DevTools can dock in Chord's windows,
+// which have no DevtoolsUIController (that one is made of Views).
+bool CanDockDevTools(BrowserWindowInterface* browser);
+
+// chrome/browser/devtools/devtools_window.cc, devtools_window_views.cc: the docked
+// DevTools of `inspected` opened, closed, moved or were resized.
+void UpdateDevTools(content::WebContents* inspected);
 
 #if defined(__OBJC__)
 // chrome/browser/app_controller_mac.mm: the Dock icon was clicked. Returns true when

@@ -2,7 +2,7 @@
 # Never edit Chord.xcodeproj by hand; it is rebuilt from this file.
 #
 # Only ChordUI: Chord itself is Chromium with ChordUI loaded into it
-# (engine/scripts/build.sh, engine/scripts/run.sh).
+# (engine/scripts/build.sh, engine/scripts/run.sh). The Chord scheme launches it.
 name: Chord
 
 options:
@@ -38,7 +38,17 @@ targets:
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks"
 
 schemes:
-  ChordUI:
+  # Build (⌘B) or Run (⌘R): compiles ChordUI, puts it in Chord.app and relaunches
+  # Chord. Chord.app must have been built once with engine/scripts/build.sh.
+  Chord:
     build:
       targets:
         ChordUI: all
+      postActions:
+        - name: Lancer Chord
+          settingsTarget: ChordUI
+          script: |
+            mkdir -p "$PROJECT_DIR/build"
+            "$PROJECT_DIR/../engine/scripts/run.sh" --framework "$BUILT_PRODUCTS_DIR/ChordUI.framework" > "$PROJECT_DIR/build/run-chord.log" 2>&1
+    run:
+      config: Debug

@@ -57,7 +57,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         self.page = page
         build()
         setTarget(space)
-        card.show(page.view)
+        card.show(PageHostView.host(for: page))
         if let url {
             page.load(url)
             updateAddress(url: url)
@@ -248,6 +248,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     }
 
     func pageDidUpdate(_ page: ChordWebPage) {
+        PageHostView.pageDidUpdate(page)
         guard page === self.page else { return }
         updateAddress(url: page.url)
         card.setLoading(page.isLoading, accent: targetSpace.accent)

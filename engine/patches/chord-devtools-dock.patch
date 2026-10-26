@@ -1,0 +1,60 @@
+Chord: DevTools dock in Chord's windows, which lay them out themselves.
+--- a/chrome/browser/devtools/devtools_window.cc
++++ b/chrome/browser/devtools/devtools_window.cc
+@@ -4,6 +4,10 @@
+ 
+ #include "chrome/browser/devtools/devtools_window.h"
+ 
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
++
+ #include <algorithm>
+ #include <memory>
+ #include <set>
+@@ -1080,6 +1084,9 @@
+             DevtoolsUIController::From(inspected_browser)) {
+       devtools_ui_controller->UpdateDevtools(inspected_web_contents);
+     }
++#if BUILDFLAG(IS_MAC)
++    chord::UpdateDevTools(inspected_web_contents);
++#endif
+     main_web_contents_->SetInitialFocus();
+     inspected_window->Show();
+     // On Aura, focusing once is not enough. Do it again.
+@@ -1406,6 +1413,12 @@
+     if (!devtools_ui_controller || !devtools_ui_controller->CanDockDevtools()) {
+       can_dock = false;
+     }
++#if BUILDFLAG(IS_MAC)
++    // Chord's windows dock DevTools themselves.
++    if (chord::CanDockDevTools(browser)) {
++      can_dock = true;
++    }
++#endif
+   }
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
+--- a/chrome/browser/devtools/devtools_window_views.cc
++++ b/chrome/browser/devtools/devtools_window_views.cc
+@@ -15,6 +15,10 @@
+ #include "content/public/browser/keyboard_event_processing_result.h"
+ #include "content/public/browser/render_process_host.h"
+ #include "printing/buildflags/buildflags.h"
++#include "build/build_config.h"
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
+ 
+ #if BUILDFLAG(ENABLE_PRINT_PREVIEW)
+ #include "chrome/browser/printing/print_preview_dialog_controller.h"
+@@ -139,6 +143,9 @@
+           DevtoolsUIController::From(inspected_browser)) {
+     devtools_ui_controller->UpdateDevtools(inspected_web_contents);
+   }
++#if BUILDFLAG(IS_MAC)
++  chord::UpdateDevTools(inspected_web_contents);
++#endif
+ }
+ 
+ void DevToolsWindow::RegisterModalDialogManager(

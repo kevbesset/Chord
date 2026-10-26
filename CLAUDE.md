@@ -28,6 +28,9 @@ Au quotidien, pour l'interface (quelques secondes, sans recompiler Chromium) :
 engine/scripts/run.sh            # recompile ChordUI, le remet dans Chord.app, relance
 ```
 
+Dans Xcode, le schéma **Chord** fait la même chose : Build (⌘B) ou Run (⌘R) compile
+ChordUI, l'installe dans Chord.app et relance Chord (journal : `app/build/run-chord.log`).
+
 `Chord.xcodeproj` est généré depuis `app/project.yml` et ignoré par git : on modifie
 `project.yml`, jamais le projet. Après une modification de code, toujours recompiler
 et corriger les erreurs avant de rendre la main.
@@ -73,8 +76,8 @@ et corriger les erreurs avant de rendre la main.
 - **Chord sur Chromium** (spike 0, `engine/`) : ChordUI tourne dans Chromium 155
   (ungoogled-chromium), construit par `engine/scripts/build.sh`. Vérifié : les pages
   s'affichent dans les fenêtres de Chord, les extensions marchent (scripts de contenu,
-  `chrome.tabs`, onglets ouverts par une extension adoptés par ChordUI). DevTools (⌥⌘I,
-  fenêtre séparée) écrits mais pas encore essayés à l'écran.
+  `chrome.tabs`, onglets ouverts par une extension adoptés par ChordUI), DevTools (⌥⌘I)
+  ancrés dans la fenêtre à droite, à gauche ou en bas, ou dans leur propre fenêtre.
 - Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
   Peek au ⇧-clic, téléchargements dans le panneau de Chord, invites de permission,
   plein écran vidéo dans l'interface, recherche dans la page, import de l'historique /

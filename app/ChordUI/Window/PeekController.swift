@@ -185,6 +185,7 @@ final class PeekController: NSObject, ChordWebPageDelegate {
     // MARK: - ChordWebPageDelegate
 
     func pageDidUpdate(_ page: ChordWebPage) {
+        PageHostView.pageDidUpdate(page)
         guard page === self.page else { return }
         panel.updateHeader(url: page.url, title: page.title)
         panel.setLoading(page.isLoading)
@@ -236,7 +237,7 @@ final class PeekPanelView: NSView {
     }
 
     func show(page: ChordWebPage?, accent: NSColor?) {
-        card.show(page?.view)
+        card.show(page.map { PageHostView.host(for: $0) })
         if let accent { header.openButton.accent = accent }
     }
 

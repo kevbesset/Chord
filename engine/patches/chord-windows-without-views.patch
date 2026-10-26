@@ -1,0 +1,127 @@
+Chord: Chord's windows have no Views side panel, toast anchors or sad tab views, like WebUIBrowserWindow.
+--- a/chrome/browser/ui/read_anything/read_anything_side_panel_controller.cc
++++ b/chrome/browser/ui/read_anything/read_anything_side_panel_controller.cc
+@@ -38,6 +38,10 @@
+ #include "chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_page_handler.h"
+ #include "chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_ui.h"
+ #include "chrome/browser/ui/webui_browser/webui_browser.h"
++#include "build/build_config.h"
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
+ #include "components/accessibility/reading/distillable_pages.h"
+ #include "components/feature_engagement/public/feature_constants.h"
+ #include "components/language/core/browser/language_model.h"
+@@ -54,6 +58,19 @@
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/metadata/metadata_types.h"
+ 
++namespace {
++// Chord's windows, like WebUIBrowserWindow, have no Views side panel, toast
++// anchors or contents views.
++bool IsWindowWithoutViews() {
++#if BUILDFLAG(IS_MAC)
++  if (chord::IsEnabled()) {
++    return true;
++  }
++#endif
++  return webui_browser::IsWebUIBrowserEnabled();
++}
++}  // namespace
++
+ WEB_CONTENTS_USER_DATA_KEY_IMPL(ReadAnythingSidePanelControllerGlue);
+ 
+ ReadAnythingSidePanelControllerGlue::ReadAnythingSidePanelControllerGlue(
+@@ -265,7 +282,7 @@
+   if (!side_panel_ui) {
+     // TODO(webium): create a SidePanelCoordinator for WebUIBrowser.
+     // This is a temporary solution to avoid a crash.
+-    if (!webui_browser::IsWebUIBrowserEnabled()) {
++    if (!IsWindowWithoutViews()) {
+       CHECK_IS_TEST();
+     }
+     return;  // IN-TEST
+--- a/chrome/browser/ui/toasts/toast_controller.cc
++++ b/chrome/browser/ui/toasts/toast_controller.cc
+@@ -38,6 +38,10 @@
+ #include "chrome/browser/ui/views/frame/multi_contents_view.h"
+ #include "chrome/browser/ui/views/interaction/browser_elements_views.h"
+ #include "chrome/browser/ui/webui_browser/webui_browser.h"
++#include "build/build_config.h"
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
+ #include "chrome/common/pref_names.h"
+ #include "components/omnibox/common/omnibox_focus_state.h"
+ #include "components/prefs/pref_service.h"
+@@ -54,6 +58,19 @@
+ #include "chrome/browser/ui/fullscreen_util_mac.h"
+ #endif
+ 
++namespace {
++// Chord's windows, like WebUIBrowserWindow, have no Views side panel, toast
++// anchors or contents views.
++bool IsWindowWithoutViews() {
++#if BUILDFLAG(IS_MAC)
++  if (chord::IsEnabled()) {
++    return true;
++  }
++#endif
++  return webui_browser::IsWebUIBrowserEnabled();
++}
++}  // namespace
++
+ DEFINE_USER_DATA(ToastController);
+ 
+ ToastParams::ToastParams(ToastId id) : toast_id(id) {}
+@@ -321,7 +338,7 @@
+   if (!anchor_view) {
+     // Don't actually create the toast in unit tests
+     // TODO(webium): show toast in webui browser.
+-    if (!webui_browser::IsWebUIBrowserEnabled()) {
++    if (!IsWindowWithoutViews()) {
+       CHECK_IS_TEST();
+     }
+     return;
+--- a/chrome/browser/ui/tabs/tab_features.cc
++++ b/chrome/browser/ui/tabs/tab_features.cc
+@@ -123,6 +123,10 @@
+ #include "chrome/browser/ui/web_applications/pwa_install_page_action.h"
+ #include "chrome/browser/ui/webui/webui_embedding_context.h"
+ #include "chrome/browser/ui/webui_browser/webui_browser.h"
++#include "build/build_config.h"
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
++#endif
+ #include "components/autofill/core/common/autofill_payments_features.h"
+ #include "components/contextual_tasks/public/features.h"
+ #include "components/enterprise/browser/reporting/reporting_features.h"
+@@ -180,6 +184,19 @@
+ #include "chrome/browser/ui/views/web_apps/protocol_handler_picker_coordinator.h"
+ #endif
+ 
++namespace {
++// Chord's windows, like WebUIBrowserWindow, have no Views side panel, toast
++// anchors or contents views.
++bool IsWindowWithoutViews() {
++#if BUILDFLAG(IS_MAC)
++  if (chord::IsEnabled()) {
++    return true;
++  }
++#endif
++  return webui_browser::IsWebUIBrowserEnabled();
++}
++}  // namespace
++
+ namespace tabs {
+ 
+ TabFeatures::TabFeatures() = default;
+@@ -573,7 +590,7 @@
+             tab, tab, tab.GetContents());
+   }
+ 
+-  if (!webui_browser::IsWebUIBrowserEnabled()) {
++  if (!IsWindowWithoutViews()) {
+     sad_tab_helper_ = GetUserDataFactory().CreateInstance<SadTabHelper>(
+         tab, tab, tab.GetContents());
+   }
