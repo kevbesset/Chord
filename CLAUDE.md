@@ -82,8 +82,16 @@ et corriger les erreurs avant de rendre la main.
   sélectionnés (`WindowSelection`) ; navigation privée (⇧⌘N) sur le profil incognito de
   Chromium, fenêtre sombre, rien d'enregistré ; ⌘← / ⌘→ pour l'historique (sauf en
   saisie de texte).
+- Picture-in-picture comme Arc : une vidéo en lecture passe dans la fenêtre PiP de
+  Chromium (flottante, déplaçable, redimensionnable) quand son onglet quitte l'écran,
+  et revient à son retour ; « retour à l'onglet » sélectionne l'onglet dans ChordUI ;
+  ⌃⌘P à la main ; réglage « Picture-in-picture automatique ».
+- Demandes de permission des pages : feuille native de Chord (Autoriser / Bloquer).
+- Après un plantage, le lancement suivant écrit un rapport lisible dans
+  `~/Library/Logs/Chord/latest-crash.md` (pile du fil fautif, message d'erreur de
+  Chromium s'il y en a un, capté par //chord dans `last-fatal.txt`) et le propose.
 - Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
-  Peek au ⇧-clic, téléchargements dans le panneau de Chord, invites de permission,
+  Peek au ⇧-clic, téléchargements dans le panneau de Chord,
   plein écran vidéo dans l'interface, recherche dans la page, import de l'historique /
   mots de passe / cookies, vrais profils isolés.
 - Licence : pas encore choisie, à trancher avant le premier contributeur externe.

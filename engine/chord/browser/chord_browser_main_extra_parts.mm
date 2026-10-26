@@ -5,9 +5,16 @@
 
 #import <AppKit/AppKit.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <string>
+
 #include "base/apple/bundle_locations.h"
 #include "base/command_line.h"
 #include "base/logging.h"
+#include "base/no_destructor.h"
+#include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
 #include "net/base/apple/url_conversions.h"
 #include "url/gurl.h"
@@ -32,6 +39,48 @@ namespace {
 constexpr char kDisableChordUI[] = "disable-chord-ui";
 
 bool g_started = false;
+
+// A fatal error (a failed CHECK) stops the browser with a message that the macOS crash
+// report lacks: it goes to ~/Library/Logs/Chord/last-fatal.txt, which ChordUI's crash
+// report picks up on the next launch.
+std::string& FatalLogPath() {
+  static base::NoDestructor<std::string> path;
+  return *path;
+}
+
+logging::LogMessageHandlerFunction g_previous_log_handler = nullptr;
+
+bool HandleLogMessage(int severity,
+                      const char* file,
+                      int line,
+                      size_t message_start,
+                      const std::string& message) {
+  if (severity == logging::LOGGING_FATAL && !FatalLogPath().empty()) {
+    int fd = open(FatalLogPath().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+      std::string text = base::StringPrintf("%.0f\n%s:%d\n%s",
+          [NSDate date].timeIntervalSince1970, file, line, message.c_str());
+      ssize_t written = write(fd, text.data(), text.size());
+      (void)written;
+      close(fd);
+    }
+  }
+  return g_previous_log_handler &&
+         g_previous_log_handler(severity, file, line, message_start, message);
+}
+
+void RecordFatalErrors() {
+  NSString* directory = [NSHomeDirectory()
+      stringByAppendingPathComponent:@"Library/Logs/Chord"];
+  [NSFileManager.defaultManager createDirectoryAtPath:directory
+                          withIntermediateDirectories:YES
+                                           attributes:nil
+                                                error:nil];
+  FatalLogPath() = base::SysNSStringToUTF8(
+      [directory stringByAppendingPathComponent:@"last-fatal.txt"]);
+  g_previous_log_handler = logging::GetLogMessageHandler();
+  logging::SetLogMessageHandler(&HandleLogMessage);
+}
 
 Class<ChordUIHostInterface> Host() {
   return (Class<ChordUIHostInterface>)NSClassFromString(@"ChordUIHost");
@@ -114,6 +163,7 @@ bool IsEnabled() {
 }
 
 std::unique_ptr<ChromeBrowserMainExtraParts> CreateBrowserMainExtraParts() {
+  RecordFatalErrors();
 #if !defined(OFFICIAL_BUILD)
   // A development build is signed anew at each build, so macOS would ask for the
   // keychain item that encrypts cookies every time, and every page load waits for

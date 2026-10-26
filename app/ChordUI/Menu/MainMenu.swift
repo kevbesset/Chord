@@ -65,6 +65,7 @@ public enum MainMenu {
             item("Arrêter le chargement", #selector(C.stopLoading(_:)), "."),
             .separator(),
             item("Outils de développement", #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
+            item("Picture-in-picture", #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),
             .separator(),
             item("Plein écran", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
         ]))

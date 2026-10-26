@@ -16,6 +16,7 @@
 #include "chrome/browser/devtools/devtools_toggle_action.h"
 #include "chrome/browser/devtools/devtools_window.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
+#include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_active_state_manager/browser_active_state_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -25,7 +26,12 @@
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/media_session.h"
 #include "content/public/browser/navigation_entry.h"
+#include "content/public/browser/render_frame_host.h"
+#include "chrome/common/chrome_isolated_world_ids.h"
+#include "third_party/blink/public/mojom/frame/media_player_action.mojom.h"
+#include "ui/gfx/geometry/point.h"
 #include "content/public/browser/reload_type.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_observer.h"
@@ -57,6 +63,68 @@ std::map<content::WebContents*, ChordPage* __weak>& Pages() {
 ChordPage* PageFor(content::WebContents* contents) {
   auto it = Pages().find(contents);
   return it == Pages().end() ? nil : it->second;
+}
+
+// The tab ChordUI is making active, so that the tab watcher tells it apart from a
+// tab Chromium activates by itself (the picture-in-picture "back to tab" button).
+content::WebContents* g_activating = nullptr;
+
+bool IsInPictureInPicture(content::WebContents* contents) {
+  return contents &&
+         PictureInPictureWindowManager::GetInstance()->GetWebContents() ==
+             contents;
+}
+
+// Finds the largest playing video of the page, in the page's own world (the page's
+// scripts cannot see it run), and returns its centre in CSS pixels with the
+// viewport's width, or null.
+constexpr char16_t kFindPlayingVideo[] = uR"((() => {
+  let best = null, area = 0;
+  for (const video of document.querySelectorAll('video')) {
+    if (video.paused || video.ended || video.readyState < 2 || video.disablePictureInPicture) continue;
+    const r = video.getBoundingClientRect();
+    if (r.width * r.height > area) { area = r.width * r.height; best = r; }
+  }
+  return best ? [best.left + best.width / 2, best.top + best.height / 2, window.innerWidth] : null;
+})())";
+
+// Puts the page's playing video in picture-in-picture, the way the context menu's
+// "Picture in picture" item does: an action on the video under a point. It works for
+// any video, muted ones included. A video the script cannot reach (inside another
+// site's frame) goes through the media session instead, for the ones it knows.
+void EnterPictureInPicture(content::WebContents* contents) {
+  base::WeakPtr<content::WebContents> weak = contents->GetWeakPtr();
+  contents->GetPrimaryMainFrame()->ExecuteJavaScriptInIsolatedWorld(
+      kFindPlayingVideo,
+      base::BindOnce(
+          [](base::WeakPtr<content::WebContents> weak, base::Value result) {
+            content::WebContents* contents = weak.get();
+            if (!contents || IsInPictureInPicture(contents)) {
+              return;
+            }
+            const base::ListValue* list = result.GetIfList();
+            if (!list || list->size() != 3) {
+              content::MediaSession::Get(contents)->EnterPictureInPicture();
+              return;
+            }
+            // CSS pixels to the view's DIPs: the page zoom, read from the viewport.
+            double viewport = (*list)[2].GetIfDouble().value_or(
+                (*list)[2].GetIfInt().value_or(0));
+            int width = contents->GetContainerBounds().width();
+            double scale = viewport > 0 && width > 0 ? width / viewport : 1;
+            auto coordinate = [&](const base::Value& value) {
+              return static_cast<int>(
+                  value.GetIfDouble().value_or(value.GetIfInt().value_or(0)) *
+                  scale);
+            };
+            contents->GetPrimaryMainFrame()->ExecuteMediaPlayerActionAtLocation(
+                gfx::Point(coordinate((*list)[0]), coordinate((*list)[1])),
+                blink::mojom::MediaPlayerAction(
+                    blink::mojom::MediaPlayerActionType::kPictureInPicture,
+                    /*enable=*/true));
+          },
+          weak),
+      ISOLATED_WORLD_ID_CHROME_INTERNAL);
 }
 
 // Quitting closes every tab: ChordUI must not see that as the user closing them.
@@ -304,7 +372,9 @@ class PageObserver : public content::WebContentsObserver {
   TabStripModel* strip = browser->GetTabStripModel();
   int index = strip->GetIndexOfWebContents(_webContents);
   if (index != TabStripModel::kNoTab && index != strip->active_index()) {
+    g_activating = _webContents;
     strip->ActivateTabAt(index);
+    g_activating = nullptr;
   }
   BrowserActiveStateManager::From(browser)->DidBecomeActive();
 }
@@ -314,6 +384,32 @@ class PageObserver : public content::WebContentsObserver {
     DevToolsWindow::OpenDevToolsWindow(
         _webContents, DevToolsToggleAction::Toggle(),
         DevToolsOpenedByAction::kMainMenuOrMainShortcut);
+  }
+}
+
+// Picture-in-picture, as in Arc: the playing video floats in Chromium's own
+// picture-in-picture window (always on top, movable, resizable) while the page is off
+// screen, and comes back when it returns.
+- (void)enterPictureInPictureIfPlaying {
+  if (_webContents && !IsInPictureInPicture(_webContents)) {
+    EnterPictureInPicture(_webContents);
+  }
+}
+
+- (void)exitPictureInPicture {
+  if (IsInPictureInPicture(_webContents)) {
+    PictureInPictureWindowManager::GetInstance()->ExitPictureInPicture();
+  }
+}
+
+- (void)togglePictureInPicture {
+  if (!_webContents) {
+    return;
+  }
+  if (IsInPictureInPicture(_webContents)) {
+    PictureInPictureWindowManager::GetInstance()->ExitPictureInPicture();
+  } else {
+    EnterPictureInPicture(_webContents);
   }
 }
 
@@ -349,6 +445,7 @@ class PageObserver : public content::WebContentsObserver {
               opener:(ChordPage*)opener
         inBackground:(BOOL)inBackground;
 - (void)announceClosedPage:(ChordPage*)page;
+- (void)announceShowPage:(ChordPage*)page;
 - (BOOL)ownsProfile:(Profile*)profile;
 @end
 
@@ -382,6 +479,13 @@ class TabWatcher : public TabStripModelObserver {
                               const TabStripModelChange& change,
                               const TabStripSelectionChange& selection) override {
     switch (change.type()) {
+      case TabStripModelChange::kSelectionOnly:
+        // Chromium made a tab active by itself: ChordUI shows it.
+        if (selection.active_tab_changed() && selection.new_contents &&
+            selection.new_contents != g_activating) {
+          TabActivated(selection.new_contents);
+        }
+        break;
       case TabStripModelChange::kInserted:
         for (const auto& inserted : change.GetInsert()->contents) {
           TabOpened(strip, inserted.contents, inserted.index,
@@ -426,6 +530,17 @@ class TabWatcher : public TabStripModelObserver {
     // After the tab strip finishes its own work.
     dispatch_async(dispatch_get_main_queue(), ^{
       [engine announcePage:page opener:opener inBackground:!foreground];
+    });
+  }
+
+  void TabActivated(content::WebContents* contents) {
+    ChordPage* page = PageFor(contents);
+    ChordEngine* engine = EngineFor(contents);
+    if (!page || !engine) {
+      return;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [engine announceShowPage:page];
     });
   }
 
@@ -541,6 +656,13 @@ class TabWatcher : public TabStripModelObserver {
 
 - (void)announceClosedPage:(ChordPage*)page {
   [_delegate engine:self didClose:page];
+}
+
+- (void)announceShowPage:(ChordPage*)page {
+  if (page.webContents &&
+      [_delegate respondsToSelector:@selector(engine:wantsToShow:)]) {
+    [_delegate engine:self wantsToShow:page];
+  }
 }
 
 @end

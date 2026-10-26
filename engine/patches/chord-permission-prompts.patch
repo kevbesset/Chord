@@ -1,0 +1,26 @@
+Chord: pages in Chord's windows get Chord's permission prompt.
+--- a/chrome/browser/ui/views/permissions/permission_prompt_factory.cc
++++ b/chrome/browser/ui/views/permissions/permission_prompt_factory.cc
+@@ -41,6 +41,7 @@
+ 
+ #if BUILDFLAG(IS_MAC)
+ #include "chrome/browser/ui/views/permissions/permission_prompt_notifications_mac.h"
++#include "chord/browser/chord_permission_prompt.h"  // nogncheck
+ #include "chrome/browser/web_applications/os_integration/mac/web_app_shortcut_mac.h"
+ #endif
+ 
+@@ -297,7 +298,14 @@
+ 
+   if (ShouldIgnorePermissionRequest(web_contents, delegate)) {
+     return nullptr;
++  }
++
++#if BUILDFLAG(IS_MAC)
++  // Chord's windows show their own prompt (Chromium's bubble has no window there).
++  if (chord::ShowsPermissionPrompts(web_contents)) {
++    return chord::CreatePermissionPrompt(web_contents, delegate);
+   }
++#endif
+ 
+ #if BUILDFLAG(IS_MAC)
+   // If this is a notification permission request coming from a PWA (or a PWA

@@ -52,6 +52,9 @@
 - (void)toggleDevTools;
 @property(nonatomic, readonly, strong) NSView* devToolsView;
 - (NSRect)pageFrameWithDevToolsIn:(NSSize)size;
+- (void)enterPictureInPictureIfPlaying;
+- (void)exitPictureInPicture;
+- (void)togglePictureInPicture;
 @end
 
 @protocol ChordWebEngine;
@@ -62,6 +65,8 @@
          opener:(id<ChordWebPage>)opener
     inBackground:(BOOL)inBackground;
 - (void)engine:(id<ChordWebEngine>)engine didClose:(id<ChordWebPage>)page;
+@optional
+- (void)engine:(id<ChordWebEngine>)engine wantsToShow:(id<ChordWebPage>)page;
 @end
 
 @protocol ChordWebEngine <NSObject>

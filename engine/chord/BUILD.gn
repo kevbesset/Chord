@@ -13,6 +13,8 @@ source_set("browser") {
     "browser/chord_engine.h",
     "browser/chord_engine.mm",
     "browser/chord_hooks.h",
+    "browser/chord_permission_prompt.h",
+    "browser/chord_permission_prompt.mm",
     "browser/chord_ui.h",
   ]
 
@@ -20,6 +22,7 @@ source_set("browser") {
     "//base",
     "//chrome/browser",
     "//chrome/browser/devtools",
+    "//chrome/browser/picture_in_picture",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui",
     "//chrome/browser/ui:browser_window_deleter",
@@ -33,6 +36,7 @@ source_set("browser") {
     "//chrome/common",
     "//components/input",
     "//components/os_crypt/common:switches",
+    "//components/permissions",
     "//components/prefs",
     "//components/tabs:public",
     "//components/web_modal",

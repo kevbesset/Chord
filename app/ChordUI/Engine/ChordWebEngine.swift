@@ -25,6 +25,9 @@ import AppKit
     func engine(_ engine: ChordWebEngine, didOpen page: ChordWebPage, opener: ChordWebPage?, inBackground: Bool)
     /// The page closed itself (`window.close()`, an extension): its tab goes away.
     func engine(_ engine: ChordWebEngine, didClose page: ChordWebPage)
+    /// The engine wants the page on screen: the "back to tab" button of a
+    /// picture-in-picture window, a notification clicked.
+    @objc optional func engine(_ engine: ChordWebEngine, wantsToShow page: ChordWebPage)
 }
 
 @objc(ChordWebPage) public protocol ChordWebPage: AnyObject {
@@ -51,6 +54,13 @@ import AppKit
     @objc optional func didBecomeActive()
     /// Opens or closes the page's developer tools (⌥⌘I).
     @objc optional func toggleDevTools()
+    /// The page's playing video goes to a picture-in-picture window, if it has one
+    /// (the page left the screen: another tab, another Space).
+    @objc optional func enterPictureInPictureIfPlaying()
+    /// The page's video comes back from its picture-in-picture window, if it is in one.
+    @objc optional func exitPictureInPicture()
+    /// Picture-in-picture on or off for the page's video (⌃⌘P).
+    @objc optional func togglePictureInPicture()
     /// The developer tools docked in the page's area (right, left or bottom, chosen in
     /// the tools themselves), nil when they are closed or in their own window. They
     /// fill the area; the page goes where `pageFrame(withDevToolsIn:)` says.

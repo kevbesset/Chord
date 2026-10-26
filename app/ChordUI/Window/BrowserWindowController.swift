@@ -49,6 +49,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private var pendingReveal: DispatchWorkItem?
     private var pendingHide: DispatchWorkItem?
     private var lastSpaceIndex = 0
+    /// The pages this window showed last, to know which ones just left the screen.
+    private let shownPages = NSHashTable<AnyObject>.weakObjects()
     private var cancellables = Set<AnyCancellable>()
 
     private static let frameName = "ChordMainWindow"
@@ -68,6 +70,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.tabbingMode = .disallowed
+        // Chord reopens its windows from its own session: macOS's window restoration
+        // would only add its "reopen windows?" alert after a crash.
+        window.isRestorable = false
         window.minSize = NSSize(width: 720, height: 480)
         window.title = state.isPrivate ? "Navigation privée" : "Chord"
         // No system shadow: macOS draws its dark outline as part of the shadow, a black
@@ -353,6 +358,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             MainMenu.apply(settings.shortcutOverrides, to: NSApp.mainMenu)
         case .searchTemplate:
             break
+        case .pictureInPicture:
+            break
         case .edgeless, .appearance, .addressBar, .commandBar:
             applyAppearanceSettings(animated: key == .edgeless || key == .addressBar)
         }
@@ -419,6 +426,25 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         sidebar.updateNavigation(tab: selected)
         // Only the key window's page is the engine's active one.
         if window?.isKeyWindow == true { selected?.page?.didBecomeActive?() }
+        updatePictureInPicture(showing: tabs.compactMap(\.page))
+    }
+
+    /// Like Arc: a video playing in a page that leaves the screen carries on in a
+    /// picture-in-picture window, and a page back on screen takes its video back.
+    private func updatePictureInPicture(showing pages: [ChordWebPage]) {
+        let showing = Set(pages.map { ObjectIdentifier($0) })
+        let previous = shownPages.allObjects.compactMap { $0 as? ChordWebPage }
+        let previousIDs = Set(previous.map { ObjectIdentifier($0) })
+        if settings.autoPictureInPicture {
+            for page in previous where !showing.contains(ObjectIdentifier(page)) {
+                page.enterPictureInPictureIfPlaying?()
+            }
+        }
+        for page in pages where !previousIDs.contains(ObjectIdentifier(page)) {
+            page.exitPictureInPicture?()
+        }
+        shownPages.removeAllObjects()
+        pages.forEach { shownPages.add($0) }
     }
 
     private func focusPage() {
@@ -743,6 +769,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         state.selectedTab?.page?.toggleDevTools?()
     }
 
+    /// ⌃⌘P: the page's video in a picture-in-picture window, or back.
+    @objc public func togglePictureInPicture(_ sender: Any?) {
+        state.selectedTab?.page?.togglePictureInPicture?()
+    }
+
     /// The reload buttons turn into stop buttons while the page loads, like Arc's.
     private func reloadOrStop() {
         if state.selectedTab?.page?.isLoading == true { stopLoading(nil) } else { reloadPage(nil) }
@@ -886,6 +917,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             if menuItem.tag == 2, window?.firstResponder is NSText { return false }
             let page = state.selectedTab?.page
             return (menuItem.action == #selector(goBack(_:)) ? page?.canGoBack : page?.canGoForward) ?? false
+        case #selector(togglePictureInPicture(_:)):
+            return (state.selectedTab?.page as AnyObject?)?.responds(to: #selector(ChordWebPage.togglePictureInPicture)) ?? false
         case #selector(toggleDevTools(_:)):
             return (state.selectedTab?.page as AnyObject?)?.responds(to: #selector(ChordWebPage.toggleDevTools)) ?? false
         case #selector(stopLoading(_:)):

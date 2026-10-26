@@ -7,3 +7,4 @@ chord-branding.patch
 chord-devtools-dock.patch
 chord-windows-without-views.patch
 chord-second-launch.patch
+chord-permission-prompts.patch

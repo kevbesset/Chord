@@ -81,7 +81,7 @@ et chaque chargement de page attend la réponse.
 - **Icône** : l'app s'appelle Chord mais garde l'icône de Chromium.
 - **Pas encore branché** : Peek au ⇧-clic et liens sortant d'un épinglé (une
   `NavigationThrottle` de `//chord`), téléchargements vers le panneau de ChordUI,
-  invites de permission (puce d'adresse), plein écran vidéo dans l'interface
+  plein écran vidéo dans l'interface
   (masquer la barre latérale), recherche dans la page (⌘F).
 
 - **Chrome Web Store** : ungoogled-chromium bloque l'installation d'extensions depuis

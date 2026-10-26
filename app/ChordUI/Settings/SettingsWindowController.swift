@@ -13,6 +13,7 @@ final class SettingsWindowController: NSWindowController {
         window.title = "Réglages"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.tabbingMode = .disallowed
+        window.isRestorable = false
         window.setContentSize(NSSize(width: 620, height: 480))
         window.center()
         super.init(window: window)
@@ -92,6 +93,10 @@ private struct GeneralPane: View {
                 if !Self.engines.contains(where: { $0.1 == model.settings.searchTemplate }) {
                     Text("Personnalisé").tag(model.settings.searchTemplate)
                 }
+            }
+            Toggle(isOn: model.binding(\.autoPictureInPicture)) {
+                Text("Picture-in-picture automatique")
+                Text("Une vidéo en lecture continue dans une fenêtre flottante quand vous changez d'onglet ou de Space, et revient dans sa page à votre retour.")
             }
             Section {
                 HStack {

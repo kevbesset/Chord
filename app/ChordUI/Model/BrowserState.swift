@@ -817,4 +817,8 @@ extension BrowserState: ChordWebEngineDelegate {
     public func engine(_ engine: ChordWebEngine, didClose page: ChordWebPage) {
         if let tab = tab(owning: page) { close(tab) }
     }
+
+    public func engine(_ engine: ChordWebEngine, wantsToShow page: ChordWebPage) {
+        if let tab = tab(owning: page) { select(tab) }
+    }
 }

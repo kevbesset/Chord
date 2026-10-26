@@ -4,7 +4,7 @@ import Combine
 /// User preferences. Stored in UserDefaults.
 public final class ChordSettings {
     public enum Key {
-        case edgeless, searchTemplate, appearance, addressBar, sidebarWidth, commandBar, shortcuts
+        case edgeless, searchTemplate, appearance, addressBar, sidebarWidth, commandBar, shortcuts, pictureInPicture
     }
 
     public enum Appearance: String, CaseIterable {
@@ -43,6 +43,13 @@ public final class ChordSettings {
     public var appearance: Appearance {
         get { defaults.string(forKey: "appearance").flatMap(Appearance.init(rawValue:)) ?? .automatic }
         set { set(newValue.rawValue, "appearance", .appearance) }
+    }
+
+    /// Like Arc: a video playing in a tab you leave (another tab, another Space) carries
+    /// on in a picture-in-picture window, and goes back into its page when you return.
+    public var autoPictureInPicture: Bool {
+        get { defaults.object(forKey: "autoPictureInPicture") as? Bool ?? true }
+        set { set(newValue, "autoPictureInPicture", .pictureInPicture) }
     }
 
     /// The address and navigation buttons sit in a 32 px bar on top of the page

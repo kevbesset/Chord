@@ -35,6 +35,8 @@ public final class ChordUIHost: NSObject {
 
         let controller = openWindow()
         NSApp.activate()
+        // After a crash: a readable report in ~/Library/Logs/Chord, offered to the user.
+        CrashReports.checkForCrash(appName: appName, over: controller.window)
         pendingURLs.forEach { controller.openLittleWindow(url: $0) }
         pendingURLs = []
         DispatchQueue.main.async { launch.end() }

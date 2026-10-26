@@ -38,6 +38,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.tabbingMode = .disallowed
+        window.isRestorable = false
         window.minSize = NSSize(width: 420, height: 300)
         // Like the main window: no shadow, so no dark outline around the glass.
         window.hasShadow = false
