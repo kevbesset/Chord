@@ -26,6 +26,7 @@
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/devtools/devtools_contents_resizing_strategy.h"
 #include "chrome/browser/devtools/devtools_toggle_action.h"
+#include "chrome/browser/devtools/devtools_ui_bindings.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/devtools/devtools_window.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
@@ -526,12 +527,21 @@ class PageObserver : public content::WebContentsObserver {
   BrowserActiveStateManager::From(browser)->DidBecomeActive();
 }
 
+// ⌥⌘I opens the page's developer tools, and closes them when they are open, docked or
+// in their own window, as their own close button does. Chromium's "open" always
+// opens, and its toggle only brings a separate window forward.
 - (void)toggleDevTools {
-  if (_webContents) {
-    DevToolsWindow::OpenDevToolsWindow(
-        _webContents, DevToolsToggleAction::Toggle(),
-        DevToolsOpenedByAction::kMainMenuOrMainShortcut);
+  if (!_webContents) {
+    return;
   }
+  if (DevToolsWindow* window =
+          DevToolsWindow::GetInstanceForInspectedWebContents(_webContents)) {
+    static_cast<DevToolsUIBindings::Delegate*>(window)->CloseWindow();
+    return;
+  }
+  DevToolsWindow::OpenDevToolsWindow(
+      _webContents, DevToolsToggleAction::Toggle(),
+      DevToolsOpenedByAction::kMainMenuOrMainShortcut);
 }
 
 // Picture-in-picture, as in Arc: the playing video floats in Chromium's own
