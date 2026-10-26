@@ -25,6 +25,7 @@ source_set("browser") {
     "//chrome/browser/devtools",
     "//chrome/browser/picture_in_picture",
     "//chrome/browser/profiles:profile",
+    "//chrome/browser/profiles/keep_alive",
     "//chrome/browser/ui",
     "//chrome/browser/ui:browser_window_deleter",
     "//chrome/browser/ui/browser_active_state_manager",

@@ -23,6 +23,8 @@
 #include "chrome/browser/devtools/devtools_window.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
 #include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
+#include "chrome/browser/profiles/keep_alive/profile_keep_alive_types.h"
+#include "chrome/browser/profiles/keep_alive/scoped_profile_keep_alive.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_active_state_manager/browser_active_state_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -654,6 +656,10 @@ class TabWatcher : public TabStripModelObserver {
   // The user's profile. A private engine uses its off-the-record profile, asked for
   // each time: Chromium destroys it when its last private page closes.
   raw_ptr<Profile> _profile;
+  // Chromium destroys a profile when its last browser closes, and ChordUI's browser
+  // closes with its last page (all tabs closed or asleep): the engine keeps its
+  // profile alive, as an open window would.
+  std::unique_ptr<ScopedProfileKeepAlive> _profileKeepAlive;
   BOOL _private;
   raw_ptr<BrowserWindowInterface> _browser;
   base::CallbackListSubscription _browserDidClose;
@@ -667,6 +673,8 @@ class TabWatcher : public TabStripModelObserver {
 - (instancetype)initWithProfile:(Profile*)profile private:(BOOL)isPrivate {
   if ((self = [super init])) {
     _profile = profile;
+    _profileKeepAlive = std::make_unique<ScopedProfileKeepAlive>(
+        profile, ProfileKeepAliveOrigin::kBrowserWindow);
     _private = isPrivate;
     [Engines() addObject:self];
   }
