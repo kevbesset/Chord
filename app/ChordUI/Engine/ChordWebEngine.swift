@@ -32,6 +32,12 @@ import AppKit
     /// text, like the omnibox's inline completion). `completion` may come several times
     /// as more arrive, until the next call. An empty text ends the search.
     @objc optional func suggest(_ text: String, completion: @escaping ([[String: String]]) -> Void)
+    /// Brings one of Arc's profiles ("…/Arc/User Data/Profile 1") into this engine's
+    /// profile: logins (cookies), passwords and history now, site storage at the next
+    /// launch. macOS asks the user for Arc's key. `completion` gets the counts:
+    /// "cookies", "passwords", "pages", "siteStorage" (1 when some comes next launch)
+    /// and "keyDenied" (1 when macOS did not give Arc's key).
+    @objc optional func importFromArc(_ arcProfile: String, completion: @escaping ([String: Int]) -> Void)
     /// Whether the page belongs to this engine's profile.
     @objc optional func ownsPage(_ page: ChordWebPage) -> Bool
 }

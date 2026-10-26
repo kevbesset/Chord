@@ -562,6 +562,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
                         symbol: "rectangle.inset.filled", action: .run { [weak self] in self?.toggleEdgeless(nil) }),
             CommandItem(section: "Actions", title: "Importer depuis Arc", symbol: "square.and.arrow.down",
                         action: .run { [weak self] in self?.importFromArc(nil) }),
+            CommandItem(section: "Actions", title: "Reprendre les connexions d'Arc", symbol: "key",
+                        action: .run { [weak self] in self?.importArcLogins(nil) }),
             CommandItem(section: "Actions", title: "Réglages", symbol: "gearshape", shortcut: "⌘,",
                         action: .run { [weak self] in self?.showSettings(nil) }),
         ]
@@ -965,22 +967,55 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         settingsWindow?.window?.makeKeyAndOrderFront(nil)
     }
 
+    /// Arc's sidebar, then the logins, passwords and history of its profiles.
     @objc public func importFromArc(_ sender: Any?) {
         guard let window else { return }
-        let alert = NSAlert()
+        let sidebar: String
         do {
             let result = try ArcImport.load()
             let count = state.importFromArc(result)
-            alert.messageText = "Barre latérale Arc importée"
             let favorites = result.favorites.values.reduce(0) { $0 + $1.count }
-            alert.informativeText = "\(result.spaces.count) Spaces, \(result.folderCount) dossiers, \(favorites) favoris, \(count) onglets en tout, avec les icônes d'Arc. Un Space déjà importé est mis à jour plutôt que dupliqué."
+            sidebar = "\(result.spaces.count) Spaces, \(result.folderCount) dossiers, \(favorites) favoris, \(count) onglets en tout, avec les icônes d'Arc. Un Space déjà importé est mis à jour plutôt que dupliqué."
         } catch {
+            let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = "Impossible d'importer depuis Arc"
             alert.informativeText = (error as? ArcImport.Failure) == .notFound
                 ? "La barre latérale d'Arc est introuvable sur ce Mac."
                 : "Le fichier de la barre latérale d'Arc n'a pas pu être lu."
+            alert.beginSheetModal(for: window)
+            return
         }
+        state.importArcData { [weak self] data in
+            self?.showArcImport(title: "Arc importé", sidebar: sidebar, data: data)
+        }
+    }
+
+    /// Only the logins, passwords and history of Arc's profiles, into the profiles of
+    /// the Spaces that came from them, without touching the sidebar.
+    @objc public func importArcLogins(_ sender: Any?) {
+        state.importArcData { [weak self] data in
+            self?.showArcImport(title: "Connexions d'Arc reprises", sidebar: nil, data: data)
+        }
+    }
+
+    private func showArcImport(title: String, sidebar: String?, data: BrowserState.ArcDataImport) {
+        guard let window else { return }
+        let alert = NSAlert()
+        alert.messageText = title
+        var lines: [String] = sidebar.map { [$0] } ?? []
+        if data.profiles == 0 {
+            lines.append("Aucun Space ne vient d'un profil Arc : rien d'autre à reprendre.")
+        } else if data.keyDenied {
+            alert.alertStyle = .warning
+            lines.append("macOS n'a pas donné accès à la clé d'Arc : les connexions et les mots de passe sont restés dans Arc. \(data.pages) pages d'historique reprises.")
+        } else {
+            lines.append("\(data.cookies) cookies de connexion, \(data.passwords) mots de passe et \(data.pages) pages d'historique repris, chacun dans le profil de ses Spaces.")
+        }
+        if data.siteStorage, !data.keyDenied || data.pages > 0 {
+            lines.append("Les données des sites (applications web) arrivent au prochain lancement de Chord.")
+        }
+        alert.informativeText = lines.joined(separator: "\n\n")
         alert.beginSheetModal(for: window)
     }
 
@@ -1040,6 +1075,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return menuItem.tag <= state.spaces.count
         case #selector(importFromArc(_:)):
             return ArcImport.isAvailable
+        case #selector(importArcLogins(_:)):
+            return !state.isPrivate && state.spaces.contains { ArcImport.profileFolder(forChordProfile: $0.profileID) != nil }
         case #selector(goBack(_:)), #selector(goForward(_:)):
             // ⌘← / ⌘→ belong to the text being typed, in the command bar or a field.
             if menuItem.tag == 2, window?.firstResponder is NSText { return false }

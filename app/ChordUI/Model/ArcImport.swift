@@ -3,8 +3,8 @@ import SQLite3
 
 /// Reads Arc's sidebar (`StorableSidebar.json`): Spaces with their colour and profile,
 /// pinned tabs with their folders, today's tabs, and each profile's favorites. Site icons
-/// come from Arc's own icon cache. History, passwords and cookies come later, with
-/// Chromium's own importers.
+/// come from Arc's own icon cache. Logins, passwords and history come through the
+/// engine (`BrowserState.importArcData`).
 ///
 /// The file stores its collections as flat arrays alternating an id and an object.
 public enum ArcImport {
@@ -32,6 +32,15 @@ public enum ArcImport {
 
     public static var isAvailable: Bool {
         FileManager.default.isReadableFile(atPath: defaultFileURL.path)
+    }
+
+    /// The Arc profile folder behind one of Chord's profiles: Arc's default profile is
+    /// Chord's default one, "arc:<folder>" the others. Nil when there is none.
+    static func profileFolder(forChordProfile id: String) -> URL? {
+        let folder = id == Space.defaultProfile ? "Default" : id.hasPrefix("arc:") ? String(id.dropFirst(4)) : nil
+        guard let folder else { return nil }
+        let url = arcDirectory.appendingPathComponent("User Data/\(folder)")
+        return FileManager.default.fileExists(atPath: url.appendingPathComponent("Preferences").path) ? url : nil
     }
 
     public static func load(from url: URL = defaultFileURL) throws -> Result {
@@ -212,5 +221,48 @@ extension BrowserState {
     public func importFromArc(_ result: ArcImport.Result) -> Int {
         add(spaces: result.spaces, favorites: result.favorites)
         return result.tabCount
+    }
+
+    /// What came over from Arc's profiles, all together.
+    public struct ArcDataImport {
+        public var cookies = 0
+        public var passwords = 0
+        public var pages = 0
+        public var profiles = 0
+        /// Some site storage joins at the next launch.
+        public var siteStorage = false
+        /// macOS did not give Arc's key: logins and passwords stayed in Arc.
+        public var keyDenied = false
+    }
+
+    /// Arc's logins, passwords, history and site storage, each Arc profile into the
+    /// Chord profile its Spaces use: never into another profile. Calls `completion`
+    /// once every profile is done.
+    public func importArcData(completion: @escaping (ArcDataImport) -> Void) {
+        let profiles = Set(spaces.map(\.profileID)).compactMap { id in
+            ArcImport.profileFolder(forChordProfile: id).map { (id, $0) }
+        }
+        var total = ArcDataImport()
+        total.profiles = profiles.count
+        guard !isPrivate, !profiles.isEmpty else {
+            completion(total)
+            return
+        }
+        let group = DispatchGroup()
+        for (id, folder) in profiles {
+            guard let importer = engine(forProfile: id).importFromArc else { continue }
+            group.enter()
+            importer(folder.path) { counts in
+                DispatchQueue.main.async {
+                    total.cookies += counts["cookies"] ?? 0
+                    total.passwords += counts["passwords"] ?? 0
+                    total.pages += counts["pages"] ?? 0
+                    total.siteStorage = total.siteStorage || counts["siteStorage"] == 1
+                    total.keyDenied = total.keyDenied || counts["keyDenied"] == 1
+                    group.leave()
+                }
+            }
+        }
+        group.notify(queue: .main) { completion(total) }
     }
 }

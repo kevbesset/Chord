@@ -14,6 +14,7 @@
 #include "base/command_line.h"
 #include "base/logging.h"
 #include "base/no_destructor.h"
+#include "base/path_service.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
 #include "net/base/apple/url_conversions.h"
@@ -28,7 +29,9 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chord/browser/chord_arc_import.h"
 #include "chrome/common/chrome_constants.h"
+#include "chrome/common/chrome_paths.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_service.h"
@@ -172,6 +175,15 @@ class ChordBrowserMainExtraParts : public ChromeBrowserMainExtraParts {
   void PostEarlyInitialization() override {
     base::CommandLine::ForCurrentProcess()->AppendSwitch(
         switches::kNoStartupWindow);
+  }
+
+  // Before any profile opens: the site storage of the Arc profiles imported last
+  // time joins their Chord profiles.
+  void PreProfileInit() override {
+    base::FilePath user_data_dir;
+    if (base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir)) {
+      MergePendingArcSiteStorage(user_data_dir);
+    }
   }
 
   // On the next turn of the run loop, once AppKit has finished launching and

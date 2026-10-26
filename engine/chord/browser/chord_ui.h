@@ -95,6 +95,9 @@
 - (void)deleteProfile:(NSString*)profileID;
 - (void)deleteProfilesExcept:(NSArray<NSString*>*)profileIDs;
 - (BOOL)ownsPage:(id<ChordWebPage>)page;
+- (void)importFromArc:(NSString*)arcProfile
+           completion:
+               (void (^)(NSDictionary<NSString*, NSNumber*>*))completion;
 - (void)suggest:(NSString*)text
      completion:
          (void (^)(NSArray<NSDictionary<NSString*, NSString*>*>*))completion;

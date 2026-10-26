@@ -2,6 +2,7 @@
 
 #import "chord/browser/chord_engine.h"
 
+#include "chord/browser/chord_arc_import.h"
 #include "chord/browser/chord_hooks.h"
 #include "chord/browser/chord_suggester.h"
 
@@ -831,6 +832,8 @@ void DeleteProfileAt(const base::FilePath& path) {
   BOOL _forgotten;
   // While the command bar searches: suggestions from the profile's history.
   std::unique_ptr<chord::Suggester> _suggester;
+  // Work waiting for the profile to load (an Arc import).
+  NSMutableArray<void (^)(void)>* _whenProfileLoads;
 }
 
 - (instancetype)initWithProfile:(Profile*)profile {
@@ -842,6 +845,7 @@ void DeleteProfileAt(const base::FilePath& path) {
     _private = isPrivate;
     _profileEngines = [NSMutableDictionary dictionary];
     _waitingPages = [NSHashTable weakObjectsHashTable];
+    _whenProfileLoads = [NSMutableArray array];
     if (profile) {
       [self useProfile:profile];
     }
@@ -889,6 +893,11 @@ void DeleteProfileAt(const base::FilePath& path) {
     [page loadPendingURL];
   }
   [_waitingPages removeAllObjects];
+  NSArray<void (^)(void)>* waiting = [_whenProfileLoads copy];
+  [_whenProfileLoads removeAllObjects];
+  for (void (^work)(void) in waiting) {
+    work();
+  }
 }
 
 - (Profile*)profile {
@@ -978,6 +987,37 @@ void DeleteProfileAt(const base::FilePath& path) {
     _suggester = std::make_unique<chord::Suggester>(profile);
   }
   _suggester->Start(base::SysNSStringToUTF16(text), completion);
+}
+
+// Arc's logins, passwords, history and site storage for one of its profiles
+// ("…/Arc/User Data/Profile 1"), into this engine's profile (never a private one).
+- (void)importFromArc:(NSString*)arcProfile
+           completion:
+               (void (^)(NSDictionary<NSString*, NSNumber*>*))completion {
+  ChordEngine* __weak weakSelf = self;
+  void (^run)(void) = ^{
+    ChordEngine* engine = weakSelf;
+    if (!engine || engine->_private || engine->_forgotten || !engine->_profile) {
+      completion(@{});
+      return;
+    }
+    chord::ImportArcProfile(
+        engine->_profile, base::FilePath(base::SysNSStringToUTF8(arcProfile)),
+        base::BindOnce(^(chord::ArcImportCounts counts) {
+          completion(@{
+            @"cookies" : @(counts.cookies),
+            @"passwords" : @(counts.passwords),
+            @"pages" : @(counts.pages),
+            @"siteStorage" : @(counts.site_storage),
+            @"keyDenied" : @(counts.key_denied),
+          });
+        }));
+  };
+  if (_profile || _forgotten || _private) {
+    run();
+  } else {
+    [_whenProfileLoads addObject:run];
+  }
 }
 
 - (BOOL)ownsPage:(id<ChordWebPage>)page {

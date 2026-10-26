@@ -72,7 +72,8 @@ et corriger les erreurs avant de rendre la main.
   glisser deux doigts qui suit les doigts comme Arc), favoris en grille aux rangées pleines, barre de commande (compacte sur le champ d'adresse au clic ou ⌘L, comme Arc), Peek (⇧-clic, liens sortant d'un épinglé),
   split view (⌃⇧=, 2 à 4 volets), petite fenêtre (⌥⌘N, liens d'autres apps), barre
   d'adresse en haut ou latérale (⇧⌘D, copie de l'URL au survol avec confirmation), mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
-  remappables, import de la barre latérale d'Arc, page d'accueil (quand aucun onglet
+  remappables, import d'Arc (barre latérale, puis connexions, mots de passe, historique et
+  données des sites de chaque profil Arc dans le profil Chord de ses Spaces), page d'accueil (quand aucun onglet
   n'est ouvert : fermer un onglet ramène au dernier onglet encore actif, jamais à un
   onglet en veille), téléchargements (panneau façon Arc, ⇧⌘J), session.
 - **Chord sur Chromium** (spike 0, `engine/`) : ChordUI tourne dans Chromium 155
@@ -102,6 +103,5 @@ et corriger les erreurs avant de rendre la main.
   Chromium s'il y en a un, capté par //chord dans `last-fatal.txt`) et le propose.
 - Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
   Peek au ⇧-clic, téléchargements dans le panneau de Chord,
-  plein écran vidéo dans l'interface, recherche dans la page, import de l'historique /
-  mots de passe / cookies.
+  plein écran vidéo dans l'interface, recherche dans la page.
 - Licence : pas encore choisie, à trancher avant le premier contributeur externe.

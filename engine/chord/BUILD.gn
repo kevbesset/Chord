@@ -7,6 +7,8 @@ assert(is_mac, "Chord's interface is macOS only")
 
 source_set("browser") {
   sources = [
+    "browser/chord_arc_import.h",
+    "browser/chord_arc_import.mm",
     "browser/chord_browser_main_extra_parts.mm",
     "browser/chord_browser_window.h",
     "browser/chord_browser_window.mm",
@@ -27,6 +29,8 @@ source_set("browser") {
     "//chrome/app:command_ids",
     "//chrome/browser",
     "//chrome/browser/autocomplete",
+    "//chrome/browser/history",
+    "//chrome/browser/password_manager/factories",
     "//chrome/browser/content_settings:content_settings_factory",
     "//chrome/browser/devtools",
     "//chrome/browser/picture_in_picture",
@@ -46,17 +50,25 @@ source_set("browser") {
     "//chrome/common",
     "//components/content_settings/core/browser",
     "//components/content_settings/core/common",
+    "//components/history/core/browser",
     "//components/input",
+    "//components/keyed_service/core",
     "//components/omnibox/browser",
     "//components/os_crypt/common:switches",
     "//components/page_info",
+    "//components/password_manager/core/browser",
     "//components/permissions",
     "//components/prefs",
     "//components/remote_cocoa/common:mojo",
     "//components/tabs:public",
     "//components/web_modal",
     "//content/public/browser",
+    "//crypto",
     "//net",
+    "//services/network/public/mojom",
+    "//sql",
+    "//third_party/boringssl",
+    "//third_party/leveldatabase",
     "//third_party/blink/public/common",
     "//third_party/metrics_proto",
     "//ui/base",
@@ -68,5 +80,8 @@ source_set("browser") {
     "//url",
   ]
 
-  frameworks = [ "AppKit.framework" ]
+  frameworks = [
+    "AppKit.framework",
+    "Security.framework",
+  ]
 }

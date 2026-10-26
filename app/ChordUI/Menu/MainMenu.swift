@@ -38,6 +38,7 @@ public enum MainMenu {
             item("Fermer la fenêtre", #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
             .separator(),
             item("Importer depuis Arc…", #selector(C.importFromArc(_:))),
+            item("Reprendre les connexions d'Arc…", #selector(C.importArcLogins(_:))),
         ]))
 
         main.addItem(submenu("Édition", [
