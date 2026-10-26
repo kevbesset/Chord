@@ -40,6 +40,12 @@ namespace {
 
 ChordEngine* __weak g_engine = nil;
 
+// Every engine: the normal one, and those of private browsing windows.
+NSHashTable<ChordEngine*>* Engines() {
+  static NSHashTable<ChordEngine*>* engines = [NSHashTable weakObjectsHashTable];
+  return engines;
+}
+
 // The page wrapping each WebContents, so that a tab Chromium opens or closes is
 // matched with what ChordUI knows. Weak: ChordUI owns the pages.
 std::map<content::WebContents*, ChordPage* __weak>& Pages() {
@@ -343,9 +349,23 @@ class PageObserver : public content::WebContentsObserver {
               opener:(ChordPage*)opener
         inBackground:(BOOL)inBackground;
 - (void)announceClosedPage:(ChordPage*)page;
+- (BOOL)ownsProfile:(Profile*)profile;
 @end
 
 namespace {
+
+// The engine of the profile a page belongs to, so that a link opened from a private
+// window stays in private browsing.
+ChordEngine* EngineFor(content::WebContents* contents) {
+  Profile* profile = Profile::FromBrowserContext(contents->GetBrowserContext());
+  ChordEngine* found = nil;
+  for (ChordEngine* engine in Engines()) {
+    if ([engine ownsProfile:profile]) {
+      found = engine;
+    }
+  }
+  return found;
+}
 
 class TabWatcher : public TabStripModelObserver {
  public:
@@ -395,7 +415,7 @@ class TabWatcher : public TabStripModelObserver {
                  content::WebContents* contents,
                  int index,
                  bool foreground) {
-    ChordEngine* engine = g_engine;
+    ChordEngine* engine = EngineFor(contents);
     if (!engine || PageFor(contents)) {
       return;
     }
@@ -416,8 +436,8 @@ class TabWatcher : public TabStripModelObserver {
     if (!page) {
       return;
     }
+    ChordEngine* engine = EngineFor(contents);
     [page detach];
-    ChordEngine* engine = g_engine;
     if (!engine || IsQuitting()) {
       return;
     }
@@ -432,17 +452,44 @@ class TabWatcher : public TabStripModelObserver {
 // MARK: - ChordEngine
 
 @implementation ChordEngine {
+  // The user's profile. A private engine uses its off-the-record profile, asked for
+  // each time: Chromium destroys it when its last private page closes.
   raw_ptr<Profile> _profile;
+  BOOL _private;
   raw_ptr<BrowserWindowInterface> _browser;
   base::CallbackListSubscription _browserDidClose;
   id<ChordWebEngineDelegate> __weak _delegate;
 }
 
 - (instancetype)initWithProfile:(Profile*)profile {
+  return [self initWithProfile:profile private:NO];
+}
+
+- (instancetype)initWithProfile:(Profile*)profile private:(BOOL)isPrivate {
   if ((self = [super init])) {
     _profile = profile;
+    _private = isPrivate;
+    [Engines() addObject:self];
   }
   return self;
+}
+
+- (Profile*)profile {
+  return _private ? _profile->GetPrimaryOTRProfile(/*create_if_needed=*/true)
+                  : _profile.get();
+}
+
+- (BOOL)ownsProfile:(Profile*)profile {
+  if (_private) {
+    return profile->IsOffTheRecord() &&
+           profile->GetOriginalProfile() == _profile.get();
+  }
+  return profile == _profile.get();
+}
+
+// Private browsing (⇧⌘N): Chromium's incognito profile, its own browser and tabs.
+- (id<ChordWebEngine>)makePrivateEngine {
+  return [[ChordEngine alloc] initWithProfile:_profile private:YES];
 }
 
 // The browser that holds ChordUI's pages. Created on first use, and again if
@@ -452,7 +499,7 @@ class TabWatcher : public TabStripModelObserver {
     return _browser;
   }
   BrowserWindowCreateParams params(BrowserWindowInterface::TYPE_NORMAL,
-                                   _profile.get(),
+                                   [self profile],
                                    /*from_user_gesture=*/true);
   params.omit_from_session_restore = true;
   params.should_trigger_session_restore = false;
@@ -469,7 +516,7 @@ class TabWatcher : public TabStripModelObserver {
 }
 
 - (id<ChordWebPage>)makePage {
-  content::WebContents::CreateParams params(_profile.get());
+  content::WebContents::CreateParams params([self profile]);
   std::unique_ptr<content::WebContents> contents =
       content::WebContents::Create(params);
   // Known before the tab strip announces it, so it is not taken for a new tab.

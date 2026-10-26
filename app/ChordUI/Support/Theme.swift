@@ -27,6 +27,8 @@ enum Theme {
     static let motionCurve = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.25, 1.0)
 
     static let spacePalette = ["#5B6CFF", "#2E7D4F", "#B4530A", "#6E56CF", "#0E7490", "#C2410C"]
+    /// The tint of private browsing windows: a deep violet, on their forced dark mode.
+    static let privateSpaceColor = "#5A4A8C"
     private static let spaceColorNames = ["Indigo", "Vert", "Ambre", "Violet", "Bleu canard", "Orange"]
 
     static func colorName(_ hex: String) -> String {

@@ -26,9 +26,27 @@ public enum TabDestination {
     case today(Int)
 }
 
+/// What one browser window shows: its Space, and in each Space its selected tab and
+/// split. Windows share the Spaces and their tabs, like Arc's; each picks its own.
+public final class WindowSelection {
+    fileprivate var activeSpaceID: UUID
+    fileprivate var selectedTabIDs: [UUID: UUID] = [:]
+    fileprivate var splits: [UUID: [UUID]] = [:]
+
+    fileprivate init(activeSpaceID: UUID) {
+        self.activeSpaceID = activeSpaceID
+    }
+}
+
 /// Spaces, favorites, tabs and selection. The single source of truth for ChordUI.
+///
+/// The selection read and changed through `activeSpaceID`, `Space.selectedTabID` and
+/// `Space.split` is the loaded window's (see `withWindow(_:_:)`): the window the user
+/// acts in, or the one being drawn.
 public final class BrowserState: NSObject {
     public let engine: ChordWebEngine
+    /// A private browsing window's state: one Space, nothing saved.
+    public let isPrivate: Bool
     public let changes = PassthroughSubject<StateChange, Never>()
     public private(set) var spaces: [Space] = []
     public private(set) var activeSpaceID: UUID
@@ -48,10 +66,19 @@ public final class BrowserState: NSObject {
     private let store: SessionStore?
     private var pendingSave: DispatchWorkItem?
 
-    public init(engine: ChordWebEngine, store: SessionStore?) {
+    /// The selection of each open window; `loaded` is the one the Spaces hold now.
+    private var windows: [WindowSelection] = []
+    private var loaded: WindowSelection?
+
+    public init(engine: ChordWebEngine, store: SessionStore?, isPrivate: Bool = false) {
         self.engine = engine
         self.store = store
-        if let snapshot = store?.load(), !snapshot.spaces.isEmpty {
+        self.isPrivate = isPrivate
+        if isPrivate {
+            let space = Space(name: "Navigation privée", colorHex: Theme.privateSpaceColor)
+            spaces = [space]
+            activeSpaceID = space.id
+        } else if let snapshot = store?.load(), !snapshot.spaces.isEmpty {
             let restored = snapshot.spaces.map(Space.init(snapshot:))
             spaces = restored
             activeSpaceID = restored.contains { $0.id == snapshot.activeSpaceID } ? snapshot.activeSpaceID : restored[0].id
@@ -67,6 +94,57 @@ public final class BrowserState: NSObject {
         }
         super.init()
         engine.setDelegate?(self)
+    }
+
+    // MARK: - Windows
+
+    /// A new window's selection: the Space of the window it opens from, no tab yet
+    /// (it shows the home page). The first window takes the restored selection.
+    public func openWindow() -> WindowSelection {
+        let window = WindowSelection(activeSpaceID: activeSpaceID)
+        if loaded == nil {
+            loaded = window
+        }
+        windows.append(window)
+        return window
+    }
+
+    public func closeWindow(_ window: WindowSelection) {
+        if loaded === window, let other = windows.first(where: { $0 !== window }) {
+            load(other)
+        }
+        windows.removeAll { $0 === window }
+        if windows.isEmpty { loaded = nil }
+    }
+
+    /// The window the user acts in: its selection stays loaded.
+    public func activate(_ window: WindowSelection) {
+        load(window)
+    }
+
+    /// Runs `body` with `window`'s selection loaded, then brings the previous one back.
+    /// Each window draws itself this way when the state changes.
+    public func withWindow<T>(_ window: WindowSelection, _ body: () -> T) -> T {
+        guard let previous = loaded, previous !== window, windows.contains(where: { $0 === window }) else { return body() }
+        load(window)
+        defer { load(previous) }
+        return body()
+    }
+
+    /// Puts the loaded window's selection away and brings `window`'s into the Spaces.
+    private func load(_ window: WindowSelection) {
+        guard let current = loaded, current !== window else { return }
+        current.activeSpaceID = activeSpaceID
+        for space in spaces {
+            current.selectedTabIDs[space.id] = space.selectedTabID
+            current.splits[space.id] = space.split
+        }
+        activeSpaceID = spaces.contains { $0.id == window.activeSpaceID } ? window.activeSpaceID : spaces[0].id
+        for space in spaces {
+            space.selectedTabID = window.selectedTabIDs[space.id]
+            space.split = window.splits[space.id] ?? []
+        }
+        loaded = window
     }
 
     // MARK: - Reading
@@ -601,6 +679,10 @@ public final class BrowserState: NSObject {
             .sorted { $0.lastSelected > $1.lastSelected }
         var keep = Set(awake.prefix(maxAwakeTabs).map(\.id))
         for visible in visibleTabs { keep.insert(visible.id) }
+        // What the other windows show stays awake too.
+        for window in windows where window !== loaded {
+            for visible in withWindow(window, { visibleTabs }) { keep.insert(visible.id) }
+        }
         for tab in awake where !keep.contains(tab.id) {
             tab.page = nil
         }

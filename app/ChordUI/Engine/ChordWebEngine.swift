@@ -14,6 +14,9 @@ import AppKit
     @objc optional func cancelDownload(_ id: String)
     /// Receives the pages the engine opens by itself. Set once by ChordUI.
     @objc optional func setDelegate(_ delegate: ChordWebEngineDelegate?)
+    /// An engine on a private profile, for private browsing windows: no history,
+    /// cookies or cache kept once its last window closes.
+    @objc optional func makePrivateEngine() -> ChordWebEngine
 }
 
 @objc(ChordWebEngineDelegate) public protocol ChordWebEngineDelegate: AnyObject {

@@ -78,6 +78,10 @@ et corriger les erreurs avant de rendre la main.
   s'affichent dans les fenêtres de Chord, les extensions marchent (scripts de contenu,
   `chrome.tabs`, onglets ouverts par une extension adoptés par ChordUI), DevTools (⌥⌘I)
   ancrés dans la fenêtre à droite, à gauche ou en bas, ou dans leur propre fenêtre.
+- Plusieurs fenêtres (⌘N) sur les mêmes Spaces, chacune avec son Space et ses onglets
+  sélectionnés (`WindowSelection`) ; navigation privée (⇧⌘N) sur le profil incognito de
+  Chromium, fenêtre sombre, rien d'enregistré ; ⌘← / ⌘→ pour l'historique (sauf en
+  saisie de texte).
 - Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
   Peek au ⇧-clic, téléchargements dans le panneau de Chord, invites de permission,
   plein écran vidéo dans l'interface, recherche dans la page, import de l'historique /

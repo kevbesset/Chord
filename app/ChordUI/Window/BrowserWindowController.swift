@@ -15,6 +15,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     public let state: BrowserState
     public let settings: ChordSettings
+    /// This window's Space and selected tabs; the Spaces themselves are shared.
+    public let selection: WindowSelection
+    /// Called once the window has closed, for its host to let it go.
+    public var onClose: ((BrowserWindowController) -> Void)?
 
     private let rootView = NSVisualEffectView()
     private let frostView = GlassFrostView()
@@ -49,9 +53,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private static let frameName = "ChordMainWindow"
 
-    public init(state: BrowserState, settings: ChordSettings) {
+    /// `cascadingFrom`: the window this one opens from (⌘N), which it sits next to.
+    public init(state: BrowserState, settings: ChordSettings, cascadingFrom previous: NSWindow? = nil) {
         self.state = state
         self.settings = settings
+        selection = state.openWindow()
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -63,22 +69,32 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         window.isMovableByWindowBackground = true
         window.tabbingMode = .disallowed
         window.minSize = NSSize(width: 720, height: 480)
-        window.title = "Chord"
+        window.title = state.isPrivate ? "Navigation privée" : "Chord"
         // No system shadow: macOS draws its dark outline as part of the shadow, a black
         // line all around the glass. Without it the glass meets the desktop cleanly.
         window.hasShadow = false
         super.init(window: window)
         window.delegate = self
 
-        buildLayout()
-        bindState()
-        applyAppearanceSettings(animated: false)
-        MainMenu.apply(settings.shortcutOverrides, to: NSApp.mainMenu)
-        lastSpaceIndex = state.spaces.firstIndex { $0 === state.activeSpace } ?? 0
-        refreshAll()
+        state.withWindow(selection) {
+            buildLayout()
+            bindState()
+            applyAppearanceSettings(animated: false)
+            MainMenu.apply(settings.shortcutOverrides, to: NSApp.mainMenu)
+            lastSpaceIndex = state.spaces.firstIndex { $0 === state.activeSpace } ?? 0
+            refreshAll()
+        }
 
-        if !window.setFrameUsingName(Self.frameName) { window.center() }
-        _ = window.setFrameAutosaveName(Self.frameName)
+        if let previous {
+            // Next to the window it came from, like any Mac app's new window.
+            window.setFrame(previous.frame, display: false)
+            window.setFrameTopLeftPoint(window.cascadeTopLeft(from: NSPoint(x: previous.frame.minX, y: previous.frame.maxY)))
+        } else if !state.isPrivate {
+            if !window.setFrameUsingName(Self.frameName) { window.center() }
+            _ = window.setFrameAutosaveName(Self.frameName)
+        } else {
+            window.center()
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -86,7 +102,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     public override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
         positionTrafficLights()
-        if !settings.arcImportOffered, state.isPristine, ArcImport.isAvailable {
+        if state.isPrivate {
+            DispatchQueue.main.async { [weak self] in self?.newTab(nil) }
+        } else if !settings.arcImportOffered, state.isPristine, ArcImport.isAvailable {
             // First launch with Arc on this Mac: offer to bring its sidebar over.
             DispatchQueue.main.async { [weak self] in self?.offerArcImport() }
         } else if state.activeSpace.allTabs.isEmpty && state.favorites.isEmpty {
@@ -167,7 +185,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         sidebar.setAddressBarOnTop(settings.addressBarOnTop)
         commandBar.isGlass = settings.commandBarGlass
         let appearance = settings.appearance.nsAppearance
-        window?.appearance = appearance
+        // Private browsing is always dark, so that it is never mistaken for a normal window.
+        window?.appearance = state.isPrivate ? NSAppearance(named: .darkAqua) : appearance
         settingsWindow?.window?.appearance = appearance
         for little in littleWindows { little.window?.appearance = appearance }
         layoutChanges(animated: animated)
@@ -261,7 +280,13 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     public func windowDidResize(_ notification: Notification) { positionTrafficLights() }
     public func windowDidEndLiveResize(_ notification: Notification) { positionTrafficLights() }
-    public func windowDidBecomeKey(_ notification: Notification) { positionTrafficLights() }
+    /// The window the user turns to: its selection is the one actions apply to, and its
+    /// pages come back if another window was showing them.
+    public func windowDidBecomeKey(_ notification: Notification) {
+        positionTrafficLights()
+        state.activate(selection)
+        showSelectedPage(focus: false)
+    }
     public func windowDidResignKey(_ notification: Notification) { positionTrafficLights() }
     public func windowDidExitFullScreen(_ notification: Notification) { positionTrafficLights() }
 
@@ -297,11 +322,18 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     // MARK: - State
 
     private func bindState() {
+        // Each window draws the change with its own selection.
         state.changes
-            .sink { [weak self] change in self?.handle(change) }
+            .sink { [weak self] change in
+                guard let self else { return }
+                self.state.withWindow(self.selection) { self.handle(change) }
+            }
             .store(in: &cancellables)
         settings.changes
-            .sink { [weak self] key in self?.handle(key) }
+            .sink { [weak self] key in
+                guard let self else { return }
+                self.state.withWindow(self.selection) { self.handle(key) }
+            }
             .store(in: &cancellables)
         commandBar.actionsProvider = { [weak self] in self?.commandActions() ?? [] }
         commandBar.onDismiss = { [weak self] in self?.focusPage() }
@@ -374,12 +406,13 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         let selected = state.selectedTab
         if tabs.isEmpty { pageArea.home.update(space: state.activeSpace, favorites: state.favorites) }
         pageArea.show(tabs: tabs, views: views, activeID: selected?.id)
-        window?.title = selected?.displayTitle ?? "Chord"
+        window?.title = selected?.displayTitle ?? (state.isPrivate ? "Navigation privée" : "Chord")
         if focus, let view = selected?.page?.view, !commandBar.isVisible, !peek.isVisible {
             window?.makeFirstResponder(view)
         }
         sidebar.updateNavigation(tab: selected)
-        selected?.page?.didBecomeActive?()
+        // Only the key window's page is the engine's active one.
+        if window?.isKeyWindow == true { selected?.page?.didBecomeActive?() }
     }
 
     private func focusPage() {
@@ -842,10 +875,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return menuItem.tag <= state.spaces.count
         case #selector(importFromArc(_:)):
             return ArcImport.isAvailable
-        case #selector(goBack(_:)):
-            return state.selectedTab?.page?.canGoBack ?? false
-        case #selector(goForward(_:)):
-            return state.selectedTab?.page?.canGoForward ?? false
+        case #selector(goBack(_:)), #selector(goForward(_:)):
+            // ⌘← / ⌘→ belong to the text being typed, in the command bar or a field.
+            if menuItem.tag == 2, window?.firstResponder is NSText { return false }
+            let page = state.selectedTab?.page
+            return (menuItem.action == #selector(goBack(_:)) ? page?.canGoBack : page?.canGoForward) ?? false
         case #selector(toggleDevTools(_:)):
             return (state.selectedTab?.page as AnyObject?)?.responds(to: #selector(ChordWebPage.toggleDevTools)) ?? false
         case #selector(stopLoading(_:)):
@@ -863,6 +897,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     public func windowWillClose(_ notification: Notification) {
         state.saveNow()
+        state.closeWindow(selection)
+        onClose?(self)
     }
 }
 
@@ -890,11 +926,23 @@ extension BrowserWindowController: SidebarDelegate {
     func sidebarCopyURL(_ tab: Tab) { copy(tab.url) }
     func sidebarCopyAddress() { copyURL(nil) }
     func sidebarTab(withID id: UUID) -> Tab? { state.tab(withID: id) }
-    func sidebarMove(_ tab: Tab, to destination: TabDestination) { state.move(tab, to: destination) }
-    func sidebarMove(_ tab: Tab, toSpace space: Space) { state.move(tab, to: .today(0), in: space) }
-    func sidebarMove(_ folder: Folder, into parent: Folder?, at index: Int) { state.move(folder, into: parent, at: index) }
+    // Drops and swipes can reach a window that is not the key one: they act with its
+    // own selection.
+    func sidebarMove(_ tab: Tab, to destination: TabDestination) {
+        state.withWindow(selection) { state.move(tab, to: destination) }
+    }
+    func sidebarMove(_ tab: Tab, toSpace space: Space) {
+        state.withWindow(selection) { state.move(tab, to: .today(0), in: space) }
+    }
+    func sidebarMove(_ folder: Folder, into parent: Folder?, at index: Int) {
+        state.withWindow(selection) { state.move(folder, into: parent, at: index) }
+    }
 
     func sidebarOpen(_ urls: [URL], at destination: TabDestination) {
+        state.withWindow(selection) { openDropped(urls, at: destination) }
+    }
+
+    private func openDropped(_ urls: [URL], at destination: TabDestination) {
         for (offset, url) in urls.enumerated() {
             switch destination {
             case .favorites(let index): state.insertTab(url: url, at: .favorites(index + offset))
@@ -941,7 +989,7 @@ extension BrowserWindowController: SidebarDelegate {
     func sidebarSwipeEnded(on space: Space?) {
         guard let space else { return }
         isEndingSwipe = true
-        state.selectSpace(space)
+        state.withWindow(selection) { state.selectSpace(space) }
         isEndingSwipe = false
     }
 

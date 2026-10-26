@@ -27,6 +27,9 @@ public enum MainMenu {
 
         main.addItem(submenu("Fichier", [
             item("Nouvel onglet", #selector(C.newTab(_:)), "t"),
+            // Handled by ChordUIHost's app actions, so that they work with no window open.
+            item("Nouvelle fenêtre", Selector(("newWindow:")), "n"),
+            item("Nouvelle fenêtre de navigation privée", Selector(("newPrivateWindow:")), "n", [.command, .shift]),
             item("Nouvelle petite fenêtre", #selector(C.newLittleWindow(_:)), "n", [.command, .option]),
             item("Ouvrir l'adresse", #selector(C.openLocation(_:)), "l"),
             .separator(),
@@ -69,6 +72,9 @@ public enum MainMenu {
         main.addItem(submenu("Historique", [
             item("Précédent", #selector(C.goBack(_:)), "["),
             item("Suivant", #selector(C.goForward(_:)), "]"),
+            // ⌘← and ⌘→ too, like Arc and Chrome; off while typing, where they move the caret.
+            hidden(item("Précédent (flèche)", #selector(C.goBack(_:)), arrow(NSLeftArrowFunctionKey), tag: 2)),
+            hidden(item("Suivant (flèche)", #selector(C.goForward(_:)), arrow(NSRightArrowFunctionKey), tag: 2)),
         ]))
 
         var tabItems: [NSMenuItem] = [
@@ -214,6 +220,14 @@ public enum MainMenu {
 
     /// An item that is not shown in the menu but still answers its shortcut: a second
     /// shortcut for an action (⌘B besides ⌘S for the sidebar).
+    /// Points the items with these actions at `target` instead of the responder chain.
+    public static func setTarget(_ target: AnyObject, for actions: [Selector], in menu: NSMenu) {
+        for item in menu.items {
+            if let action = item.action, actions.contains(action) { item.target = target }
+            if let submenu = item.submenu { setTarget(target, for: actions, in: submenu) }
+        }
+    }
+
     private static func hidden(_ item: NSMenuItem) -> NSMenuItem {
         item.isHidden = true
         item.allowsKeyEquivalentWhenHidden = true

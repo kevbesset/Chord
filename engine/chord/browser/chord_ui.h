@@ -69,6 +69,7 @@
 @optional
 - (void)cancelDownload:(NSString*)downloadID;
 - (void)setDelegate:(id<ChordWebEngineDelegate>)delegate;
+- (id<ChordWebEngine>)makePrivateEngine;
 @end
 
 // The class methods of ChordUIHost, reached with NSClassFromString(@"ChordUIHost").
