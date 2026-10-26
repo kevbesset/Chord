@@ -59,8 +59,11 @@ final class SidebarView: NSView {
     let pager = SpacePagerView()
     var tabList: TabListView { pager.current.tabList }
     let spaceSwitcher = SpaceSwitcherView()
+    /// Floating, the sidebar has its own glass: the window's (the desktop shows
+    /// through, not the page under it), frosted and tinted the same way.
     private let floatingBackground = NSVisualEffectView()
-    private let floatingTint = NSView()
+    private let floatingFrost = GlassFrostView()
+    private let floatingTint = SpaceTintView()
     private let addressPill = AddressPillView()
     private let resizeHandle = SidebarResizeHandle()
     // The first row shares the title bar with the traffic lights: a touch larger than
@@ -107,7 +110,6 @@ final class SidebarView: NSView {
         pager.current.update(space: space, spaces: state.spaces, favorites: state.favorites,
                              selectedID: state.selectedTab?.id, splitIDs: splitIDs)
         spaceSwitcher.update(spaces: state.spaces, active: space)
-        floatingTint.layer?.backgroundColor = space.color.withAlphaComponent(0.06).cgColor
         updateNavigation(tab: state.selectedTab)
     }
 
@@ -126,6 +128,11 @@ final class SidebarView: NSView {
         }
         pagerTopToPill.isActive = !onTop
         pagerTopToRow.isActive = onTop
+    }
+
+    /// The Space colour of the floating glass, set with the window's own tint.
+    func setTint(_ color: NSColor, duration: TimeInterval = 0) {
+        floatingTint.setColor(color, duration: duration)
     }
 
     func setFloating(_ floating: Bool) {
@@ -148,8 +155,8 @@ final class SidebarView: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
 
-        floatingBackground.material = .popover
-        floatingBackground.blendingMode = .withinWindow
+        floatingBackground.material = Theme.windowMaterial
+        floatingBackground.blendingMode = .behindWindow
         floatingBackground.state = .active
         floatingBackground.wantsLayer = true
         floatingBackground.layer?.cornerRadius = 14
@@ -157,9 +164,10 @@ final class SidebarView: NSView {
         floatingBackground.layer?.borderWidth = 0.5
         floatingBackground.layer?.borderColor = NSColor.black.withAlphaComponent(0.08).cgColor
         floatingBackground.isHidden = true
-        floatingTint.wantsLayer = true
-        floatingTint.translatesAutoresizingMaskIntoConstraints = false
-        floatingBackground.addSubview(floatingTint)
+        for layer in [floatingFrost, floatingTint] as [NSView] {
+            layer.translatesAutoresizingMaskIntoConstraints = false
+            floatingBackground.addSubview(layer)
+        }
 
         let topRow = NSStackView()
         topRow.orientation = .horizontal
@@ -197,6 +205,10 @@ final class SidebarView: NSView {
             floatingBackground.leadingAnchor.constraint(equalTo: leadingAnchor),
             floatingBackground.trailingAnchor.constraint(equalTo: trailingAnchor),
             floatingBackground.bottomAnchor.constraint(equalTo: bottomAnchor),
+            floatingFrost.topAnchor.constraint(equalTo: floatingBackground.topAnchor),
+            floatingFrost.leadingAnchor.constraint(equalTo: floatingBackground.leadingAnchor),
+            floatingFrost.trailingAnchor.constraint(equalTo: floatingBackground.trailingAnchor),
+            floatingFrost.bottomAnchor.constraint(equalTo: floatingBackground.bottomAnchor),
             floatingTint.topAnchor.constraint(equalTo: floatingBackground.topAnchor),
             floatingTint.leadingAnchor.constraint(equalTo: floatingBackground.leadingAnchor),
             floatingTint.trailingAnchor.constraint(equalTo: floatingBackground.trailingAnchor),

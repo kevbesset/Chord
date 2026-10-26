@@ -204,8 +204,14 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         }
     }
 
+    /// The Space colour on the window glass, and on the sidebar's own glass when it floats.
+    private func setTint(_ color: NSColor, duration: TimeInterval = 0) {
+        tintView.setColor(color, duration: duration)
+        sidebar.setTint(color, duration: duration)
+    }
+
     private func updateTint(animated: Bool) {
-        tintView.setColor(state.activeSpace.color, duration: animated ? Theme.motionDuration : 0)
+        setTint(state.activeSpace.color, duration: animated ? Theme.motionDuration : 0)
         pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.accent)
     }
 
@@ -969,11 +975,11 @@ extension BrowserWindowController: SidebarDelegate {
     /// The window's tint follows the swipe from one Space's colour to the other's.
     func sidebarSwipeProgress(toward space: Space?, fraction: CGFloat) {
         guard let space else { return }
-        tintView.setColor(state.activeSpace.color.blended(withFraction: fraction, of: space.color) ?? space.color)
+        setTint(state.activeSpace.color.blended(withFraction: fraction, of: space.color) ?? space.color)
     }
 
     func sidebarSwipeWillEnd(on space: Space?, duration: TimeInterval) {
-        tintView.setColor((space ?? state.activeSpace).color, duration: duration)
+        setTint((space ?? state.activeSpace).color, duration: duration)
     }
 
     func sidebarSwipeEnded(on space: Space?) {
