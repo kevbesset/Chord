@@ -231,16 +231,34 @@ final class SidebarView: NSView {
 
     /// Lines the first row up with the traffic lights, wherever macOS draws them: centred
     /// on the same height, starting just after the green button.
+    ///
+    /// Measured in the window, relative to where the sidebar rests (docked or floating).
+    /// Off screen (hidden), nothing is measured: the row keeps its place in the sidebar
+    /// and slides away with it. The height is the one the window puts the traffic lights
+    /// at (`Theme.titleRowCenter`), not where macOS has them for the moment: it moves
+    /// them back to its own place each time they are shown again.
     override func layout() {
-        if let close = window?.standardWindowButton(.closeButton), let zoom = window?.standardWindowButton(.zoomButton),
-           let container = close.superview {
-            let center = convert(NSPoint(x: close.frame.midX, y: close.frame.midY), from: container)
-            let top = isFlipped ? center.y : bounds.height - center.y
-            let leading = convert(NSPoint(x: zoom.frame.maxX, y: 0), from: container).x + 8
+        if let window, let contentView = window.contentView,
+           case let origin = convert(NSPoint(x: 0, y: isFlipped ? 0 : bounds.height), to: nil), origin.x >= 0 {
+            let topInWindow = contentView.bounds.height - origin.y
+            let top = Theme.titleRowCenter - topInWindow
+            var lightsTrailing = Theme.trafficLightsWidth - 8
+            if let zoom = window.standardWindowButton(.zoomButton), let container = zoom.superview, !zoom.isHidden {
+                lightsTrailing = container.convert(NSPoint(x: zoom.frame.maxX, y: 0), to: nil).x
+            }
+            let leading = lightsTrailing - origin.x + 8
             if abs(topRowCenter.constant - top) > 0.5 { topRowCenter.constant = top }
             if abs(topRowLeading.constant - leading) > 0.5 { topRowLeading.constant = leading }
         }
         super.layout()
+    }
+
+    /// The row's place depends on where the sidebar is in the window: lay it out again
+    /// when the sidebar moves, not only when it is resized.
+    override func setFrameOrigin(_ newOrigin: NSPoint) {
+        let moved = newOrigin != frame.origin
+        super.setFrameOrigin(newOrigin)
+        if moved { needsLayout = true }
     }
 
     // MARK: - Swipe between Spaces, like Arc

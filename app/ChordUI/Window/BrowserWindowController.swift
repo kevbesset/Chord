@@ -244,6 +244,12 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
         edgeHover.isHidden = mode != .hidden
         setTrafficLightsHidden(mode == .hidden)
+        if mode != .hidden {
+            // Shown again, the traffic lights are back where macOS puts them: move them
+            // to the sidebar's row now, and again once AppKit has laid its title bar out.
+            positionTrafficLights()
+            DispatchQueue.main.async { [weak self] in self?.positionTrafficLights() }
+        }
         layoutChanges(animated: animated)
         DispatchQueue.main.async { interval.end() }
     }
