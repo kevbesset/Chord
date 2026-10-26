@@ -322,7 +322,10 @@ void ChordBrowserWindow::DestroyBrowser() {
   BrowserManagerService::SynchronouslyDestroyBrowser(browser_);
 }
 
+// Chromium brings its active tab forward (the picture-in-picture "back to tab"): the
+// tab may be in another Space, or not the selected one, so ChordUI shows it first.
 void ChordBrowserWindow::Activate() {
+  chord::ShowPage(browser_->GetTabStripModel()->GetActiveWebContents());
   [GetNativeWindow().GetNativeNSWindow() makeKeyAndOrderFront:nil];
 }
 

@@ -1,6 +1,8 @@
 import AppKit
 
-/// The command bar: ⌘T opens it for a new tab, ⌘L for the current one.
+/// The command bar: ⌘T opens it for a new tab, ⌘L for the current one. Opened from an
+/// address field (a click on it, or ⌘L while it is on screen), it is a compact version
+/// laid over that field, like Arc's, rather than centred on the page.
 ///
 /// Its views are built once and then only shown and hidden, so that opening it
 /// stays well under its 50 ms budget.
@@ -29,6 +31,14 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     private let panelHost = ShadowHostView()
     private let panel = NSVisualEffectView()
     private let field = NSTextField()
+    private let searchIcon = NSImageView(image: Theme.symbol("magnifyingglass", size: 17) ?? NSImage())
+    private let header = NSStackView()
+    private var headerHeight: NSLayoutConstraint!
+    private var footerViews: [NSView] = []
+    private var centeredConstraints: [NSLayoutConstraint] = []
+    private var anchoredLeading: NSLayoutConstraint!
+    private var anchoredTop: NSLayoutConstraint!
+    private var anchoredWidth: NSLayoutConstraint!
     private let results = NSStackView()
     private var items: [CommandItem] = []
     private var rows: [CommandRowView] = []
@@ -45,10 +55,12 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     }
 
     /// Shows the bar in `host`, centred on `area` (the page area, so that it lines up with
-    /// the page rather than with the whole window and its sidebar).
-    func present(in host: NSView, centeredOn area: NSView, mode: Mode, text: String, accent: NSColor) {
+    /// the page rather than with the whole window and its sidebar), or, with an `anchor`
+    /// (an address field), compact and laid over it.
+    func present(in host: NSView, centeredOn area: NSView, anchoredTo anchor: NSView? = nil, mode: Mode, text: String, accent: NSColor) {
         let interval = Perf.begin("commandbar.open")
         install(in: host, centeredOn: area)
+        place(in: host, anchoredTo: anchor)
         self.mode = mode
         self.accent = accent
         field.placeholderString = mode == .split ? "Page à afficher à côté" : "Rechercher ou saisir une adresse"
@@ -90,7 +102,6 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         panel.layer?.borderWidth = 0.5
         panel.layer?.borderColor = NSColor.separatorColor.cgColor
 
-        let searchIcon = NSImageView(image: Theme.symbol("magnifyingglass", size: 17) ?? NSImage())
         searchIcon.contentTintColor = .secondaryLabelColor
         field.isBordered = false
         field.isBezeled = false
@@ -102,7 +113,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         field.cell?.usesSingleLineMode = true
         field.delegate = self
 
-        let header = NSStackView(views: [searchIcon, field])
+        header.setViews([searchIcon, field], in: .leading)
         header.orientation = .horizontal
         header.spacing = 12
         header.edgeInsets = NSEdgeInsets(top: 0, left: 22, bottom: 0, right: 22)
@@ -129,7 +140,9 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             escape.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
         ])
 
-        let column = NSStackView(views: [header, makeRule(), results, makeRule(), footer])
+        let footerRule = makeRule()
+        footerViews = [footerRule, footer]
+        let column = NSStackView(views: [header, makeRule(), results, footerRule, footer])
         column.orientation = .vertical
         column.alignment = .width
         column.spacing = 0
@@ -146,16 +159,21 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         // 680 pt like the mockup, narrower when the page area is.
         let preferredWidth = panelHost.widthAnchor.constraint(equalToConstant: 680)
         preferredWidth.priority = .defaultHigh
+        centeredConstraints = [
+            panelHost.centerXAnchor.constraint(equalTo: area.centerXAnchor),
+            panelHost.topAnchor.constraint(equalTo: host.topAnchor, constant: 140),
+            panelHost.widthAnchor.constraint(lessThanOrEqualTo: area.widthAnchor, constant: -40),
+            preferredWidth,
+        ]
+        anchoredLeading = panelHost.leadingAnchor.constraint(equalTo: host.leadingAnchor)
+        anchoredTop = panelHost.topAnchor.constraint(equalTo: host.topAnchor)
+        anchoredWidth = panelHost.widthAnchor.constraint(equalToConstant: 560)
+        headerHeight = header.heightAnchor.constraint(equalToConstant: 60)
         NSLayoutConstraint.activate([
             scrim.topAnchor.constraint(equalTo: host.topAnchor),
             scrim.leadingAnchor.constraint(equalTo: host.leadingAnchor),
             scrim.trailingAnchor.constraint(equalTo: host.trailingAnchor),
             scrim.bottomAnchor.constraint(equalTo: host.bottomAnchor),
-
-            panelHost.centerXAnchor.constraint(equalTo: area.centerXAnchor),
-            panelHost.topAnchor.constraint(equalTo: host.topAnchor, constant: 140),
-            panelHost.widthAnchor.constraint(lessThanOrEqualTo: area.widthAnchor, constant: -40),
-            preferredWidth,
 
             panel.topAnchor.constraint(equalTo: panelHost.topAnchor),
             panel.leadingAnchor.constraint(equalTo: panelHost.leadingAnchor),
@@ -172,12 +190,42 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             header.widthAnchor.constraint(equalTo: column.widthAnchor),
             results.widthAnchor.constraint(equalTo: column.widthAnchor),
             footer.widthAnchor.constraint(equalTo: column.widthAnchor),
-            header.heightAnchor.constraint(equalToConstant: 60),
+            headerHeight,
             footer.heightAnchor.constraint(equalToConstant: 36),
         ])
 
         scrim.isHidden = true
         panelHost.isHidden = true
+    }
+
+    /// Centred and large, or compact over the address field: the field's text where the
+    /// address was, the results below it, no dimming and no keyboard hints.
+    private func place(in host: NSView, anchoredTo anchor: NSView?) {
+        let compact = anchor != nil
+        if let anchor {
+            let rect = anchor.convert(anchor.bounds, to: host)
+            let top = host.isFlipped ? rect.minY : host.bounds.height - rect.maxY
+            let width = min(max(rect.width + 12, 560), host.bounds.width - rect.minX - 16)
+            let headerHeight: CGFloat = 46
+            anchoredLeading.constant = rect.minX - 6
+            anchoredTop.constant = top - (headerHeight - rect.height) / 2
+            anchoredWidth.constant = width
+            self.headerHeight.constant = headerHeight
+            NSLayoutConstraint.deactivate(centeredConstraints)
+            NSLayoutConstraint.activate([anchoredLeading, anchoredTop, anchoredWidth])
+        } else {
+            headerHeight.constant = 60
+            NSLayoutConstraint.deactivate([anchoredLeading, anchoredTop, anchoredWidth])
+            NSLayoutConstraint.activate(centeredConstraints)
+        }
+        field.font = .systemFont(ofSize: compact ? 15 : 20)
+        searchIcon.image = Theme.symbol("magnifyingglass", size: compact ? 13 : 17)
+        header.edgeInsets = NSEdgeInsets(top: 0, left: compact ? 16 : 22, bottom: 0, right: compact ? 16 : 22)
+        header.spacing = compact ? 9 : 12
+        footerViews.forEach { $0.isHidden = compact }
+        scrim.dims = !compact
+        panelHost.cornerRadius = compact ? 12 : 16
+        panel.layer?.cornerRadius = compact ? 12 : 16
     }
 
     private func applyMaterial() {
@@ -198,7 +246,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
         let typedURL = URLInput.url(from: query)
         if let url = typedURL {
-            result.append(CommandItem(section: "Aller à", title: url.absoluteString, tileURL: url, shortcut: "↩", action: .open(url)))
+            result.append(CommandItem(section: "Aller à", title: url.editableString, tileURL: url, shortcut: "↩", action: .open(url)))
         }
 
         let tabs = state.allTabs.filter { entry in
@@ -218,7 +266,9 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
         // Picking a page for a split: only pages, no actions.
         if mode != .split {
-            let actions = (actionsProvider?() ?? []).filter { query.isEmpty || $0.title.localizedStandardContains(query) }
+            let actions = (actionsProvider?() ?? []).filter {
+                query.isEmpty || $0.title.localizedStandardContains(query) || ($0.subtitle?.localizedStandardContains(query) ?? false)
+            }
             result += actions.prefix(query.isEmpty ? 3 : 4)
         }
 

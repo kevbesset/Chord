@@ -11,12 +11,17 @@ enum URLInput {
         "http", "https", "file", "about", "data", "view-source",
         "chrome", "chrome-extension", "chrome-untrusted", "devtools",
     ]
+    /// Chord's name for Chromium's internal pages, like Arc's `arc://`: `chord://settings`.
+    static let internalScheme = "chord"
     private static let localTLDs: Set<String> = ["localhost", "local", "test", "internal", "lan", "home"]
 
     static func url(from input: String) -> URL? {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !text.contains(" ") else { return nil }
 
+        if text.lowercased().hasPrefix(internalScheme + "://") {
+            return URL(string: "chrome" + text.dropFirst(internalScheme.count))
+        }
         if let url = URL(string: text), let scheme = url.scheme?.lowercased(),
            schemes.contains(scheme), text.lowercased().hasPrefix(scheme + ":") {
             return url
@@ -47,7 +52,14 @@ extension URL {
         let host = self.host ?? ""
         let hostAndPort = port.map { "\(host):\($0)" } ?? host
         guard let scheme, scheme != "http", scheme != "https" else { return hostAndPort.isEmpty ? absoluteString : hostAndPort }
-        return hostAndPort.isEmpty ? absoluteString : "\(scheme)://\(hostAndPort)"
+        let shownScheme = scheme == "chrome" ? URLInput.internalScheme : scheme
+        return hostAndPort.isEmpty ? absoluteString : "\(shownScheme)://\(hostAndPort)"
+    }
+
+    /// The address as the command bar shows it for editing: Chromium's internal pages
+    /// under Chord's name (`chord://settings`).
+    var editableString: String {
+        scheme == "chrome" ? URLInput.internalScheme + absoluteString.dropFirst("chrome".count) : absoluteString
     }
 
     /// The address bars' icon: a lock for HTTPS, a gear for the browser's own pages.

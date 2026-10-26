@@ -33,6 +33,10 @@ void SetSharedEngine(ChordEngine* engine);
 // Follows the tabs of a browser with Chord's window, so that the pages Chromium opens
 // by itself (a link to a new tab, an extension's tab) reach ChordUI.
 void WatchBrowser(BrowserWindowInterface* browser);
+
+// ChordUI shows the page: Chromium wants it on screen (the picture-in-picture "back
+// to tab", a window brought forward), whatever Space it is in.
+void ShowPage(content::WebContents* contents);
 void UnwatchBrowser(BrowserWindowInterface* browser);
 
 }  // namespace chord

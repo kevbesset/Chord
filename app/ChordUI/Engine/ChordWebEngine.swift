@@ -68,6 +68,15 @@ import AppKit
     /// Where the page goes in an area of `size` while its tools are docked, with a
     /// top-left origin.
     @objc optional func pageFrame(withDevToolsIn size: NSSize) -> NSRect
+    /// What the page's site may do for a permission ("notifications", "geolocation",
+    /// "camera", "microphone", "popups", "sound", "autoPictureInPicture"): "allow",
+    /// "block" or "ask"; nil when the engine does not know it for this page.
+    @objc optional func permissionState(_ permission: String) -> String?
+    /// Changes what the page's site may do; "default" goes back to the browser's choice.
+    @objc optional func setPermission(_ permission: String, state: String)
+    /// Whether the permission was chosen for the page's site rather than inherited from
+    /// the browser's defaults.
+    @objc optional func permissionIsSiteSpecific(_ permission: String) -> Bool
 }
 
 @objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {

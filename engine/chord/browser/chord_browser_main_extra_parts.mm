@@ -24,6 +24,7 @@
 #include "base/values.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/chrome_browser_main_extra_parts.h"
+#include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -104,6 +105,30 @@ bool LoadChordUI() {
   return Host() != nil;
 }
 
+// A double-click on the picture-in-picture video goes back to its tab. AppKit-side,
+// Chromium takes double-clicks on a window's draggable background (the whole video
+// is one, so that the window moves) for a title bar double-click, before the video
+// sees them: they are caught here first. The controls still get theirs.
+void GoBackToTabOnPictureInPictureDoubleClick() {
+  [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseUp
+                                        handler:^NSEvent*(NSEvent* event) {
+    NSWindow* window = event.window;
+    PictureInPictureWindowManager* manager =
+        PictureInPictureWindowManager::GetInstance();
+    if (event.clickCount != 2 || !window ||
+        window.level <= NSNormalWindowLevel || !manager->GetWebContents()) {
+      return event;
+    }
+    // The draggable background hit-tests to no view; a control does not.
+    if ([window.contentView hitTest:event.locationInWindow] != nil) {
+      return event;
+    }
+    manager->ExitPictureInPictureViaWindowUi(
+        PictureInPictureWindowManager::UiBehavior::kCloseWindowAndFocusOpener);
+    return nil;
+  }];
+}
+
 void StartChordUI() {
   if (g_started || !LoadChordUI()) {
     return;
@@ -133,6 +158,7 @@ void StartChordUI() {
             isDirectory:YES];
   }
   [Host() startWithEngine:engine appName:@"Chord" supportDirectory:support];
+  GoBackToTabOnPictureInPictureDoubleClick();
 }
 
 class ChordBrowserMainExtraParts : public ChromeBrowserMainExtraParts {

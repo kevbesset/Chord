@@ -15,6 +15,7 @@ protocol SidebarDelegate: AnyObject {
     func sidebarRemoveFromSplit(_ tab: Tab)
     func sidebarCopyURL(_ tab: Tab)
     func sidebarCopyAddress()
+    func sidebarShowSiteControls(from anchor: NSView)
     func sidebarTab(withID id: UUID) -> Tab?
     func sidebarMove(_ tab: Tab, to destination: TabDestination)
     func sidebarMove(_ tab: Tab, toSpace space: Space)
@@ -65,6 +66,8 @@ final class SidebarView: NSView {
     private let floatingFrost = GlassFrostView()
     private let floatingTint = SpaceTintView()
     private let addressPill = AddressPillView()
+    /// Where the compact command bar opens, over the address.
+    var addressAnchor: NSView { addressPill }
     private let resizeHandle = SidebarResizeHandle()
     // The first row shares the title bar with the traffic lights: a touch larger than
     // the other icons, so that they hold their own next to them.
@@ -180,6 +183,7 @@ final class SidebarView: NSView {
 
         addressPill.onClick = { [weak self] in self?.delegate?.sidebarAddressClicked() }
         addressPill.onCopy = { [weak self] in self?.delegate?.sidebarCopyAddress() }
+        addressPill.onSiteControls = { [weak self] anchor in self?.delegate?.sidebarShowSiteControls(from: anchor) }
         resizeHandle.onDrag = { [weak self] width, finished in self?.delegate?.sidebarResize(to: width, finished: finished) }
 
         let bottomRow = NSStackView()
@@ -390,14 +394,14 @@ final class SidebarView: NSView {
         addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil))
     }
 
-    // Like Arc, the address's copy button shows while the pointer is anywhere in the sidebar.
+    // Like Arc, the address's buttons show while the pointer is anywhere in the sidebar.
     override func mouseEntered(with event: NSEvent) {
-        addressPill.showsCopyButton = true
+        addressPill.showsButtons = true
         delegate?.sidebarMouseEntered()
     }
 
     override func mouseExited(with event: NSEvent) {
-        addressPill.showsCopyButton = false
+        addressPill.showsButtons = false
         delegate?.sidebarMouseExited()
     }
 

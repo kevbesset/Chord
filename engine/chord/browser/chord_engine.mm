@@ -6,12 +6,18 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
 #include "base/no_destructor.h"
 #include "base/strings/sys_string_conversions.h"
+#include "components/content_settings/core/browser/host_content_settings_map.h"
+#include "components/content_settings/core/common/content_settings.h"
+#include "components/content_settings/core/common/content_settings_types.h"
+#include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/devtools/devtools_contents_resizing_strategy.h"
 #include "chrome/browser/devtools/devtools_toggle_action.h"
 #include "chrome/browser/devtools/devtools_window.h"
@@ -136,6 +142,41 @@ bool IsQuitting() {
 }  // namespace
 
 // MARK: - ChordPage
+
+namespace {
+
+// The permissions ChordUI's site controls show, by the names it gives them.
+std::optional<ContentSettingsType> PermissionType(NSString* permission) {
+  static const auto* types = new std::map<std::string, ContentSettingsType>{
+      {"notifications", ContentSettingsType::NOTIFICATIONS},
+      {"geolocation", ContentSettingsType::GEOLOCATION},
+      {"camera", ContentSettingsType::MEDIASTREAM_CAMERA},
+      {"microphone", ContentSettingsType::MEDIASTREAM_MIC},
+      {"popups", ContentSettingsType::POPUPS},
+      {"sound", ContentSettingsType::SOUND},
+      {"autoPictureInPicture", ContentSettingsType::AUTO_PICTURE_IN_PICTURE},
+  };
+  auto found = types->find(base::SysNSStringToUTF8(permission));
+  if (found == types->end()) {
+    return std::nullopt;
+  }
+  return found->second;
+}
+
+// The site's content settings, for pages of a web site only.
+HostContentSettingsMap* SettingsFor(content::WebContents* contents, GURL* url) {
+  if (!contents) {
+    return nullptr;
+  }
+  *url = contents->GetLastCommittedURL();
+  if (!url->SchemeIsHTTPOrHTTPS()) {
+    return nullptr;
+  }
+  return HostContentSettingsMapFactory::GetForProfile(
+      contents->GetBrowserContext());
+}
+
+}  // namespace
 
 @interface ChordPage : NSObject <ChordWebPage>
 - (instancetype)initWithWebContents:(content::WebContents*)contents;
@@ -413,6 +454,56 @@ class PageObserver : public content::WebContentsObserver {
   }
 }
 
+// Site controls: what the page's site may do, as Chromium's content settings keep it
+// (the same ones its permission prompts and chrome://settings/content change).
+- (NSString*)permissionState:(NSString*)permission {
+  GURL url;
+  HostContentSettingsMap* settings = SettingsFor(_webContents, &url);
+  std::optional<ContentSettingsType> type = PermissionType(permission);
+  if (!settings || !type) {
+    return nil;
+  }
+  switch (settings->GetContentSetting(url, url, *type)) {
+    case CONTENT_SETTING_ALLOW:
+      return @"allow";
+    case CONTENT_SETTING_BLOCK:
+      return @"block";
+    default:
+      return @"ask";
+  }
+}
+
+- (void)setPermission:(NSString*)permission state:(NSString*)state {
+  GURL url;
+  HostContentSettingsMap* settings = SettingsFor(_webContents, &url);
+  std::optional<ContentSettingsType> type = PermissionType(permission);
+  if (!settings || !type) {
+    return;
+  }
+  ContentSetting setting = CONTENT_SETTING_DEFAULT;
+  if ([state isEqualToString:@"allow"]) {
+    setting = CONTENT_SETTING_ALLOW;
+  } else if ([state isEqualToString:@"block"]) {
+    setting = CONTENT_SETTING_BLOCK;
+  } else if ([state isEqualToString:@"ask"]) {
+    setting = CONTENT_SETTING_ASK;
+  }
+  settings->SetContentSettingDefaultScope(url, url, *type, setting);
+}
+
+- (BOOL)permissionIsSiteSpecific:(NSString*)permission {
+  GURL url;
+  HostContentSettingsMap* settings = SettingsFor(_webContents, &url);
+  std::optional<ContentSettingsType> type = PermissionType(permission);
+  if (!settings || !type) {
+    return NO;
+  }
+  content_settings::SettingInfo info;
+  settings->GetContentSetting(url, url, *type, &info);
+  return info.source == content_settings::SettingSource::kUser &&
+         !info.primary_pattern.MatchesAllHosts();
+}
+
 // Docked DevTools: their WebContents fills the page's area, the page sits where the
 // DevTools' layout leaves room (the same strategy as Chromium's DevtoolsUIController).
 - (NSView*)devToolsView {
@@ -534,14 +625,7 @@ class TabWatcher : public TabStripModelObserver {
   }
 
   void TabActivated(content::WebContents* contents) {
-    ChordPage* page = PageFor(contents);
-    ChordEngine* engine = EngineFor(contents);
-    if (!page || !engine) {
-      return;
-    }
-    dispatch_async(dispatch_get_main_queue(), ^{
-      [engine announceShowPage:page];
-    });
+    chord::ShowPage(contents);
   }
 
   // A tab closed by Chromium (`window.close()`, an extension). A tab ChordUI closed
@@ -683,6 +767,17 @@ void WatchBrowser(BrowserWindowInterface* browser) {
 
 void UnwatchBrowser(BrowserWindowInterface* browser) {
   TabWatcher::Get().Unwatch(browser->GetTabStripModel());
+}
+
+void ShowPage(content::WebContents* contents) {
+  ChordPage* page = contents ? PageFor(contents) : nil;
+  ChordEngine* engine = contents ? EngineFor(contents) : nil;
+  if (!page || !engine) {
+    return;
+  }
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [engine announceShowPage:page];
+  });
 }
 
 bool CanDockDevTools(BrowserWindowInterface* browser) {

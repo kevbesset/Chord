@@ -2,7 +2,7 @@ import AppKit
 
 /// What the bars above the page ask the window to do.
 enum PageBarAction {
-    case back, forward, reload, address, split, copyURL, closePane(Tab), activate(Tab)
+    case back, forward, reload, address, split, copyURL, siteControls(NSView), closePane(Tab), activate(Tab)
 }
 
 /// The Safari-style bar on top of the page (address bar setting "en haut"): 32 px, same
@@ -18,11 +18,14 @@ final class PageToolbarView: NSView {
     private lazy var copyButton = IconButton(symbol: "link", label: "Copier l'URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
     private lazy var moreButton = IconButton(symbol: "ellipsis", label: "Plus d'actions", target: self, action: #selector(moreClicked), size: 24, pointSize: 12)
     private let address = ToolbarAddressView()
+    /// Where the compact command bar opens, over the address.
+    var addressAnchor: NSView { address }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
         address.onClick = { [weak self] in self?.onAction?(.address) }
+        address.onSiteControls = { [weak self] anchor in self?.onAction?(.siteControls(anchor)) }
 
         let leading = NSStackView(views: [backButton, forwardButton, reloadButton])
         leading.spacing = 2
@@ -89,9 +92,12 @@ final class PageToolbarView: NSView {
     }
 }
 
-/// The centred address in the top bar: host in medium weight, then the path.
+/// The centred address in the top bar: host in medium weight, then the path, and the
+/// site's controls at the end of the field, like Arc's.
 final class ToolbarAddressView: NSView {
     var onClick: (() -> Void)?
+    var onSiteControls: ((NSView) -> Void)?
+    private lazy var siteControlsButton = IconButton(symbol: "switch.2", label: "Réglages du site", target: self, action: #selector(siteControlsClicked), size: 20, pointSize: 11)
     private let icon = NSImageView()
     private let hostLabel = NSTextField(labelWithString: "")
     private let pathLabel = NSTextField(labelWithString: "")
@@ -110,11 +116,16 @@ final class ToolbarAddressView: NSView {
         stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
+        siteControlsButton.isHidden = true
+        siteControlsButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(siteControlsButton)
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 10),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 28),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: siteControlsButton.leadingAnchor, constant: -4),
+            siteControlsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            siteControlsButton.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
@@ -129,6 +140,7 @@ final class ToolbarAddressView: NSView {
             hostLabel.textColor = .secondaryLabelColor
             pathLabel.stringValue = ""
             setAccessibilityLabel("Rechercher ou saisir une adresse")
+            siteControlsButton.isHidden = true
             return
         }
         hostLabel.stringValue = url.displayHost
@@ -136,7 +148,10 @@ final class ToolbarAddressView: NSView {
         pathLabel.stringValue = url.path == "/" ? "" : url.path
         icon.image = Theme.symbol(url.addressSymbol, size: 10)
         setAccessibilityLabel("Adresse : \(url.absoluteString)")
+        siteControlsButton.isHidden = false
     }
+
+    @objc private func siteControlsClicked() { onSiteControls?(siteControlsButton) }
 
     override var wantsUpdateLayer: Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }

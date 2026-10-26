@@ -1,14 +1,16 @@
 import AppKit
 
 /// The address shown in the sidebar. A click opens the command bar on the current URL;
-/// the link button on the right, shown while the pointer is in the sidebar, copies it.
+/// the buttons on the right, shown while the pointer is in the sidebar, open the site's
+/// controls (like Arc's) and copy the address.
 final class AddressPillView: NSView {
     var onClick: (() -> Void)?
     var onCopy: (() -> Void)?
+    var onSiteControls: ((NSView) -> Void)?
 
-    /// Set by the sidebar on hover; the button only shows when there is an address.
-    var showsCopyButton = false {
-        didSet { refreshCopyButton() }
+    /// Set by the sidebar on hover; the buttons only show when there is an address.
+    var showsButtons = false {
+        didSet { refreshButtons() }
     }
 
     private let icon = NSImageView()
@@ -16,6 +18,8 @@ final class AddressPillView: NSView {
     private let pathLabel = NSTextField(labelWithString: "")
     private let environmentLabel = NSTextField(labelWithString: "")
     private lazy var copyButton = IconButton(symbol: "link", label: "Copier l'URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
+    private lazy var siteControlsButton = IconButton(symbol: "switch.2", label: "Réglages du site", target: self, action: #selector(siteControlsClicked), size: 24, pointSize: 12)
+    private lazy var buttons = NSStackView(views: [siteControlsButton, copyButton])
     private var hasURL = false
     private var environmentToEdge: NSLayoutConstraint!
     private var environmentToButton: NSLayoutConstraint!
@@ -39,10 +43,12 @@ final class AddressPillView: NSView {
         environmentLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         environmentLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(environmentLabel)
-        copyButton.isHidden = true
-        addSubview(copyButton)
+        buttons.spacing = 0
+        buttons.isHidden = true
+        buttons.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(buttons)
         environmentToEdge = environmentLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12)
-        environmentToButton = environmentLabel.trailingAnchor.constraint(equalTo: copyButton.leadingAnchor, constant: -4)
+        environmentToButton = environmentLabel.trailingAnchor.constraint(equalTo: buttons.leadingAnchor, constant: -4)
 
         let stack = NSStackView(views: [icon, hostLabel, pathLabel])
         stack.orientation = .horizontal
@@ -56,8 +62,8 @@ final class AddressPillView: NSView {
             icon.widthAnchor.constraint(equalToConstant: 14),
             environmentToEdge,
             environmentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            copyButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
-            copyButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            buttons.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
+            buttons.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         setAccessibilityElement(true)
@@ -76,7 +82,7 @@ final class AddressPillView: NSView {
             environmentLabel.stringValue = ""
             setAccessibilityLabel("Rechercher ou saisir une adresse")
             hasURL = false
-            refreshCopyButton()
+            refreshButtons()
             return
         }
         hostLabel.stringValue = url.displayHost
@@ -86,19 +92,20 @@ final class AddressPillView: NSView {
         environmentLabel.stringValue = Self.environment(of: url) ?? ""
         setAccessibilityLabel("Adresse : \(url.absoluteString)")
         hasURL = true
-        refreshCopyButton()
+        refreshButtons()
     }
 
-    private func refreshCopyButton() {
-        let shown = showsCopyButton && hasURL
-        guard copyButton.isHidden == shown else { return }
-        copyButton.isHidden = !shown
-        // The environment badge makes room for the button rather than sliding under it.
+    private func refreshButtons() {
+        let shown = showsButtons && hasURL
+        guard buttons.isHidden == shown else { return }
+        buttons.isHidden = !shown
+        // The environment badge makes room for the buttons rather than sliding under them.
         environmentToEdge.isActive = !shown
         environmentToButton.isActive = shown
     }
 
     @objc private func copyClicked() { onCopy?() }
+    @objc private func siteControlsClicked() { onSiteControls?(siteControlsButton) }
 
     /// Developers jump between environments all day: name the one this page is on.
     static func environment(of url: URL) -> String? {

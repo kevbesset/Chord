@@ -243,6 +243,10 @@ final class EdgeHoverView: NSView {
 /// Dims what is behind a modal overlay. A click dismisses it.
 final class ScrimView: NSView {
     var onClick: (() -> Void)?
+    /// Darkens what is behind; when false it only catches the clicks outside.
+    var dims = true {
+        didSet { needsDisplay = true }
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -255,7 +259,7 @@ final class ScrimView: NSView {
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func updateLayer() {
-        layer?.backgroundColor = NSColor.black.withAlphaComponent(isDarkAppearance ? 0.35 : 0.14).cgColor
+        layer?.backgroundColor = dims ? NSColor.black.withAlphaComponent(isDarkAppearance ? 0.35 : 0.14).cgColor : NSColor.clear.cgColor
     }
 
     override func viewDidChangeEffectiveAppearance() {

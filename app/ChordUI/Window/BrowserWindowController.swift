@@ -27,6 +27,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private let pageArea = PageAreaView()
     private let edgeHover = EdgeHoverView()
     private lazy var commandBar = CommandBarController(state: state, settings: settings)
+    private let siteControls = SiteControlsController()
+    private var siteControlsTabID: UUID?
     private let toast = ToastView()
     /// True while a swipe hands its Space to the state, which needs no slide of its own.
     private var isEndingSwipe = false
@@ -323,7 +325,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard sidebarMode == .floating else { return }
         pendingHide?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.sidebarMode == .floating, !self.commandBar.isVisible else { return }
+            guard let self, self.sidebarMode == .floating, !self.commandBar.isVisible, !self.siteControls.isVisible else { return }
             self.setSidebarMode(.hidden, animated: true)
         }
         pendingHide = work
@@ -427,6 +429,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         // Only the key window's page is the engine's active one.
         if window?.isKeyWindow == true { selected?.page?.didBecomeActive?() }
         updatePictureInPicture(showing: tabs.compactMap(\.page))
+        // The site controls belong to the page they were opened on.
+        if siteControls.isVisible, siteControlsTabID != selected?.id { siteControls.dismiss() }
     }
 
     /// Like Arc: a video playing in a page that leaves the screen carries on in a
@@ -469,6 +473,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case .address: openLocation(nil)
         case .split: toggleSplitView(nil)
         case .copyURL: copyURL(nil)
+        case .siteControls(let anchor): showSiteControls(from: anchor)
         case .closePane(let tab): state.removeFromSplit(tab)
         case .activate(let tab): sidebarSelect(tab)
         }
@@ -491,10 +496,20 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     // MARK: - Command bar
 
-    private func presentCommandBar(mode: CommandBarController.Mode, text: String) {
+    private func presentCommandBar(mode: CommandBarController.Mode, text: String, anchoredTo anchor: NSView? = nil) {
         pendingHide?.cancel()
         if peek.isVisible { peek.dismiss() }
-        commandBar.present(in: rootView, centeredOn: pageArea, mode: mode, text: text, accent: state.activeSpace.accent)
+        commandBar.present(in: rootView, centeredOn: pageArea, anchoredTo: anchor, mode: mode, text: text, accent: state.activeSpace.accent)
+    }
+
+    /// The address field on screen, if there is one: the top bar's, or the sidebar's
+    /// while the sidebar shows.
+    private var visibleAddressField: NSView? {
+        let toolbarAddress = pageArea.toolbar.addressAnchor
+        if settings.addressBarOnTop {
+            return toolbarAddress.window != nil && !toolbarAddress.isHiddenOrHasHiddenAncestor ? toolbarAddress : nil
+        }
+        return sidebarMode == .hidden ? nil : sidebar.addressAnchor
     }
 
     private func commandActions() -> [CommandItem] {
@@ -522,6 +537,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         actions += [
             CommandItem(section: "Actions", title: "Rouvrir l'onglet fermé", symbol: "arrow.uturn.backward", shortcut: "⇧⌘T",
                         action: .run { [weak self] in self?.reopenClosedTab(nil) }),
+            CommandItem(section: "Actions", title: "Réglages du navigateur", subtitle: "chord://settings", symbol: "gearshape",
+                        action: .run { [weak self] in self?.openInternalPage("settings") }),
+            CommandItem(section: "Actions", title: "Extensions", subtitle: "chord://extensions", symbol: "puzzlepiece.extension",
+                        action: .run { [weak self] in self?.openInternalPage("extensions") }),
             CommandItem(section: "Actions", title: "Nouveau dossier", symbol: "folder.badge.plus",
                         action: .run { [weak self] in self?.newFolder(nil) }),
             CommandItem(section: "Actions", title: "Nouveau Space", symbol: "square.stack",
@@ -691,13 +710,17 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         openLittleWindow(url: nil)
     }
 
+    /// ⌘L or a click on the address: like Arc, the compact bar over the address field
+    /// when one is on screen.
     @objc public func openLocation(_ sender: Any?) {
-        presentCommandBar(mode: .currentTab, text: state.selectedTab?.url?.absoluteString ?? "")
+        presentCommandBar(mode: .currentTab, text: state.selectedTab?.url?.editableString ?? "", anchoredTo: visibleAddressField)
     }
 
     @objc public func closeTab(_ sender: Any?) {
         if peek.isVisible {
             peek.dismiss()
+        } else if siteControls.isVisible {
+            siteControls.dismiss()
         } else if commandBar.isVisible {
             commandBar.dismiss()
         } else if let tab = state.selectedTab {
@@ -803,6 +826,25 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     @objc public func copyURL(_ sender: Any?) {
         copy(state.selectedTab?.url)
+    }
+
+    /// One of Chromium's internal pages (chord://settings…), in a new tab.
+    private func openInternalPage(_ path: String) {
+        guard let url = URL(string: "chrome://\(path)") else { return }
+        state.openTab(url: url)
+    }
+
+    /// The selected page's site controls (permissions, quick actions), like Arc's.
+    private func showSiteControls(from anchor: NSView) {
+        guard let tab = state.selectedTab, let page = tab.page, let url = tab.url else { return }
+        pendingHide?.cancel()
+        if commandBar.isVisible { commandBar.dismiss() }
+        siteControls.isGlass = settings.commandBarGlass
+        siteControls.onCopy = { [weak self] in self?.copy(url) }
+        siteControls.onOpen = { [weak self] url in self?.state.openTab(url: url) }
+        siteControls.onDismiss = { [weak self] in self?.focusPage() }
+        siteControlsTabID = tab.id
+        siteControls.present(page: page, url: url, in: rootView, below: anchor)
     }
 
     @objc public func nextSpace(_ sender: Any?) {
@@ -964,6 +1006,7 @@ extension BrowserWindowController: SidebarDelegate {
     func sidebarRemoveFromSplit(_ tab: Tab) { state.removeFromSplit(tab) }
     func sidebarCopyURL(_ tab: Tab) { copy(tab.url) }
     func sidebarCopyAddress() { copyURL(nil) }
+    func sidebarShowSiteControls(from anchor: NSView) { showSiteControls(from: anchor) }
     func sidebarTab(withID id: UUID) -> Tab? { state.tab(withID: id) }
     // Drops and swipes can reach a window that is not the key one: they act with its
     // own selection.

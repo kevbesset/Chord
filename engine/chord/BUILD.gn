@@ -21,6 +21,7 @@ source_set("browser") {
   deps = [
     "//base",
     "//chrome/browser",
+    "//chrome/browser/content_settings:content_settings_factory",
     "//chrome/browser/devtools",
     "//chrome/browser/picture_in_picture",
     "//chrome/browser/profiles:profile",
@@ -34,6 +35,8 @@ source_set("browser") {
     "//chrome/browser/ui/tabs:tab_strip",
     "//chrome/browser/ui/views:bubble_anchor_util_views",
     "//chrome/common",
+    "//components/content_settings/core/browser",
+    "//components/content_settings/core/common",
     "//components/input",
     "//components/os_crypt/common:switches",
     "//components/permissions",

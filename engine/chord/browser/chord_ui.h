@@ -55,6 +55,9 @@
 - (void)enterPictureInPictureIfPlaying;
 - (void)exitPictureInPicture;
 - (void)togglePictureInPicture;
+- (NSString*)permissionState:(NSString*)permission;
+- (void)setPermission:(NSString*)permission state:(NSString*)state;
+- (BOOL)permissionIsSiteSpecific:(NSString*)permission;
 @end
 
 @protocol ChordWebEngine;

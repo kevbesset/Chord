@@ -18,9 +18,9 @@ namespace chord {
 // its Views window to hang from (it crashed without one).
 bool ShowsPermissionPrompts(content::WebContents* web_contents);
 
-// A native sheet on the page's window: the site, what it asks for (camera,
-// notifications, location…), "Autoriser" and "Bloquer". nullptr while the page has
-// no window, which leaves the request unanswered.
+// A small bubble at the top of the page, like Arc's: the site, what it asks for
+// (notifications, location, camera…), "Bloquer" and "Autoriser". nullptr while the
+// page has no window, which leaves the request unanswered.
 std::unique_ptr<permissions::PermissionPrompt> CreatePermissionPrompt(
     content::WebContents* web_contents,
     permissions::PermissionPrompt::Delegate* delegate);

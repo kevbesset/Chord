@@ -67,7 +67,7 @@ et corriger les erreurs avant de rendre la main.
   barre latérale redimensionnable, favoris par profil (comme Arc), épinglés avec dossiers,
   vraies icônes des sites (cache disque, reprises d'Arc à l'import), glisser-déposer des
   onglets et dossiers (ordre, dossiers, épingler, favoris, autre Space, liens d'autres apps), Spaces (couleur, nom, ⌃1…⌃9,
-  glisser deux doigts qui suit les doigts comme Arc), favoris en grille aux rangées pleines, barre de commande, Peek (⇧-clic, liens sortant d'un épinglé),
+  glisser deux doigts qui suit les doigts comme Arc), favoris en grille aux rangées pleines, barre de commande (compacte sur le champ d'adresse au clic ou ⌘L, comme Arc), Peek (⇧-clic, liens sortant d'un épinglé),
   split view (⌃⇧=, 2 à 4 volets), petite fenêtre (⌥⌘N, liens d'autres apps), barre
   d'adresse en haut ou latérale (⇧⌘D, copie de l'URL au survol avec confirmation), mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
   remappables, import de la barre latérale d'Arc, page d'accueil (quand aucun onglet
@@ -86,7 +86,15 @@ et corriger les erreurs avant de rendre la main.
   Chromium (flottante, déplaçable, redimensionnable) quand son onglet quitte l'écran,
   et revient à son retour ; « retour à l'onglet » sélectionne l'onglet dans ChordUI ;
   ⌃⌘P à la main ; réglage « Picture-in-picture automatique ».
-- Demandes de permission des pages : feuille native de Chord (Autoriser / Bloquer).
+- Demandes de permission des pages : petite bulle discrète en haut de la page, comme
+  Arc (Bloquer / Autoriser), qui ne bloque pas la page ; double-clic sur la vidéo PiP
+  ou « retour à l'onglet » : l'onglet revient, Space compris.
+- Réglages du site comme Arc (bouton interrupteurs dans le champ d'adresse, barre
+  latérale ou barre du haut) : carte avec copier, partager, les notifications et les
+  autorisations choisies pour le site (interrupteurs, gardées dans les content settings
+  de Chromium) et un lien vers tous les réglages du site.
+- `chord://` pour les pages internes de Chromium (`chord://settings`,
+  `chord://extensions`, aussi dans la barre de commande).
 - Après un plantage, le lancement suivant écrit un rapport lisible dans
   `~/Library/Logs/Chord/latest-crash.md` (pile du fil fautif, message d'erreur de
   Chromium s'il y en a un, capté par //chord dans `last-fatal.txt`) et le propose.
