@@ -19,17 +19,23 @@
 #include "base/files/scoped_temp_dir.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
+#include "base/json/json_reader.h"
+#include "base/json/json_writer.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
 #include "base/no_destructor.h"
 #include "base/synchronization/lock.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
+#include "base/values.h"
+#include "base/version_info/version_info.h"
 #include "chrome/browser/history/history_service_factory.h"
 #include "chrome/browser/password_manager/factories/profile_password_store_factory.h"
 #include "chrome/browser/profiles/profile.h"
+#include "components/crx_file/crx_verifier.h"
 #include "components/history/core/browser/history_service.h"
 #include "components/history/core/browser/url_row.h"
 #include "components/keyed_service/core/service_access_type.h"
@@ -39,11 +45,18 @@
 #include "components/password_manager/core/browser/password_store/stored_credential.h"
 #include "content/public/browser/storage_partition.h"
 #include "crypto/aes_cbc.h"
+#include "extensions/browser/crx_file_info.h"
+#include "extensions/browser/crx_installer.h"
+#include "extensions/browser/extension_registry.h"
+#include "extensions/common/mojom/manifest.mojom-shared.h"
 #include "crypto/sha2.h"
 #include "net/cookies/canonical_cookie.h"
 #include "net/cookies/cookie_access_result.h"
 #include "net/cookies/cookie_options.h"
 #include "net/cookies/cookie_partition_key.h"
+#include "net/traffic_annotation/network_traffic_annotation.h"
+#include "services/network/public/cpp/resource_request.h"
+#include "services/network/public/cpp/simple_url_loader.h"
 #include "services/network/public/mojom/cookie_manager.mojom.h"
 #include "sql/database.h"
 #include "sql/statement.h"
@@ -55,17 +68,42 @@
 namespace chord {
 namespace {
 
-// Left in a Chord profile's folder after an import: Arc's profile folder, whose
-// site storage joins the profile at the next launch.
+// Left in a Chord profile's folder after an import, as JSON: Arc's profile folder
+// ("arc"), whose site storage joins the profile at the next launch, and the
+// extensions the import installed ("extensions"), whose data comes with it.
 constexpr char kPendingSiteStorage[] = "Chord Arc Site Storage";
+
+// In a Chord profile's folder: the last visit of Arc's history already imported,
+// so that importing again adds only what is newer.
+constexpr char kHistoryImported[] = "Chord Arc History";
 
 // Like Chromium's history, only the last 90 days.
 constexpr base::TimeDelta kHistoryKept = base::Days(90);
+
+constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
+    net::DefineNetworkTrafficAnnotation("chord_arc_extensions", R"(
+      semantics {
+        sender: "Chord Arc import"
+        description:
+          "Downloads from the Chrome Web Store the extensions the user had in "
+          "Arc, to install them in Chord."
+        trigger: "The user imports from Arc."
+        data: "The extension's id and the browser's version."
+        destination: GOOGLE_OWNED_SERVICE
+      }
+      policy {
+        cookies_allowed: NO
+        setting: "None: the user starts the import."
+        policy_exception_justification: "Chord's own import."
+      })");
 
 struct ArcData {
   std::vector<net::CanonicalCookie> cookies;
   std::vector<password_manager::StoredCredential> passwords;
   history::URLRows pages;
+  base::Time newest_page;
+  // Ids of Arc's extensions from the Chrome Web Store: the same in every browser.
+  std::vector<std::string> extensions;
   bool site_storage = false;
   bool key_denied = false;
 };
@@ -283,18 +321,29 @@ void ReadPasswords(const base::FilePath& arc_profile,
 }
 
 void ReadHistory(const base::FilePath& arc_profile,
+                 const base::FilePath& chord_profile,
                  const base::ScopedTempDir& temp,
                  ArcData& data) {
   sql::Database db(sql::DatabaseOptions(), "FirefoxImporter");
   if (!OpenCopy(arc_profile.Append("History"), temp, db)) {
     return;
   }
+  // Newer than the last import, within Chromium's 90 days.
+  int64_t since = (base::Time::Now() - kHistoryKept)
+                      .ToDeltaSinceWindowsEpoch()
+                      .InMicroseconds();
+  std::string imported;
+  int64_t last_import = 0;
+  if (base::ReadFileToString(chord_profile.Append(kHistoryImported),
+                             &imported) &&
+      base::StringToInt64(base::TrimWhitespaceASCII(imported, base::TRIM_ALL),
+                          &last_import)) {
+    since = std::max(since, last_import);
+  }
   sql::Statement statement(db.GetUniqueStatement(
       "SELECT url, title, visit_count, typed_count, last_visit_time, hidden "
       "FROM urls WHERE last_visit_time > ?"));
-  statement.BindInt64(0, (base::Time::Now() - kHistoryKept)
-                             .ToDeltaSinceWindowsEpoch()
-                             .InMicroseconds());
+  statement.BindInt64(0, since);
   while (statement.Step()) {
     GURL url(statement.ColumnString(0));
     if (!url.is_valid() || !url.SchemeIsHTTPOrHTTPS()) {
@@ -306,12 +355,43 @@ void ReadHistory(const base::FilePath& arc_profile,
     row.set_typed_count(statement.ColumnInt(3));
     row.set_last_visit(FromChromiumTime(statement.ColumnInt64(4)));
     row.set_hidden(statement.ColumnBool(5));
+    data.newest_page = std::max(data.newest_page, row.last_visit());
     data.pages.push_back(std::move(row));
   }
 }
 
+// Arc's extensions installed from the Chrome Web Store (Arc's own and Chromium's
+// built-in ones stay behind), from its preferences.
+void ReadExtensions(const base::FilePath& arc_profile, ArcData& data) {
+  for (const char* file : {"Secure Preferences", "Preferences"}) {
+    std::string json;
+    if (!base::ReadFileToString(arc_profile.Append(file), &json)) {
+      continue;
+    }
+    std::optional<base::DictValue> preferences =
+        base::JSONReader::ReadDict(json, base::JSON_PARSE_RFC);
+    const base::DictValue* settings =
+        preferences ? preferences->FindDictByDottedPath("extensions.settings")
+                    : nullptr;
+    if (!settings) {
+      continue;
+    }
+    for (const auto [id, value] : *settings) {
+      const base::DictValue* extension = value.GetIfDict();
+      if (!extension || extension->FindBool("from_webstore") != true ||
+          extension->FindInt("location") !=
+              static_cast<int>(extensions::mojom::ManifestLocation::kInternal) ||
+          std::ranges::find(data.extensions, id) != data.extensions.end()) {
+        continue;
+      }
+      data.extensions.push_back(id);
+    }
+  }
+}
+
 // Blocking: on a pool thread.
-std::unique_ptr<ArcData> ReadArcProfile(const base::FilePath& arc_profile) {
+std::unique_ptr<ArcData> ReadArcProfile(const base::FilePath& arc_profile,
+                                        const base::FilePath& chord_profile) {
   auto data = std::make_unique<ArcData>();
   base::ScopedTempDir temp;
   if (!temp.CreateUniqueTempDir()) {
@@ -324,7 +404,8 @@ std::unique_ptr<ArcData> ReadArcProfile(const base::FilePath& arc_profile) {
   } else {
     data->key_denied = true;
   }
-  ReadHistory(arc_profile, temp, *data);
+  ReadHistory(arc_profile, chord_profile, temp, *data);
+  ReadExtensions(arc_profile, *data);
   data->site_storage =
       base::PathExists(arc_profile.Append("Local Storage")) ||
       base::PathExists(arc_profile.Append("IndexedDB"));
@@ -444,6 +525,78 @@ void AddNewCookies(network::mojom::CookieManager* cookie_manager,
       base::Unretained(cookie_manager), std::move(cookies), std::move(done)));
 }
 
+// One extension from the Chrome Web Store, its CRX checked as Chrome checks it
+// (the store's signature, the expected id). Silent: the user had accepted it and its
+// permissions in Arc. Chromium's own store download is off in ungoogled-chromium,
+// hence the download here. Deletes itself when done.
+class StoreExtensionInstaller {
+ public:
+  static void Install(Profile* profile,
+                      std::string id,
+                      base::OnceCallback<void(bool)> done) {
+    new StoreExtensionInstaller(profile, std::move(id), std::move(done));
+  }
+
+ private:
+  StoreExtensionInstaller(Profile* profile,
+                          std::string id,
+                          base::OnceCallback<void(bool)> done)
+      : profile_(profile->GetWeakPtr()),
+        id_(std::move(id)),
+        done_(std::move(done)) {
+    auto request = std::make_unique<network::ResourceRequest>();
+    request->url = GURL(
+        "https://clients2.google.com/service/update2/crx?response=redirect"
+        "&acceptformat=crx3&prodversion=" +
+        std::string(version_info::GetVersionNumber()) + "&x=id%3D" + id_ +
+        "%26installsource%3Dondemand%26uc");
+    request->credentials_mode = network::mojom::CredentialsMode::kOmit;
+    loader_ = network::SimpleURLLoader::Create(std::move(request),
+                                               kTrafficAnnotation);
+    loader_->DownloadToTempFile(
+        profile->GetDefaultStoragePartition()
+            ->GetURLLoaderFactoryForBrowserProcess()
+            .get(),
+        base::BindOnce(&StoreExtensionInstaller::Downloaded,
+                       base::Unretained(this)));
+  }
+
+  void Downloaded(base::FilePath crx) {
+    Profile* profile = profile_.get();
+    if (crx.empty() || !profile) {
+      Finish(false);
+      return;
+    }
+    scoped_refptr<extensions::CrxInstaller> installer =
+        extensions::CrxInstaller::CreateSilent(profile);
+    installer->set_expected_id(id_);
+    installer->set_is_gallery_install(true);
+    installer->set_install_source(
+        extensions::mojom::ManifestLocation::kInternal);
+    installer->set_allow_silent_install(true);
+    installer->set_grant_permissions(true);
+    installer->set_delete_source(true);
+    installer->AddInstallerCallback(base::BindOnce(
+        [](StoreExtensionInstaller* self,
+           const std::optional<extensions::CrxInstallError>& error) {
+          self->Finish(!error.has_value());
+        },
+        base::Unretained(this)));
+    installer->InstallCrxFile(extensions::CRXFileInfo(
+        crx, crx_file::VerifierFormat::CRX3_WITH_PUBLISHER_PROOF));
+  }
+
+  void Finish(bool installed) {
+    std::move(done_).Run(installed);
+    delete this;
+  }
+
+  base::WeakPtr<Profile> profile_;
+  const std::string id_;
+  base::OnceCallback<void(bool)> done_;
+  std::unique_ptr<network::SimpleURLLoader> loader_;
+};
+
 void ApplyArcData(base::WeakPtr<Profile> weak_profile,
                   base::FilePath arc_profile,
                   base::OnceCallback<void(ArcImportCounts)> done,
@@ -461,28 +614,85 @@ void ApplyArcData(base::WeakPtr<Profile> weak_profile,
       history && !data->pages.empty()) {
     counts->data.pages = data->pages.size();
     history->AddPagesWithDetails(data->pages, history::SOURCE_BROWSED);
-  }
-
-  if (data->site_storage) {
-    counts->data.site_storage = true;
     base::ThreadPool::PostTask(
         FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
         base::BindOnce(
-            [](base::FilePath marker, std::string arc_profile) {
-              base::WriteFile(marker, arc_profile);
+            [](base::FilePath file, int64_t newest) {
+              base::WriteFile(file, base::NumberToString(newest));
             },
-            profile->GetPath().Append(kPendingSiteStorage),
-            arc_profile.value()));
+            profile->GetPath().Append(kHistoryImported),
+            data->newest_page.ToDeltaSinceWindowsEpoch().InMicroseconds()));
   }
 
-  // Passwords and cookies are added once the profile's own are known.
+  counts->data.site_storage = data->site_storage;
+
+  // Passwords and cookies are added once the profile's own are known; extensions
+  // once downloaded. Then the site storage and the new extensions' data wait for
+  // the next launch.
+  auto installed =
+      base::MakeRefCounted<base::RefCountedData<std::vector<std::string>>>();
   base::RepeatingClosure finished = base::BarrierClosure(
-      2, base::BindOnce(
-             [](scoped_refptr<base::RefCountedData<ArcImportCounts>> counts,
-                base::OnceCallback<void(ArcImportCounts)> done) {
-               std::move(done).Run(counts->data);
-             },
-             counts, std::move(done)));
+      3,
+      base::BindOnce(
+          [](scoped_refptr<base::RefCountedData<ArcImportCounts>> counts,
+             scoped_refptr<base::RefCountedData<std::vector<std::string>>>
+                 installed,
+             base::FilePath marker, base::FilePath arc_profile,
+             base::OnceCallback<void(ArcImportCounts)> done) {
+            counts->data.extensions = installed->data.size();
+            if (counts->data.site_storage || !installed->data.empty()) {
+              base::ListValue extensions;
+              for (const std::string& id : installed->data) {
+                extensions.Append(id);
+              }
+              std::optional<std::string> json =
+                  base::WriteJson(base::DictValue()
+                                      .Set("arc", arc_profile.value())
+                                      .Set("extensions", std::move(extensions)));
+              base::ThreadPool::PostTask(
+                  FROM_HERE,
+                  {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
+                  base::BindOnce(
+                      [](base::FilePath marker, std::string json) {
+                        base::WriteFile(marker, json);
+                      },
+                      marker, json.value_or("")));
+            }
+            std::move(done).Run(counts->data);
+          },
+          counts, installed, profile->GetPath().Append(kPendingSiteStorage),
+          arc_profile, std::move(done)));
+
+  // The extensions this profile does not have yet.
+  std::vector<std::string> missing;
+  extensions::ExtensionRegistry* registry =
+      extensions::ExtensionRegistry::Get(profile);
+  for (const std::string& id : data->extensions) {
+    if (!registry->GetInstalledExtension(id)) {
+      missing.push_back(id);
+    }
+  }
+  if (missing.empty()) {
+    finished.Run();
+  } else {
+    base::RepeatingClosure all_installed =
+        base::BarrierClosure(missing.size(), finished);
+    for (const std::string& id : missing) {
+      StoreExtensionInstaller::Install(
+          profile, id,
+          base::BindOnce(
+              [](scoped_refptr<
+                     base::RefCountedData<std::vector<std::string>>> installed,
+                 std::string id, base::RepeatingClosure all_installed,
+                 bool ok) {
+                if (ok) {
+                  installed->data.push_back(id);
+                }
+                all_installed.Run();
+              },
+              installed, id, all_installed));
+    }
+  }
 
   scoped_refptr<password_manager::PasswordStoreInterface> store =
       ProfilePasswordStoreFactory::GetForProfile(
@@ -519,10 +729,11 @@ void ApplyArcData(base::WeakPtr<Profile> weak_profile,
   }
 }
 
-// Arc's Local Storage keys that this profile does not have yet (pages of web sites
-// only: extensions have their own ids in each browser).
+// Arc's Local Storage keys that this profile does not have yet, for web sites; for
+// the extensions the import just installed, Arc's keys replace theirs.
 void MergeLocalStorage(const base::FilePath& arc_leveldb,
-                       const base::FilePath& chord_leveldb) {
+                       const base::FilePath& chord_leveldb,
+                       const std::set<std::string>& new_extensions) {
   base::ScopedTempDir temp;
   if (!base::PathExists(arc_leveldb) || !temp.CreateUniqueTempDir()) {
     return;
@@ -553,7 +764,14 @@ void MergeLocalStorage(const base::FilePath& arc_leveldb,
   std::string existing;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     std::string key = it->key().ToString();
-    if (key.find("chrome-extension://") != std::string::npos) {
+    static constexpr char kExtensionScheme[] = "chrome-extension://";
+    size_t extension = key.find(kExtensionScheme);
+    if (extension != std::string::npos) {
+      std::string id =
+          key.substr(extension + sizeof(kExtensionScheme) - 1, 32);
+      if (new_extensions.contains(id)) {
+        batch.Put(it->key(), it->value());
+      }
       continue;
     }
     if (to->Get({}, it->key(), &existing).IsNotFound()) {
@@ -583,6 +801,43 @@ void MergeIndexedDB(const base::FilePath& arc_indexed_db,
   }
 }
 
+// What an extension the import just installed kept in Arc (Bitwarden keeps its
+// session there) replaces the little it wrote since in Chord.
+void ReplaceExtensionData(const base::FilePath& arc,
+                          const base::FilePath& profile,
+                          const std::string& id) {
+  for (const char* folder :
+       {"Local Extension Settings", "Sync Extension Settings"}) {
+    base::FilePath from = arc.Append(folder).Append(id);
+    if (!base::PathExists(from)) {
+      continue;
+    }
+    base::FilePath to = profile.Append(folder).Append(id);
+    base::DeletePathRecursively(to);
+    base::CreateDirectory(to.DirName());
+    if (base::CopyDirectory(from, to, /*recursive=*/true)) {
+      base::DeleteFile(to.Append("LOCK"));
+    }
+  }
+  base::FilePath arc_indexed_db = arc.Append("IndexedDB");
+  if (!base::PathExists(arc_indexed_db)) {
+    return;
+  }
+  base::CreateDirectory(profile.Append("IndexedDB"));
+  base::FileEnumerator databases(arc_indexed_db, /*recursive=*/false,
+                                 base::FileEnumerator::DIRECTORIES);
+  for (base::FilePath from = databases.Next(); !from.empty();
+       from = databases.Next()) {
+    std::string name = from.BaseName().value();
+    if (!base::StartsWith(name, "chrome-extension_" + id + "_")) {
+      continue;
+    }
+    base::FilePath to = profile.Append("IndexedDB").Append(name);
+    base::DeletePathRecursively(to);
+    base::CopyDirectory(from, to, /*recursive=*/true);
+  }
+}
+
 }  // namespace
 
 void ImportArcProfile(Profile* profile,
@@ -590,7 +845,7 @@ void ImportArcProfile(Profile* profile,
                       base::OnceCallback<void(ArcImportCounts)> done) {
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
-      base::BindOnce(&ReadArcProfile, arc_profile),
+      base::BindOnce(&ReadArcProfile, arc_profile, profile->GetPath()),
       base::BindOnce(&ApplyArcData, profile->GetWeakPtr(), arc_profile,
                      std::move(done)));
 }
@@ -601,15 +856,32 @@ void MergePendingArcSiteStorage(const base::FilePath& user_data_dir) {
   for (base::FilePath profile = profiles.Next(); !profile.empty();
        profile = profiles.Next()) {
     base::FilePath marker = profile.Append(kPendingSiteStorage);
-    std::string arc_profile;
-    if (!base::ReadFileToString(marker, &arc_profile)) {
+    std::string contents;
+    if (!base::ReadFileToString(marker, &contents)) {
       continue;
     }
     base::DeleteFile(marker);
-    base::FilePath arc(arc_profile);
+    // JSON, or, from the first version, Arc's folder alone.
+    std::optional<base::DictValue> pending =
+        base::JSONReader::ReadDict(contents, base::JSON_PARSE_RFC);
+    const std::string* arc_profile = pending ? pending->FindString("arc") : nullptr;
+    base::FilePath arc(arc_profile ? *arc_profile : contents);
+    std::set<std::string> new_extensions;
+    if (const base::ListValue* ids =
+            pending ? pending->FindList("extensions") : nullptr) {
+      for (const base::Value& id : *ids) {
+        if (id.is_string()) {
+          new_extensions.insert(id.GetString());
+        }
+      }
+    }
     MergeLocalStorage(arc.Append("Local Storage").Append("leveldb"),
-                      profile.Append("Local Storage").Append("leveldb"));
+                      profile.Append("Local Storage").Append("leveldb"),
+                      new_extensions);
     MergeIndexedDB(arc.Append("IndexedDB"), profile.Append("IndexedDB"));
+    for (const std::string& id : new_extensions) {
+      ReplaceExtensionData(arc, profile, id);
+    }
   }
 }
 

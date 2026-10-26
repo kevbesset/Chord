@@ -1008,6 +1008,7 @@ void DeleteProfileAt(const base::FilePath& path) {
             @"cookies" : @(counts.cookies),
             @"passwords" : @(counts.passwords),
             @"pages" : @(counts.pages),
+            @"extensions" : @(counts.extensions),
             @"siteStorage" : @(counts.site_storage),
             @"keyDenied" : @(counts.key_denied),
           });

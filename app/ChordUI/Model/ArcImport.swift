@@ -228,6 +228,7 @@ extension BrowserState {
         public var cookies = 0
         public var passwords = 0
         public var pages = 0
+        public var extensions = 0
         public var profiles = 0
         /// Some site storage joins at the next launch.
         public var siteStorage = false
@@ -257,6 +258,7 @@ extension BrowserState {
                     total.cookies += counts["cookies"] ?? 0
                     total.passwords += counts["passwords"] ?? 0
                     total.pages += counts["pages"] ?? 0
+                    total.extensions += counts["extensions"] ?? 0
                     total.siteStorage = total.siteStorage || counts["siteStorage"] == 1
                     total.keyDenied = total.keyDenied || counts["keyDenied"] == 1
                     group.leave()

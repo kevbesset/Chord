@@ -1010,10 +1010,13 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             alert.alertStyle = .warning
             lines.append("macOS n'a pas donné accès à la clé d'Arc : les connexions et les mots de passe sont restés dans Arc. \(data.pages) pages d'historique reprises.")
         } else {
-            lines.append("\(data.cookies) cookies de connexion, \(data.passwords) mots de passe et \(data.pages) pages d'historique repris, chacun dans le profil de ses Spaces.")
+            lines.append("\(data.cookies) cookies de connexion, \(data.passwords) mots de passe et \(data.pages) pages d'historique repris, chacun dans le profil de ses Spaces. Ce qui était déjà dans Chord est gardé.")
         }
-        if data.siteStorage, !data.keyDenied || data.pages > 0 {
-            lines.append("Les données des sites (applications web) arrivent au prochain lancement de Chord.")
+        if data.extensions > 0 {
+            lines.append(data.extensions == 1 ? "1 extension installée depuis le Chrome Web Store." : "\(data.extensions) extensions installées depuis le Chrome Web Store.")
+        }
+        if data.siteStorage || data.extensions > 0 {
+            lines.append("Les données des sites et des extensions arrivent au prochain lancement de Chord.")
         }
         alert.informativeText = lines.joined(separator: "\n\n")
         alert.beginSheetModal(for: window)
