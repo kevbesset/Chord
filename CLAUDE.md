@@ -64,7 +64,9 @@ et corriger les erreurs avant de rendre la main.
 
 - Interface native complète (ChordUI), sur Chromium : fenêtre en
   verre translucide (aussi inactive), déplaçable depuis tout le vide de la barre latérale,
-  barre latérale redimensionnable, favoris par profil (comme Arc), épinglés avec dossiers,
+  barre latérale redimensionnable, profils comme Arc (chaque profil est un vrai profil
+  Chromium : session, cookies, extensions et favoris à part ; un nouveau Space a le sien),
+  épinglés avec dossiers,
   vraies icônes des sites (cache disque, reprises d'Arc à l'import), glisser-déposer des
   onglets et dossiers (ordre, dossiers, épingler, favoris, autre Space, liens d'autres apps), Spaces (couleur, nom, ⌃1…⌃9,
   glisser deux doigts qui suit les doigts comme Arc), favoris en grille aux rangées pleines, barre de commande (compacte sur le champ d'adresse au clic ou ⌘L, comme Arc), Peek (⇧-clic, liens sortant d'un épinglé),
@@ -101,5 +103,5 @@ et corriger les erreurs avant de rendre la main.
 - Pas encore côté Chromium : icône de Chord (l'app s'appelle Chord, icône de Chromium),
   Peek au ⇧-clic, téléchargements dans le panneau de Chord,
   plein écran vidéo dans l'interface, recherche dans la page, import de l'historique /
-  mots de passe / cookies, vrais profils isolés.
+  mots de passe / cookies.
 - Licence : pas encore choisie, à trancher avant le premier contributeur externe.

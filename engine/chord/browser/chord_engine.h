@@ -19,7 +19,7 @@ class WebContents;
 
 @interface ChordEngine : NSObject <ChordWebEngine>
 
-- (instancetype)initWithProfile:(Profile*)profile NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithProfile:(Profile*)profile;
 - (instancetype)init NS_UNAVAILABLE;
 
 @end
@@ -38,6 +38,11 @@ void WatchBrowser(BrowserWindowInterface* browser);
 // to tab", a window brought forward), whatever Space it is in.
 void ShowPage(content::WebContents* contents);
 void UnwatchBrowser(BrowserWindowInterface* browser);
+
+// Hands a permission request of `contents` to ChordUI, through the engine of its
+// profile. Returns false when ChordUI does not know the page.
+bool RequestPermission(content::WebContents* contents,
+                       id<ChordPermissionRequest> request);
 
 }  // namespace chord
 

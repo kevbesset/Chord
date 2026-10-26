@@ -21,6 +21,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     private lazy var backButton = IconButton(symbol: "arrow.left", label: "Page précédente (⌘[)", target: self, action: #selector(goBack(_:)), size: 26, pointSize: 13)
     private let spaces: () -> [Space]
     private(set) var targetSpace: Space
+    private let permissionPrompt = PermissionPromptController()
 
     /// `space` is where "Ouvrir dans" sends the page until another one is picked;
     /// `spaces` lists the choices when the picker opens.
@@ -68,6 +69,14 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    func shows(_ page: ChordWebPage) -> Bool { self.page === page }
+
+    /// A site's question, from the top of the page.
+    func presentPermission(_ request: ChordPermissionRequest) {
+        guard let page, page.view.window != nil else { return }
+        permissionPrompt.present(request, for: page, from: page.view, rect: PermissionPromptController.pageTop(of: page.view))
+    }
 
     func focusAddress() {
         window?.makeFirstResponder(addressField)
@@ -237,7 +246,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
         if let root = window?.contentView {
-            toast.show("URL copiée", symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
+            toast.show("URL copiée", detail: url.displayHost, symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
         }
     }
 

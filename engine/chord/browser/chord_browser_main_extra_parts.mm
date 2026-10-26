@@ -28,6 +28,7 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/common/chrome_constants.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_service.h"
@@ -133,7 +134,11 @@ void StartChordUI() {
   if (g_started || !LoadChordUI()) {
     return;
   }
-  Profile* profile = ProfileManager::GetLastUsedProfileAllowedByPolicy();
+  // ChordUI's default profile is always Chromium's first one: the last used profile
+  // changes as soon as a page of another of ChordUI's profiles is active.
+  ProfileManager* profiles = g_browser_process->profile_manager();
+  Profile* profile = profiles->GetProfile(
+      profiles->user_data_dir().Append(chrome::kInitialProfile));
   if (!profile) {
     LOG(ERROR) << "Chord: no profile to start with";
     return;

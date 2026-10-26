@@ -6,6 +6,9 @@ final class IconButton: NSButton {
     private let pointSize: CGFloat
     private var stopShown = false
     private var isHovered = false
+    private var confirmationWork: DispatchWorkItem?
+    private var restingImage: NSImage?
+    private var restingTint: NSColor?
 
     init(symbol: String, label: String, target: AnyObject?, action: Selector?, size: CGFloat = 26, pointSize: CGFloat = 13) {
         self.pointSize = pointSize
@@ -72,6 +75,51 @@ final class IconButton: NSButton {
         layer?.backgroundColor = color.cgColor
     }
 
+    /// Confirms an action on the button itself (an address copied): its icon becomes a
+    /// check for a moment, with a small bounce, then comes back.
+    func flashConfirmation(tint: NSColor = .controlAccentColor) {
+        if confirmationWork == nil {
+            restingImage = image
+            restingTint = contentTintColor
+        }
+        confirmationWork?.cancel()
+        crossfade(to: Theme.symbol("checkmark", size: pointSize, weight: .semibold), tint: tint)
+        bounce()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.confirmationWork = nil
+            self.crossfade(to: self.restingImage, tint: self.restingTint)
+        }
+        confirmationWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4, execute: work)
+    }
+
+    private func crossfade(to newImage: NSImage?, tint: NSColor?) {
+        let fade = CATransition()
+        fade.type = .fade
+        fade.duration = 0.15
+        layer?.add(fade, forKey: "confirmation")
+        image = newImage
+        contentTintColor = tint
+    }
+
+    /// From a little smaller back to full size, on a spring, around the centre.
+    private func bounce() {
+        guard let layer else { return }
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        var shrunk = CATransform3DMakeTranslation(center.x, center.y, 0)
+        shrunk = CATransform3DScale(shrunk, 0.78, 0.78, 1)
+        shrunk = CATransform3DTranslate(shrunk, -center.x, -center.y, 0)
+        let spring = CASpringAnimation(keyPath: "transform")
+        spring.fromValue = shrunk
+        spring.toValue = CATransform3DIdentity
+        spring.mass = 1
+        spring.stiffness = 320
+        spring.damping = 14
+        spring.duration = spring.settlingDuration
+        layer.add(spring, forKey: "bounce")
+    }
+
     /// Turns a reload button into a stop button while the page loads, and back.
     func showsStop(_ stop: Bool) {
         guard stop != stopShown else { return }
@@ -122,6 +170,11 @@ final class FaviconTileView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     func configure(url: URL?, fallback: String) {
+        if let builtIn = url?.builtInPageSymbol {
+            currentKey = nil
+            showSymbol(builtIn.name, tint: builtIn.isBrowserPage ? .systemBlue : .secondaryLabelColor)
+            return
+        }
         var key = url?.host ?? fallback
         if key.hasPrefix("www.") { key.removeFirst(4) }
         letter.stringValue = key.first.map { String($0).uppercased() } ?? "·"
@@ -136,7 +189,19 @@ final class FaviconTileView: NSView {
         show(icon, tileColor: tileColor)
     }
 
+    /// A browser page's symbol, drawn like an icon: no tile behind it.
+    private func showSymbol(_ name: String, tint: NSColor) {
+        imageView.image = Theme.symbol(name, size: (size * 0.82).rounded(), weight: .semibold)
+        imageView.contentTintColor = tint
+        imageView.imageScaling = .scaleProportionallyDown
+        imageView.isHidden = false
+        letter.isHidden = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
     private func show(_ image: NSImage?, tileColor: NSColor) {
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.contentTintColor = nil
         imageView.image = image
         imageView.isHidden = image == nil
         letter.isHidden = image != nil
@@ -154,6 +219,9 @@ final class ShadowHostView: NSView {
     private var opacity: Float = 0.08
     private var radius: CGFloat = 3
     private var offsetY: CGFloat = -1
+    /// A second, wide and soft shadow under the first, for views that float high
+    /// above the window (the command bar), as Arc's do.
+    private var ambient: CALayer?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -171,17 +239,37 @@ final class ShadowHostView: NSView {
         applyShadow()
     }
 
+    func configureAmbientShadow(opacity: Float, radius: CGFloat, offsetY: CGFloat) {
+        let ambient = self.ambient ?? CALayer()
+        if self.ambient == nil {
+            layer?.insertSublayer(ambient, at: 0)
+            self.ambient = ambient
+        }
+        ambient.shadowColor = NSColor.black.cgColor
+        ambient.shadowOpacity = opacity
+        ambient.shadowRadius = radius
+        ambient.shadowOffset = CGSize(width: 0, height: offsetY)
+        needsLayout = true
+    }
+
     private func applyShadow() {
         layer?.shadowColor = NSColor.black.cgColor
         layer?.shadowOpacity = showsShadow ? opacity : 0
         layer?.shadowRadius = radius
         layer?.shadowOffset = CGSize(width: 0, height: offsetY)
+        ambient?.isHidden = !showsShadow
     }
 
     override func layout() {
         super.layout()
         let r = min(cornerRadius, bounds.width / 2, bounds.height / 2)
-        layer?.shadowPath = CGPath(roundedRect: bounds, cornerWidth: r, cornerHeight: r, transform: nil)
+        let path = CGPath(roundedRect: bounds, cornerWidth: r, cornerHeight: r, transform: nil)
+        layer?.shadowPath = path
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        ambient?.frame = bounds
+        ambient?.shadowPath = path
+        CATransaction.commit()
     }
 }
 

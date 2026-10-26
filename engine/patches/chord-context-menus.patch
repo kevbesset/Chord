@@ -1,0 +1,47 @@
+Chord: right click on a page shows its menu in Chord's windows, which have no Views widget.
+--- a/chrome/browser/ui/cocoa/renderer_context_menu/render_view_context_menu_mac_cocoa.mm
++++ b/chrome/browser/ui/cocoa/renderer_context_menu/render_view_context_menu_mac_cocoa.mm
+@@ -13,6 +13,8 @@
+ #import "base/message_loop/message_pump_apple.h"
+ #include "base/strings/sys_string_conversions.h"
+ #include "base/task/current_thread.h"
++#include "chord/browser/chord_context_menu.h"  // nogncheck
++#include "chord/browser/chord_hooks.h"  // nogncheck
+ #include "chrome/browser/headless/headless_mode_util.h"
+ #import "components/remote_cocoa/app_shim/menu_controller_cocoa_delegate_impl.h"
+ #include "content/public/browser/web_contents.h"
+@@ -78,12 +79,22 @@
+   views::Widget* widget = views::Widget::GetTopLevelWidgetForNativeView(
+       source_web_contents_->GetNativeView());
+ 
+-  if (!widget || headless::IsHeadlessMode()) {
++  if (headless::IsHeadlessMode()) {
+     return;
+   }
+ 
++  // Chord's windows have no Views widget: Chord prepares the menu instead.
++  remote_cocoa::mojom::MenuControllerParamsPtr menu_params;
++  if (widget) {
++    menu_params = MenuControllerParamsForWidget(widget);
++  } else if (chord::IsEnabled()) {
++    menu_params = chord::PrepareContextMenu(&menu_model_);
++  } else {
++    return;
++  }
++
+   menu_controller_delegate_ = [[MenuControllerCocoaDelegateImpl alloc]
+-      initWithParams:MenuControllerParamsForWidget(widget)];
++      initWithParams:std::move(menu_params)];
+   menu_controller_ =
+       [[MenuControllerCocoa alloc] initWithModel:&menu_model_
+                                    isContextMenu:YES
+@@ -97,7 +108,8 @@
+ 
+   ui::ShowContextMenu(menu_controller_.menu, clickEvent, parent_view_,
+                       /*allow_nested_tasks=*/true,
+-                      views::ElementTrackerViews::GetContextForWidget(widget));
++                      widget ? views::ElementTrackerViews::GetContextForWidget(widget)
++                             : ui::ElementContext());
+ }
+ 
+ void RenderViewContextMenuMacCocoa::CancelToolkitMenu() {

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-120 -120 240 240" fill="none" stroke-linecap="round">
+  <!-- Chord's mark on dark backgrounds: a white arc, a lighter chord. -->
+  <path d="M70.7,-70.7 A100,100 0 1 0 70.7,70.7" stroke="#FFFFFF" stroke-width="30"/>
+  <path d="M70.7,70.7 L70.7,-70.7" stroke="#8FA0FF" stroke-width="30"/>
+</svg>

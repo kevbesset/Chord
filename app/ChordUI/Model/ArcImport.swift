@@ -123,10 +123,11 @@ public enum ArcImport {
 
     /// Arc's profile reference → a Chord profile id and Arc's profile directory.
     /// `{"default": true}` is "Default"; `{"custom": {"_0": {"directoryBasename": "Profile 1"}}}`.
+    /// Arc's default profile is Chord's default one.
     private static func profile(_ value: Any?) -> (id: String, directory: String) {
         let directory = ((value as? [String: Any])?["custom"] as? [String: Any])
             .flatMap { ($0["_0"] as? [String: Any])?["directoryBasename"] as? String } ?? "Default"
-        return ("arc:\(directory)", directory)
+        return (directory == "Default" ? Space.defaultProfile : "arc:\(directory)", directory)
     }
 
     /// `[id, object, id, object…]` → the objects.

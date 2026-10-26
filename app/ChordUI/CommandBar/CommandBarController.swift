@@ -4,6 +4,9 @@ import AppKit
 /// address field (a click on it, or ⌘L while it is on screen), it is a compact version
 /// laid over that field, like Arc's, rather than centred on the page.
 ///
+/// Like Arc's, everything it offers stays in the active Space: its open tabs, and the
+/// history of its profile, never a page of another Space or profile.
+///
 /// Its views are built once and then only shown and hidden, so that opening it
 /// stays well under its 50 ms budget.
 final class CommandBarController: NSObject, NSTextFieldDelegate {
@@ -45,8 +48,15 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     private var selectedIndex = -1
     private var mode = Mode.newTab
     private var accent = NSColor.controlAccentColor
+    /// Pages from the active Space's profile history for `suggestedQuery`, best first.
+    private var history: [(url: URL, title: String, isTopHit: Bool)] = []
+    private var suggestedQuery = ""
+    private var suggestingEngine: ChordWebEngine?
+    /// The user picked another row (arrows, pointer): suggestions arriving later keep it.
+    private var selectionMoved = false
 
     private static let maxTabs = 6
+    private static let maxHistory = 6
 
     init(state: BrowserState, settings: ChordSettings) {
         self.state = state
@@ -79,6 +89,11 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         isVisible = false
         scrim.isHidden = true
         panelHost.isHidden = true
+        // The engine's search ends with the bar.
+        suggestingEngine?.suggest?("") { _ in }
+        suggestingEngine = nil
+        suggestedQuery = ""
+        history = []
         onDismiss?()
     }
 
@@ -90,8 +105,11 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
         scrim.onClick = { [weak self] in self?.dismiss() }
 
+        // Like Arc's: nothing veils the page, a deep shadow lifts the bar above it.
+        scrim.dims = false
         panelHost.cornerRadius = 16
-        panelHost.configureShadow(opacity: 0.22, radius: 30, offsetY: -12)
+        panelHost.configureShadow(opacity: 0.2, radius: 8, offsetY: -3)
+        panelHost.configureAmbientShadow(opacity: 0.38, radius: 70, offsetY: -36)
 
         applyMaterial()
         panel.blendingMode = .withinWindow
@@ -199,7 +217,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     }
 
     /// Centred and large, or compact over the address field: the field's text where the
-    /// address was, the results below it, no dimming and no keyboard hints.
+    /// address was, the results below it, and no keyboard hints.
     private func place(in host: NSView, anchoredTo anchor: NSView?) {
         let compact = anchor != nil
         if let anchor {
@@ -223,7 +241,6 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         header.edgeInsets = NSEdgeInsets(top: 0, left: compact ? 16 : 22, bottom: 0, right: compact ? 16 : 22)
         header.spacing = compact ? 9 : 12
         footerViews.forEach { $0.isHidden = compact }
-        scrim.dims = !compact
         panelHost.cornerRadius = compact ? 12 : 16
         panel.layer?.cornerRadius = compact ? 12 : 16
     }
@@ -235,34 +252,83 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     // MARK: - Results
 
     private func refresh() {
+        let query = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if query != suggestedQuery {
+            suggestedQuery = query
+            history = []
+            requestHistory(for: query)
+        }
+        selectionMoved = false
+        rebuildItems()
+    }
+
+    /// Asks the active Space's engine, so its profile's history, for pages matching
+    /// `query`. They arrive a moment later, sometimes in several steps.
+    private func requestHistory(for query: String) {
+        let engine = state.engine(for: state.activeSpace)
+        suggestingEngine = engine
+        engine.suggest?(query) { [weak self] suggestions in
+            guard let self, self.isVisible, self.suggestedQuery == query else { return }
+            self.history = suggestions.compactMap { suggestion in
+                guard let url = suggestion["url"].flatMap(URL.init(string:)) else { return nil }
+                return (url, suggestion["title"] ?? "", suggestion["isTopHit"] == "1")
+            }
+            self.rebuildItems()
+        }
+    }
+
+    /// Builds the results again, keeping the row the user picked when there is one.
+    private func rebuildItems() {
+        let picked = selectionMoved && items.indices.contains(selectedIndex) ? items[selectedIndex] : nil
         items = buildItems(query: field.stringValue)
-        selectedIndex = items.isEmpty ? -1 : 0
+        if let picked, let index = items.firstIndex(where: { $0.section == picked.section && $0.title == picked.title }) {
+            selectedIndex = index
+        } else {
+            selectedIndex = items.isEmpty ? -1 : 0
+        }
         rebuildRows()
     }
 
+    /// Like Arc's: the best answer first (the address typed, the page from history that
+    /// completes what is typed, or else a web search), then the Space's open tabs, the
+    /// rest of the history, actions, and the web search.
     private func buildItems(query raw: String) -> [CommandItem] {
         let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let activeSpace = state.activeSpace
         var result: [CommandItem] = []
 
-        let typedURL = URLInput.url(from: query)
-        if let url = typedURL {
-            result.append(CommandItem(section: "Aller à", title: url.editableString, tileURL: url, shortcut: "↩", action: .open(url)))
-        }
-
+        // Only the active Space's tabs (its favorites included): never another Space's.
         let tabs = state.allTabs.filter { entry in
-            // A split takes pages of the active Space, other than the one already shown.
-            if mode == .split, entry.space !== state.activeSpace || entry.tab === state.selectedTab { return false }
-            guard !query.isEmpty else { return entry.space === state.activeSpace }
+            guard entry.space === activeSpace else { return false }
+            // A split takes pages other than the one already shown.
+            if mode == .split, entry.tab === state.selectedTab { return false }
+            guard !query.isEmpty else { return true }
             return entry.tab.displayTitle.localizedStandardContains(query)
                 || (entry.tab.url?.absoluteString.localizedStandardContains(query) ?? false)
+        }.prefix(Self.maxTabs)
+        // A page already open in the Space shows as its tab, not again from history.
+        var shown = tabs.compactMap { $0.tab.url }
+
+        let typedURL = URLInput.url(from: query)
+        let search = query.isEmpty ? nil : CommandItem(section: "Rechercher", title: "« \(query) » sur le web",
+                                                       symbol: "magnifyingglass", action: .search(query))
+        if let url = typedURL {
+            result.append(CommandItem(section: "Aller à", title: url.editableString, tileURL: url, shortcut: "↩", action: .open(url)))
+            shown.append(url)
+        } else if let top = history.first(where: { $0.isTopHit && !Self.contains(shown, $0.url) }) {
+            result.append(historyItem(top, section: "Meilleur résultat"))
+            shown.append(top.url)
+        } else if let search {
+            result.append(search)
         }
-        let activeSpace = state.activeSpace
-        for entry in tabs.prefix(Self.maxTabs) {
-            let host = entry.tab.url?.host ?? ""
-            let subtitle = entry.space === activeSpace ? host : "\(host) · \(entry.space.name)"
-            result.append(CommandItem(section: "Onglets ouverts", title: entry.tab.displayTitle, subtitle: subtitle,
+
+        for entry in tabs {
+            result.append(CommandItem(section: "Onglets ouverts", title: entry.tab.displayTitle, subtitle: entry.tab.url?.host ?? "",
                                       tileURL: entry.tab.url, action: .switchTab(entry.tab)))
         }
+
+        let pages = history.filter { !Self.contains(shown, $0.url) }.prefix(Self.maxHistory)
+        result += pages.map { historyItem($0, section: "Historique") }
 
         // Picking a page for a split: only pages, no actions.
         if mode != .split {
@@ -272,11 +338,29 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             result += actions.prefix(query.isEmpty ? 3 : 4)
         }
 
-        if !query.isEmpty {
-            result.append(CommandItem(section: "Rechercher", title: "« \(query) » sur le web", symbol: "magnifyingglass",
-                                      action: .search(query)))
+        if let search, result.first?.section != "Rechercher" {
+            result.append(search)
         }
         return result
+    }
+
+    private func historyItem(_ page: (url: URL, title: String, isTopHit: Bool), section: String) -> CommandItem {
+        let address = page.url.displayHost + (page.url.path == "/" ? "" : page.url.path)
+        return CommandItem(section: section, title: page.title.isEmpty ? address : page.title,
+                           subtitle: page.title.isEmpty ? nil : address, tileURL: page.url, action: .open(page.url))
+    }
+
+    /// The same page, give or take a trailing slash or a fragment.
+    private static func contains(_ urls: [URL], _ url: URL) -> Bool {
+        func key(_ url: URL) -> String {
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.fragment = nil
+            var string = components?.string ?? url.absoluteString
+            if string.hasSuffix("/") { string.removeLast() }
+            return string.lowercased()
+        }
+        let target = key(url)
+        return urls.contains { key($0) == target }
     }
 
     private func rebuildRows() {
@@ -327,12 +411,14 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     private func select(_ index: Int) {
         guard items.indices.contains(index), index != selectedIndex else { return }
         selectedIndex = index
+        selectionMoved = true
         updateSelection()
     }
 
     private func moveSelection(_ delta: Int) {
         guard !items.isEmpty else { return }
         selectedIndex = ((selectedIndex + delta) % items.count + items.count) % items.count
+        selectionMoved = true
         updateSelection()
     }
 

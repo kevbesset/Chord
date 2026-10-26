@@ -22,6 +22,8 @@ Règles, pour que la mise à jour toutes les quatre semaines reste un simple reb
 | `chord-branding.patch` | L'app s'appelle Chord (`app.chord.Chord`) ; le dossier de données reste `~/Library/Application Support/Chromium` (`chrome/app/theme/chromium/BRANDING`) |
 | `chord-fix-development-link.patch` | Correctif de build : en build de développement, un appel à une aide de test qu'ungoogled-chromium supprime empêchait l'édition de liens (`profile_management_disclaimer_service.cc`) |
 | `chord-app-controller.patch` | L'icône du Dock rouvre la fenêtre de Chord ; les liens d'autres apps vont à une petite fenêtre ; les menus Signets et Historique de Chromium ne sont plus tenus à jour, le menu étant celui de ChordUI (`app_controller_mac.mm`) |
+| `chord-context-menus.patch` | Le clic droit sur une page affiche son menu dans les fenêtres de Chord, qui n'ont pas de widget Views ; Chord retire les entrées dont l'interface en exige un (Caster, traduire, code QR, Lens…) (`render_view_context_menu_mac_cocoa.mm`) |
+| `chord-product-icon.patch` | L'icône du produit dans les pages internes (« À propos » du menu des paramètres, pages d'aide) est le symbole de Chord ; le logo des en-têtes vient de `engine/branding` (`settings/icons.html.ts`, `cr_elements/icons.html.ts`) |
 
 Les points d'appel sont déclarés dans `engine/chord/browser/chord_hooks.h`.
 `--disable-chord-ui` au lancement rend à Chromium son interface, pour déboguer.

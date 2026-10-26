@@ -54,6 +54,10 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         outline.delegate = self
         outline.target = self
         outline.action = #selector(rowClicked)
+        outline.onMiddleClick = { [weak self] row in
+            guard let self, let tab = self.outline.item(atRow: row) as? Tab else { return }
+            self.delegate?.sidebarClose(tab)
+        }
         outline.isWindowChrome = { [weak self] row in
             guard let self, let marker = self.outline.item(atRow: row) as? ListMarker else { return row < 0 }
             return marker.kind != .newTab
@@ -343,6 +347,9 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 final class SidebarOutlineView: NSOutlineView {
     /// Whether a row is part of the window chrome. Clicks below the last row always are.
     var isWindowChrome: (Int) -> Bool = { _ in true }
+    /// A middle click on a row, like a browser's on a tab: closes it.
+    var onMiddleClick: (Int) -> Void = { _ in }
+    private var middleClickRow: Int?
 
     override func mouseDown(with event: NSEvent) {
         let row = self.row(at: convert(event.locationInWindow, from: nil))
@@ -351,6 +358,20 @@ final class SidebarOutlineView: NSOutlineView {
         } else {
             super.mouseDown(with: event)
         }
+    }
+
+    override func otherMouseDown(with event: NSEvent) {
+        guard event.buttonNumber == 2 else { return super.otherMouseDown(with: event) }
+        middleClickRow = row(at: convert(event.locationInWindow, from: nil))
+    }
+
+    /// Acts on release over the row it started on, so that sliding off cancels it.
+    override func otherMouseUp(with event: NSEvent) {
+        guard event.buttonNumber == 2 else { return super.otherMouseUp(with: event) }
+        let row = row(at: convert(event.locationInWindow, from: nil))
+        defer { middleClickRow = nil }
+        guard row >= 0, row == middleClickRow else { return }
+        onMiddleClick(row)
     }
 
     /// No disclosure triangle: folders draw their own chevron. Hiding it here rather than

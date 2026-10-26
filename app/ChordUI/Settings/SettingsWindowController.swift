@@ -166,7 +166,7 @@ private struct SpacesPane: View {
             HStack {
                 Button("Nouveau Space") { model.state.addSpace() }
                 Spacer()
-                Text("Les Spaces d'un même groupe de favoris les partagent.")
+                Text("Les Spaces d'un même profil partagent leurs favoris et leur session.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -178,6 +178,9 @@ private struct SpaceRow: View {
     @ObservedObject var model: SettingsModel
     let space: Space
     @State private var name = ""
+    /// A profile change that would delete the Space's current profile, waiting for a yes.
+    @State private var pendingProfile: String?
+    @State private var confirmingDelete = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -197,26 +200,68 @@ private struct SpaceRow: View {
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { model.state.rename(space, to: name) }
                 .onAppear { name = space.name }
-            // Like Arc's profiles: Spaces in the same group share their favorites.
-            Picker("Favoris", selection: Binding(
+            // Like Arc's profiles: Spaces in the same profile share their favorites and
+            // their session (logins, cookies, extensions).
+            Picker("Profil", selection: Binding(
                 get: { space.profileID },
-                set: { model.state.setProfile(space, to: $0 == Self.separate ? UUID().uuidString : $0) }
+                set: { choice in
+                    let profile = choice == Self.separate ? UUID().uuidString : choice
+                    if model.state.isLastSpace(ofItsProfile: space) {
+                        pendingProfile = profile
+                    } else {
+                        model.state.setProfile(space, to: profile)
+                    }
+                }
             )) {
                 ForEach(model.state.profiles, id: \.id) { profile in
                     Text(profile.spaces.map(\.name).joined(separator: ", ")).tag(profile.id)
                 }
                 Divider()
-                Text("Favoris à part").tag(Self.separate)
+                Text("Nouveau profil").tag(Self.separate)
             }
             .labelsHidden()
             .frame(width: 150)
-            .help("Les Spaces d'un même groupe partagent leurs favoris, comme les profils d'Arc.")
-            Button(role: .destructive) { model.state.delete(space) } label: { Image(systemName: "trash") }
+            .help("Les Spaces d'un même profil partagent leurs favoris et leur session (connexions, cookies, extensions), comme les profils d'Arc.")
+            Button(role: .destructive) {
+                if model.state.isLastSpace(ofItsProfile: space) || !space.allTabs.isEmpty {
+                    confirmingDelete = true
+                } else {
+                    model.state.delete(space)
+                }
+            } label: { Image(systemName: "trash") }
                 .buttonStyle(.borderless)
                 .disabled(model.state.spaces.count < 2)
                 .help("Supprimer le Space et ses onglets")
         }
         .padding(.vertical, 4)
+        .alert("Changer le profil de « \(space.name) » ?", isPresented: Binding(
+            get: { pendingProfile != nil },
+            set: { if !$0 { pendingProfile = nil } }
+        )) {
+            Button("Changer et supprimer l'ancien profil", role: .destructive) {
+                if let profile = pendingProfile { model.state.setProfile(space, to: profile) }
+                pendingProfile = nil
+            }
+            Button("Annuler", role: .cancel) { pendingProfile = nil }
+        } message: {
+            Text("Aucun autre Space n'utilise son profil actuel : il sera supprimé, avec ses connexions, cookies, historique, extensions et favoris.")
+        }
+        .alert(model.state.isLastSpace(ofItsProfile: space)
+               ? "Supprimer le Space « \(space.name) » et son profil ?"
+               : "Supprimer le Space « \(space.name) » ?", isPresented: $confirmingDelete) {
+            Button("Supprimer", role: .destructive) { model.state.delete(space) }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text(deleteDetails)
+        }
+    }
+
+    private var deleteDetails: String {
+        var details: [String] = []
+        let count = space.allTabs.count
+        if count > 0 { details.append(count == 1 ? "Son onglet sera fermé." : "Ses \(count) onglets seront fermés.") }
+        if model.state.isLastSpace(ofItsProfile: space) { details.append(BrowserState.profileDeletionWarning) }
+        return details.joined(separator: " ")
     }
 }
 

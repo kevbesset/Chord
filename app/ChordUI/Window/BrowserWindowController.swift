@@ -29,6 +29,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private lazy var commandBar = CommandBarController(state: state, settings: settings)
     private let siteControls = SiteControlsController()
     private var siteControlsTabID: UUID?
+    private let permissionPrompt = PermissionPromptController()
     private let toast = ToastView()
     /// True while a swipe hands its Space to the state, which needs no slide of its own.
     private var isEndingSwipe = false
@@ -196,6 +197,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         settingsWindow?.window?.appearance = appearance
         for little in littleWindows { little.window?.appearance = appearance }
         layoutChanges(animated: animated)
+        reanchorPermissionPrompt()
     }
 
     private func layoutChanges(animated: Bool) {
@@ -264,6 +266,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             DispatchQueue.main.async { [weak self] in self?.positionTrafficLights() }
         }
         layoutChanges(animated: animated)
+        reanchorPermissionPrompt()
         DispatchQueue.main.async { interval.end() }
     }
 
@@ -325,7 +328,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard sidebarMode == .floating else { return }
         pendingHide?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.sidebarMode == .floating, !self.commandBar.isVisible, !self.siteControls.isVisible else { return }
+            guard let self, self.sidebarMode == .floating, !self.commandBar.isVisible, !self.siteControls.isVisible,
+                  !self.permissionPrompt.isVisible else { return }
             self.setSidebarMode(.hidden, animated: true)
         }
         pendingHide = work
@@ -350,6 +354,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             .store(in: &cancellables)
         commandBar.actionsProvider = { [weak self] in self?.commandActions() ?? [] }
         commandBar.onDismiss = { [weak self] in self?.focusPage() }
+        permissionPrompt.onClose = { [weak self] in self?.permissionPromptClosed() }
     }
 
     private func handle(_ key: ChordSettings.Key) {
@@ -406,6 +411,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             if window?.isKeyWindow == true, !downloadsPopover.isShown { showDownloads(nil) }
         case .peek(let url):
             presentPeek(url)
+        case .permission(let ask):
+            presentPermission(ask)
         }
     }
 
@@ -462,7 +469,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard let url else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
-        toast.show("URL copiée", symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
+        toast.show("URL copiée", detail: url.displayHost, symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
     }
 
     private func handle(_ action: PageBarAction) {
@@ -564,7 +571,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     // MARK: - Peek
 
     private func makePeek() -> PeekController {
-        let peek = PeekController(engine: state.engine)
+        let peek = PeekController(engine: { [state] in state.engine(for: state.activeSpace) })
         peek.onOpenInTab = { [weak self] page in
             guard let self else { return }
             self.state.openTab(url: page.url ?? URL(string: "about:blank")!, adopting: page)
@@ -585,6 +592,73 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         peek.present(url: url, in: rootView, contentInset: inset, accent: state.activeSpace.accent)
     }
 
+    // MARK: - Permission prompts
+
+    /// A site's question, from the window that shows its page. For the selected page it
+    /// hangs from the site controls, like Arc's, and a closed sidebar comes back floating
+    /// to hold it; for another page (a split pane, a Peek), from the top of the page.
+    private func presentPermission(_ ask: PermissionAsk) {
+        if let little = littleWindows.first(where: { $0.shows(ask.page) }) {
+            little.presentPermission(ask.request)
+            return
+        }
+        guard let window, ask.page.view.window === window else { return }
+        if ask.page === state.selectedTab?.page, !settings.addressBarOnTop, sidebarMode == .hidden {
+            setSidebarMode(.floating, animated: true)
+            // Once the sidebar has slid in, so that the question appears where it stays.
+            DispatchQueue.main.asyncAfter(deadline: .now() + Theme.motionDuration) { [weak self] in
+                self?.showPermission(ask)
+            }
+            return
+        }
+        showPermission(ask)
+    }
+
+    private func showPermission(_ ask: PermissionAsk) {
+        let anchor = permissionAnchor(for: ask.page)
+        permissionPrompt.present(ask.request, for: ask.page, from: anchor.view, rect: anchor.rect)
+    }
+
+    /// The selected page's site controls when they are on screen, else the top of the page.
+    private func permissionAnchor(for page: ChordWebPage) -> (view: NSView, rect: NSRect?) {
+        if page === state.selectedTab?.page {
+            if settings.addressBarOnTop {
+                let button = pageArea.toolbar.siteControlsAnchor
+                if button.window != nil, !button.isHiddenOrHasHiddenAncestor { return (button, nil) }
+            } else if sidebarMode != .hidden {
+                sidebar.pinsAddressButtons = true
+                sidebar.layoutSubtreeIfNeeded()
+                return (sidebar.siteControlsAnchor, nil)
+            }
+        }
+        return (page.view, PermissionPromptController.pageTop(of: page.view))
+    }
+
+    /// The question follows its anchor when the sidebar or the address bar moves.
+    private func reanchorPermissionPrompt() {
+        guard permissionPrompt.isVisible else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Theme.motionDuration) { [weak self] in
+            guard let self, self.permissionPrompt.isVisible, let page = self.permissionPrompt.page else { return }
+            let anchor = self.permissionAnchor(for: page)
+            self.permissionPrompt.reanchor(to: anchor.view, rect: anchor.rect)
+        }
+    }
+
+    private func resumePermissionPrompt() {
+        guard permissionPrompt.isSuspended, let page = permissionPrompt.page else { return }
+        let anchor = permissionAnchor(for: page)
+        permissionPrompt.resume(from: anchor.view, rect: anchor.rect)
+    }
+
+    private func permissionPromptClosed() {
+        sidebar.pinsAddressButtons = false
+        // A sidebar that came out for the question goes away again, unless the pointer is in it.
+        if sidebarMode == .floating, let window,
+           !sidebar.bounds.contains(sidebar.convert(window.mouseLocationOutsideOfEventStream, from: nil)) {
+            scheduleHide()
+        }
+    }
+
     // MARK: - Little windows
 
     /// Opens a little window (Little Arc), on `url` or empty with the address focused.
@@ -592,7 +666,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     public func openLittleWindow(url: URL?) {
         let interval = Perf.begin("littlewindow.open")
         // Like Little Arc: the page goes to the last Space used, unless another is picked.
-        let little = LittleWindowController(engine: state.engine, settings: settings, url: url,
+        let little = LittleWindowController(engine: state.engine(for: state.activeSpace), settings: settings, url: url,
                                             space: state.activeSpace, spaces: { [weak self] in self?.state.spaces ?? [] })
         little.onOpenInChord = { [weak self] page, space in
             guard let self else { return }
@@ -681,16 +755,23 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         }
     }
 
+    /// Asks first when tabs would close, or when the Space takes its profile with it.
     private func confirmDelete(_ space: Space) {
         guard let window else { return }
         let count = space.allTabs.count
-        guard count > 0 else {
+        let deletesProfile = state.isLastSpace(ofItsProfile: space)
+        guard count > 0 || deletesProfile else {
             state.delete(space)
             return
         }
+        var details: [String] = []
+        if count > 0 { details.append(count == 1 ? "Son onglet sera fermé." : "Ses \(count) onglets seront fermés.") }
+        if deletesProfile { details.append(BrowserState.profileDeletionWarning) }
         let alert = NSAlert()
-        alert.messageText = "Supprimer le Space « \(space.name) » ?"
-        alert.informativeText = count == 1 ? "Son onglet sera fermé." : "Ses \(count) onglets seront fermés."
+        alert.messageText = deletesProfile
+            ? "Supprimer le Space « \(space.name) » et son profil ?"
+            : "Supprimer le Space « \(space.name) » ?"
+        alert.informativeText = details.joined(separator: " ")
         alert.addButton(withTitle: "Supprimer")
         alert.addButton(withTitle: "Annuler")
         alert.buttons.first?.hasDestructiveAction = true
@@ -842,7 +923,12 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         siteControls.isGlass = settings.commandBarGlass
         siteControls.onCopy = { [weak self] in self?.copy(url) }
         siteControls.onOpen = { [weak self] url in self?.state.openTab(url: url) }
-        siteControls.onDismiss = { [weak self] in self?.focusPage() }
+        siteControls.onDismiss = { [weak self] in
+            self?.focusPage()
+            self?.resumePermissionPrompt()
+        }
+        // A site's question waiting there steps aside, and comes back after.
+        permissionPrompt.suspend()
         siteControlsTabID = tab.id
         siteControls.present(page: page, url: url, in: rootView, below: anchor)
     }

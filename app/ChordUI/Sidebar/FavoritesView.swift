@@ -177,6 +177,7 @@ final class FavoriteTileView: NSView, NSDraggingSource {
     private var isHovered = false
     private var accent = NSColor.controlAccentColor
     private var mouseDownEvent: NSEvent?
+    private var middleClickStarted = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -269,6 +270,19 @@ final class FavoriteTileView: NSView, NSDraggingSource {
         guard mouseDownEvent != nil, let tab else { return }
         mouseDownEvent = nil
         delegate?.sidebarSelect(tab)
+    }
+
+    /// A middle click puts the favorite to sleep, as closing it does.
+    override func otherMouseDown(with event: NSEvent) {
+        guard event.buttonNumber == 2 else { return super.otherMouseDown(with: event) }
+        middleClickStarted = true
+    }
+
+    override func otherMouseUp(with event: NSEvent) {
+        guard event.buttonNumber == 2 else { return super.otherMouseUp(with: event) }
+        defer { middleClickStarted = false }
+        guard middleClickStarted, bounds.contains(convert(event.locationInWindow, from: nil)), let tab else { return }
+        delegate?.sidebarClose(tab)
     }
 
     override func accessibilityPerformPress() -> Bool {

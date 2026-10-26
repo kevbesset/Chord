@@ -18,9 +18,9 @@ namespace chord {
 // its Views window to hang from (it crashed without one).
 bool ShowsPermissionPrompts(content::WebContents* web_contents);
 
-// A small bubble at the top of the page, like Arc's: the site, what it asks for
-// (notifications, location, camera…), "Bloquer" and "Autoriser". nullptr while the
-// page has no window, which leaves the request unanswered.
+// The site's question, shown by ChordUI like Arc's: what it asks for (notifications,
+// location, camera…), "Pas maintenant" and "Autoriser". nullptr when ChordUI does not
+// know the page, which leaves the request unanswered.
 std::unique_ptr<permissions::PermissionPrompt> CreatePermissionPrompt(
     content::WebContents* web_contents,
     permissions::PermissionPrompt::Delegate* delegate);

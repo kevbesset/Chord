@@ -35,6 +35,11 @@ while read -r name; do
   fi
 done < "$ENGINE_DIR/patches/series"
 
+# Chord's logo where Chromium's own pages show Chromium's (settings, extensions, about):
+# engine/branding/src mirrors the source tree. Only changed files are copied, so that
+# the resources are not rebuilt each time.
+rsync -rc "$ENGINE_DIR/branding/src/" "$SRC/"
+
 if [ ! -f "$OUT/args.gn" ] || [ "${1:-}" = "--gen" ]; then
   mkdir -p "$OUT/sdk"
   ln -sfn "$SDKROOT" "$OUT/sdk/MacOSX26.5.sdk"

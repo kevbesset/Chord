@@ -14,6 +14,7 @@ qui le dépasse ne sort pas.
 | Ouvrir ou quitter la split view | `split.toggle` | 100 ms |
 | Ouvrir une petite fenêtre | `littlewindow.open` | 100 ms |
 | Ouvrir les réglages du site | `sitecontrols.open` | 50 ms |
+| Afficher la demande d'autorisation d'un site | `permission.prompt` | 50 ms |
 | Lancement jusqu'à la première fenêtre | `app.launch` | 1 000 ms |
 | Défilement et animations | — | 120 images/s sur ProMotion, aucune image sautée |
 

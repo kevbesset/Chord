@@ -44,8 +44,8 @@ public final class Space {
     public let id: UUID
     public internal(set) var name: String
     public internal(set) var colorHex: String
-    /// Like Arc, a Space belongs to a profile, and favorites belong to the profile:
-    /// Spaces sharing a profile share their favorites.
+    /// Like Arc, a Space belongs to a profile, and favorites and the session (cookies,
+    /// storage, extensions) belong to the profile: Spaces sharing a profile share them.
     public internal(set) var profileID: String
     /// The pinned tabs as shown: folders included, top level first.
     var pinnedItems: [PinnedItem]

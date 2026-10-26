@@ -18,6 +18,7 @@ public enum Perf {
         "split.toggle": 100,
         "littlewindow.open": 100,
         "sitecontrols.open": 50,
+        "permission.prompt": 50,
         "app.launch": 1000,
     ]
 

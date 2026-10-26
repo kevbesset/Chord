@@ -20,6 +20,8 @@ final class PageToolbarView: NSView {
     private let address = ToolbarAddressView()
     /// Where the compact command bar opens, over the address.
     var addressAnchor: NSView { address }
+    /// The site controls button at the end of the address, while there is a page.
+    var siteControlsAnchor: NSView { address.siteControlsAnchor }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -84,7 +86,10 @@ final class PageToolbarView: NSView {
     @objc private func forwardClicked() { onAction?(.forward) }
     @objc private func reloadClicked() { onAction?(.reload) }
     @objc private func splitClicked() { onAction?(.split) }
-    @objc private func copyClicked() { onAction?(.copyURL) }
+    @objc private func copyClicked() {
+        onAction?(.copyURL)
+        copyButton.flashConfirmation()
+    }
 
     @objc private func moreClicked() {
         guard let menu = moreMenu?() else { return }
@@ -92,28 +97,31 @@ final class PageToolbarView: NSView {
     }
 }
 
-/// The centred address in the top bar: host in medium weight, then the path, and the
-/// site's controls at the end of the field, like Arc's.
+/// The centred address in the top bar: the host, then the path in a quieter colour, in
+/// one run, and the site's controls at the end of the field, like Arc's.
 final class ToolbarAddressView: NSView {
     var onClick: (() -> Void)?
     var onSiteControls: ((NSView) -> Void)?
-    private lazy var siteControlsButton = IconButton(symbol: "switch.2", label: "Réglages du site", target: self, action: #selector(siteControlsClicked), size: 20, pointSize: 11)
+    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: "Réglages du site", target: self, action: #selector(siteControlsClicked), size: 20, pointSize: 13)
+    var siteControlsAnchor: NSView { siteControlsButton }
     private let icon = NSImageView()
-    private let hostLabel = NSTextField(labelWithString: "")
-    private let pathLabel = NSTextField(labelWithString: "")
+    /// Shown only for a site without encryption that is not local.
+    private let insecureLabel = NSTextField(labelWithString: "Non sécurisé")
+    private let addressLabel = NSTextField(labelWithString: "")
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
         icon.contentTintColor = .secondaryLabelColor
-        hostLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        hostLabel.lineBreakMode = .byTruncatingTail
-        pathLabel.font = .systemFont(ofSize: 12)
-        pathLabel.textColor = .secondaryLabelColor
-        pathLabel.lineBreakMode = .byTruncatingTail
-        pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let stack = NSStackView(views: [icon, hostLabel, pathLabel])
+        insecureLabel.font = .systemFont(ofSize: 12)
+        insecureLabel.textColor = .secondaryLabelColor
+        insecureLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        addressLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        addressLabel.lineBreakMode = .byTruncatingTail
+        addressLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let stack = NSStackView(views: [icon, insecureLabel, addressLabel])
         stack.spacing = 6
+        stack.setCustomSpacing(8, after: insecureLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         siteControlsButton.isHidden = true
@@ -136,18 +144,19 @@ final class ToolbarAddressView: NSView {
     func update(url: URL?) {
         guard let url else {
             icon.image = Theme.symbol("magnifyingglass", size: 10)
-            hostLabel.stringValue = "Rechercher ou saisir une adresse"
-            hostLabel.textColor = .secondaryLabelColor
-            pathLabel.stringValue = ""
+            icon.isHidden = false
+            insecureLabel.isHidden = true
+            addressLabel.stringValue = "Rechercher ou saisir une adresse"
+            addressLabel.textColor = .secondaryLabelColor
             setAccessibilityLabel("Rechercher ou saisir une adresse")
             siteControlsButton.isHidden = true
             return
         }
-        hostLabel.stringValue = url.displayHost
-        hostLabel.textColor = .labelColor
-        pathLabel.stringValue = url.path == "/" ? "" : url.path
-        icon.image = Theme.symbol(url.addressSymbol, size: 10)
-        setAccessibilityLabel("Adresse : \(url.absoluteString)")
+        addressLabel.attributedStringValue = url.addressText(size: 12)
+        icon.image = Theme.symbol("lock.slash", size: 10)
+        icon.isHidden = !url.isInsecure
+        insecureLabel.isHidden = !url.isInsecure
+        setAccessibilityLabel((url.isInsecure ? "Non sécurisé. " : "") + "Adresse : \(url.absoluteString)")
         siteControlsButton.isHidden = false
     }
 

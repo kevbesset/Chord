@@ -7,6 +7,8 @@ final class ToastView: NSView {
     private let glass = NSVisualEffectView()
     private let icon = NSImageView()
     private let label = NSTextField(labelWithString: "")
+    /// What the confirmation is about (the copied address's site), quieter.
+    private let detailLabel = NSTextField(labelWithString: "")
     private var hideWork: DispatchWorkItem?
     private weak var installedHost: NSView?
     private var bottomConstraint: NSLayoutConstraint?
@@ -35,7 +37,13 @@ final class ToastView: NSView {
 
         label.font = .systemFont(ofSize: 13, weight: .medium)
         label.textColor = .labelColor
-        let stack = NSStackView(views: [icon, label])
+        icon.wantsLayer = true
+        detailLabel.font = .systemFont(ofSize: 13)
+        detailLabel.textColor = .secondaryLabelColor
+        detailLabel.lineBreakMode = .byTruncatingMiddle
+        detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        detailLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 260).isActive = true
+        let stack = NSStackView(views: [icon, label, detailLabel])
         stack.orientation = .horizontal
         stack.spacing = 7
 
@@ -75,7 +83,7 @@ final class ToastView: NSView {
 
     /// Shows `text` centred at the bottom of `area`, in `host` so that it floats above the
     /// page (web views draw over their siblings, hence the z position).
-    func show(_ text: String, symbol: String, in host: NSView, over area: NSView, accent: NSColor) {
+    func show(_ text: String, detail: String? = nil, symbol: String, in host: NSView, over area: NSView, accent: NSColor) {
         if installedHost !== host {
             removeFromSuperview()
             host.addSubview(self)
@@ -87,8 +95,11 @@ final class ToastView: NSView {
             installedHost = host
         }
         label.stringValue = text
+        detailLabel.stringValue = detail ?? ""
+        detailLabel.isHidden = detail == nil
         icon.image = Theme.symbol(symbol, size: 14, weight: .semibold)
         icon.contentTintColor = accent
+        popIcon()
         setAccessibilityLabel(text)
         NSAccessibility.post(element: self, notification: .announcementRequested,
                              userInfo: [.announcement: text, .priority: NSAccessibilityPriorityLevel.high.rawValue])
@@ -113,6 +124,23 @@ final class ToastView: NSView {
         let work = DispatchWorkItem { [weak self] in self?.hide() }
         hideWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.visibleDuration, execute: work)
+    }
+
+    /// The icon arrives with a small spring, so that a second confirmation still reads
+    /// as new.
+    private func popIcon() {
+        guard let layer = icon.layer else { return }
+        let center = CGPoint(x: icon.bounds.midX, y: icon.bounds.midY)
+        var shrunk = CATransform3DMakeTranslation(center.x, center.y, 0)
+        shrunk = CATransform3DScale(shrunk, 0.5, 0.5, 1)
+        shrunk = CATransform3DTranslate(shrunk, -center.x, -center.y, 0)
+        let spring = CASpringAnimation(keyPath: "transform")
+        spring.fromValue = shrunk
+        spring.toValue = CATransform3DIdentity
+        spring.stiffness = 280
+        spring.damping = 13
+        spring.duration = spring.settlingDuration
+        layer.add(spring, forKey: "pop")
     }
 
     private func hide() {

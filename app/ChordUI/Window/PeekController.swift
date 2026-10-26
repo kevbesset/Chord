@@ -13,7 +13,8 @@ final class PeekController: NSObject, ChordWebPageDelegate {
     var onDismiss: (() -> Void)?
     private(set) var isVisible = false
 
-    private let engine: ChordWebEngine
+    /// The engine of the Space the Peek opens over, asked at each Peek.
+    private let engine: () -> ChordWebEngine
     private weak var host: NSView?
     private let scrim = ScrimView()
     private let panelHost = ShadowHostView()
@@ -23,7 +24,7 @@ final class PeekController: NSObject, ChordWebPageDelegate {
     private var page: ChordWebPage?
     private var keyMonitor: Any?
 
-    init(engine: ChordWebEngine) {
+    init(engine: @escaping () -> ChordWebEngine) {
         self.engine = engine
         super.init()
     }
@@ -38,7 +39,7 @@ final class PeekController: NSObject, ChordWebPageDelegate {
         install(in: host)
         contentLeading.constant = contentInset
 
-        let page = engine.makePage()
+        let page = engine().makePage()
         page.delegate = self
         self.page = page
         panel.show(page: page, accent: accent)

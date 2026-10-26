@@ -1,28 +1,10 @@
 import AppKit
 
-/// The site's controls, from the button in the address field, like Arc's: the site and
-/// its connection, quick actions, the few permissions that matter for this site (each a
-/// switch) and a way to all of them. A card laid over the window, like the command bar;
-/// the engine keeps the permissions.
+/// The site's controls, from the button in the address field, like Arc's: quick actions
+/// in tiles, the site's permissions (notifications, and every one chosen for this site),
+/// then the connection and a way to all of the site's settings. A card laid over the
+/// window, like the command bar; the engine keeps the permissions.
 final class SiteControlsController: NSObject {
-    struct Permission {
-        let id: String
-        let title: String
-        let symbol: String
-    }
-
-    /// In the order they show. Notifications always show; the others once they were
-    /// chosen for the site.
-    static let permissions = [
-        Permission(id: "notifications", title: "Notifications", symbol: "bell.fill"),
-        Permission(id: "geolocation", title: "Position", symbol: "location.fill"),
-        Permission(id: "camera", title: "Caméra", symbol: "video.fill"),
-        Permission(id: "microphone", title: "Micro", symbol: "mic.fill"),
-        Permission(id: "autoPictureInPicture", title: "Picture-in-picture automatique", symbol: "pip.fill"),
-        Permission(id: "popups", title: "Pop-ups et redirections", symbol: "macwindow.on.rectangle"),
-        Permission(id: "sound", title: "Son", symbol: "speaker.wave.2.fill"),
-    ]
-    private static let maxPermissions = 4
     private static let width: CGFloat = 300
 
     var onCopy: (() -> Void)?
@@ -51,7 +33,7 @@ final class SiteControlsController: NSObject {
         content.layoutSubtreeIfNeeded()
         let size = NSSize(width: Self.width, height: content.fittingSize.height)
         let rect = anchor.convert(anchor.bounds, to: host)
-        let x = min(max(8, rect.minX - 12), host.bounds.width - size.width - 8)
+        let x = min(max(8, rect.midX - 40), host.bounds.width - size.width - 8)
         let gap: CGFloat = 6
         let y = host.isFlipped ? rect.maxY + gap : rect.minY - gap - size.height
         panelHost.frame = NSRect(x: x, y: y, width: size.width, height: size.height)
@@ -86,15 +68,15 @@ final class SiteControlsController: NSObject {
         scrim.frame = host.bounds
         scrim.autoresizingMask = [.width, .height]
 
-        panelHost.cornerRadius = 14
+        panelHost.cornerRadius = 16
         panelHost.configureShadow(opacity: 0.2, radius: 24, offsetY: -8)
         panel.blendingMode = .withinWindow
         panel.state = .active
         panel.wantsLayer = true
-        panel.layer?.cornerRadius = 14
+        panel.layer?.cornerRadius = 16
         panel.layer?.masksToBounds = true
         panel.layer?.borderWidth = 0.5
-        panel.layer?.borderColor = NSColor.separatorColor.cgColor
+        panel.layer?.borderColor = NSColor.black.withAlphaComponent(0.08).cgColor
         panel.frame = panelHost.bounds
         panel.autoresizingMask = [.width, .height]
         content.frame = panel.bounds
@@ -110,57 +92,37 @@ final class SiteControlsController: NSObject {
         guard let page, let url else { return }
         content.subviews.forEach { $0.removeFromSuperview() }
 
-        var sections: [NSView] = [header(for: url), actions()]
-        let shown = Self.shownPermissions(of: page)
-        if !shown.isEmpty {
-            sections.append(Rule())
-            sections += shown.map { permission, state in
-                PermissionRow(permission: permission, state: state) { [weak self] allowed in
-                    self?.page?.setPermission?(permission.id, state: allowed ? "allow" : "block")
+        var sections: [(view: NSView, gap: CGFloat)] = [(actions(), 0)]
+        let permissions = page.sitePermissions ?? []
+        if !permissions.isEmpty {
+            sections.append((SectionTitle("Autorisations"), 14))
+            for (index, permission) in permissions.enumerated() {
+                guard let id = permission["id"], let state = permission["state"] else { continue }
+                let row = PermissionRow(title: permission["title"] ?? id, symbol: Self.symbol(for: id), state: state) { [weak self] in
+                    // Like Arc, a click flips it: allowed, or blocked.
+                    self?.page?.setPermission?(id, state: state == "allow" ? "block" : "allow")
                     self?.rebuild()
                 }
+                sections.append((row, index == 0 ? 4 : 0))
             }
         }
-        if let settingsURL = Self.siteSettingsURL(for: url) {
-            sections.append(Rule())
-            sections.append(LinkRow(symbol: "gearshape", title: "Réglages du site") { [weak self] in
-                self?.dismiss()
-                self?.onOpen?(settingsURL)
-            })
-        }
+        sections.append((Rule(), 10))
+        sections.append((footer(for: url), 8))
 
-        // Each section spans the card; the rules get their own insets.
         var previous: NSView?
-        for view in sections {
+        for (view, gap) in sections {
             view.translatesAutoresizingMaskIntoConstraints = false
             content.addSubview(view)
-            let inset: CGFloat = view is Rule ? 14 : 8
-            var constraints = [
+            let inset: CGFloat = view is Rule ? 16 : (view is SectionTitle ? 16 : 10)
+            NSLayoutConstraint.activate([
                 view.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: inset),
                 view.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -inset),
-            ]
-            if let previous {
-                constraints.append(view.topAnchor.constraint(equalTo: previous.bottomAnchor, constant: view is Rule || previous is Rule ? 6 : 2))
-            } else {
-                constraints.append(view.topAnchor.constraint(equalTo: content.topAnchor, constant: 8))
-            }
-            NSLayoutConstraint.activate(constraints)
+                view.topAnchor.constraint(equalTo: previous?.bottomAnchor ?? content.topAnchor, constant: previous == nil ? 10 : gap),
+            ])
             previous = view
         }
         // At most: the card's height comes from its content.
-        previous?.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -8).isActive = true
-    }
-
-    /// Notifications, then what was chosen for the site, a few at most.
-    private static func shownPermissions(of page: ChordWebPage) -> [(Permission, String)] {
-        var shown: [(Permission, String)] = []
-        for permission in permissions where shown.count < maxPermissions {
-            guard let state = page.permissionState?(permission.id) else { continue }
-            if permission.id == "notifications" || page.permissionIsSiteSpecific?(permission.id) == true {
-                shown.append((permission, state))
-            }
-        }
-        return shown
+        previous?.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -10).isActive = true
     }
 
     /// Chromium's page with every permission of the site.
@@ -172,48 +134,100 @@ final class SiteControlsController: NSObject {
         return components?.url
     }
 
-    private func header(for url: URL) -> NSView {
-        let site = NSTextField(labelWithString: url.displayHost)
-        site.font = .systemFont(ofSize: 14, weight: .semibold)
-        site.lineBreakMode = .byTruncatingMiddle
-        let secure = url.scheme == "https"
-        let lock = NSImageView(image: Theme.symbol(secure ? "lock.fill" : "lock.open.fill", size: 9) ?? NSImage())
-        lock.contentTintColor = .secondaryLabelColor
-        let connection = NSTextField(labelWithString: secure ? "Connexion sécurisée" : "Connexion non sécurisée")
-        connection.font = .systemFont(ofSize: 11)
-        connection.textColor = .secondaryLabelColor
-
-        let view = NSView()
-        for subview in [site, lock, connection] as [NSView] {
-            subview.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(subview)
-        }
-        NSLayoutConstraint.activate([
-            site.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
-            site.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            site.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -8),
-            lock.leadingAnchor.constraint(equalTo: site.leadingAnchor),
-            lock.centerYAnchor.constraint(equalTo: connection.centerYAnchor),
-            connection.topAnchor.constraint(equalTo: site.bottomAnchor, constant: 2),
-            connection.leadingAnchor.constraint(equalTo: lock.trailingAnchor, constant: 4),
-            connection.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
-        ])
-        return view
+    /// A symbol for each permission, by the engine's name for it.
+    private static func symbol(for id: String) -> String {
+        [
+            "notifications": "bell.fill",
+            "geolocation": "location.fill",
+            "media-stream-camera": "video.fill",
+            "camera-pan-tilt-zoom": "move.3d",
+            "media-stream-mic": "mic.fill",
+            "sensors": "gyroscope",
+            "javascript": "curlybraces",
+            "images": "photo.fill",
+            "popups": "macwindow.on.rectangle",
+            "window-placement": "rectangle.3.group.fill",
+            "background-sync": "arrow.triangle.2.circlepath",
+            "sound": "speaker.wave.2.fill",
+            "automatic-downloads": "arrow.down.circle.fill",
+            "midi-sysex": "pianokeys",
+            "clipboard": "doc.on.clipboard.fill",
+            "usb-guard": "cable.connector",
+            "hid-guard": "gamecontroller.fill",
+            "serial-guard": "cable.connector.horizontal",
+            "file-system-write-guard": "folder.fill",
+            "local-fonts": "textformat",
+            "bluetooth-guard": "dot.radiowaves.left.and.right",
+            "bluetooth-scanning": "dot.radiowaves.left.and.right",
+            "hand-tracking": "hand.raised.fill",
+            "vr": "visionpro",
+            "ar": "arkit",
+            "idle-detection": "moon.zzz.fill",
+            "auto-picture-in-picture": "pip.fill",
+            "captured-surface-control": "rectangle.dashed",
+            "automatic-fullscreen": "arrow.up.left.and.arrow.down.right",
+            "keyboard-lock": "keyboard.fill",
+            "pointer-lock": "cursorarrow",
+            "web-app-installation": "square.and.arrow.down.fill",
+            "local-network": "network",
+            "loopback-network": "network",
+        ][id] ?? "switch.2"
     }
 
+    /// Quick actions, as Arc's: icon tiles, named on hover.
     private func actions() -> NSView {
-        let copy = ActionTile(symbol: "link", title: "Copier le lien") { [weak self] _ in
-            self?.dismiss()
-            self?.onCopy?()
-        }
         let share = ActionTile(symbol: "square.and.arrow.up", title: "Partager") { [weak self] tile in
             guard let url = self?.url else { return }
             NSSharingServicePicker(items: [url]).show(relativeTo: tile.bounds, of: tile, preferredEdge: .minY)
         }
-        let row = NSStackView(views: [copy, share])
+        let copy = ActionTile(symbol: "link", title: "Copier le lien") { [weak self] _ in
+            self?.dismiss()
+            self?.onCopy?()
+        }
+        let devTools = ActionTile(symbol: "hammer", title: "Outils de développement (⌥⌘I)") { [weak self] _ in
+            let page = self?.page
+            self?.dismiss()
+            page?.toggleDevTools?()
+        }
+        let row = NSStackView(views: [share, copy, devTools])
         row.distribution = .fillEqually
-        row.spacing = 6
+        row.spacing = 8
         return row
+    }
+
+    /// The connection, then every setting of the site.
+    private func footer(for url: URL) -> NSView {
+        let connection: (symbol: String, title: String)
+        if url.scheme == "https" {
+            connection = ("lock.fill", "Sécurisée")
+        } else if url.isLocal {
+            connection = ("desktopcomputer", "Locale")
+        } else {
+            connection = ("lock.open.fill", "Non sécurisée")
+        }
+        let pill = ConnectionPill(symbol: connection.symbol, title: connection.title)
+        let view = NSView()
+        pill.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(pill)
+        var constraints = [
+            pill.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pill.topAnchor.constraint(equalTo: view.topAnchor),
+            pill.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ]
+        if let settingsURL = Self.siteSettingsURL(for: url) {
+            let more = RoundButton(symbol: "ellipsis", title: "Tous les réglages du site") { [weak self] in
+                self?.dismiss()
+                self?.onOpen?(settingsURL)
+            }
+            more.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(more)
+            constraints += [
+                more.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                more.centerYAnchor.constraint(equalTo: pill.centerYAnchor),
+            ]
+        }
+        NSLayoutConstraint.activate(constraints)
+        return view
     }
 }
 
@@ -226,7 +240,7 @@ private final class KeyCatcherView: NSView {
     override func cancelOperation(_ sender: Any?) { onCancel?() }
 }
 
-/// A thin separator between the card's sections.
+/// A faint separator above the card's footer.
 private final class Rule: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -237,17 +251,31 @@ private final class Rule: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     override var wantsUpdateLayer: Bool { true }
-    override func updateLayer() { layer?.backgroundColor = NSColor.separatorColor.cgColor }
+    override func updateLayer() { layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
 }
 
-/// A row that lights up under the pointer.
+/// A section's name, like Arc's "Extensions" or "Settings".
+private final class SectionTitle: NSTextField {
+    convenience init(_ title: String) {
+        self.init(labelWithString: title)
+        font = .systemFont(ofSize: 13, weight: .semibold)
+        textColor = .labelColor
+    }
+}
+
+/// A view that lights up under the pointer and acts on mouse up, like a button.
 private class HoverRow: NSView {
     private(set) var isHovered = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.cornerRadius = 8
+        layer?.cornerRadius = 10
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -266,13 +294,10 @@ private class HoverRow: NSView {
         needsDisplay = true
     }
 
-    /// The background at rest; the hover darkens it a little.
-    var restingAlpha: CGFloat { 0 }
-
     override var wantsUpdateLayer: Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }
     override func updateLayer() {
-        let alpha = restingAlpha + (isHovered ? (isDarkAppearance ? 0.08 : 0.05) : 0)
+        let alpha: CGFloat = isHovered ? (isDarkAppearance ? 0.08 : 0.05) : 0
         layer?.backgroundColor = alpha > 0 ? NSColor.labelColor.withAlphaComponent(alpha).cgColor : nil
     }
 
@@ -281,7 +306,6 @@ private class HoverRow: NSView {
         needsDisplay = true
     }
 
-    // Clicks act on mouse up, inside the row, like buttons.
     override func mouseDown(with event: NSEvent) {}
 
     override func mouseUp(with event: NSEvent) {
@@ -296,30 +320,23 @@ private class HoverRow: NSView {
     func press() {}
 }
 
-/// A quick action: a symbol over a short title, in a rounded tile.
+/// A quick action: a symbol in a raised tile, like Arc's, named by its tooltip.
 private final class ActionTile: HoverRow {
     private let handler: (ActionTile) -> Void
 
     init(symbol: String, title: String, handler: @escaping (ActionTile) -> Void) {
         self.handler = handler
         super.init(frame: .zero)
-        layer?.cornerRadius = 10
-        let icon = NSImageView(image: Theme.symbol(symbol, size: 15) ?? NSImage())
+        let icon = NSImageView(image: Theme.symbol(symbol, size: 16) ?? NSImage())
         icon.contentTintColor = .labelColor
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = .secondaryLabelColor
-        for view in [icon, label] as [NSView] {
-            view.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(view)
-        }
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 56),
+            heightAnchor.constraint(equalToConstant: 46),
             icon.centerXAnchor.constraint(equalTo: centerXAnchor),
-            icon.topAnchor.constraint(equalTo: topAnchor, constant: 11),
-            label.centerXAnchor.constraint(equalTo: centerXAnchor),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -9),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
+        toolTip = title
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel(title)
@@ -327,112 +344,178 @@ private final class ActionTile: HoverRow {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    override var restingAlpha: CGFloat { isDarkAppearance ? 0.07 : 0.045 }
+    override func updateLayer() {
+        guard let layer else { return }
+        let dark = isDarkAppearance
+        layer.cornerRadius = 11
+        layer.backgroundColor = (dark
+            ? NSColor.white.withAlphaComponent(isHovered ? 0.16 : 0.1)
+            : NSColor.white.withAlphaComponent(isHovered ? 1 : 0.85)).cgColor
+        layer.borderWidth = 0.5
+        layer.borderColor = NSColor.black.withAlphaComponent(dark ? 0.25 : 0.08).cgColor
+        layer.shadowColor = NSColor.black.cgColor
+        layer.shadowOpacity = dark ? 0 : 0.06
+        layer.shadowRadius = 1.5
+        layer.shadowOffset = CGSize(width: 0, height: -1)
+    }
+
     override func press() { handler(self) }
 }
 
-/// One permission: its icon, its name and state, and a switch (on: allowed). A click
-/// anywhere on the row flips it.
+/// One permission, like Arc's settings: a round badge, filled when allowed, the name and
+/// the state below it. A click flips it.
 private final class PermissionRow: HoverRow {
-    private let toggle = NSSwitch()
-    private let onChange: (Bool) -> Void
+    private let onToggle: () -> Void
 
     private static let names = ["allow": "Autorisé", "block": "Bloqué", "ask": "Demander"]
 
-    init(permission: SiteControlsController.Permission, state: String, onChange: @escaping (Bool) -> Void) {
-        self.onChange = onChange
+    init(title: String, symbol: String, state: String, onToggle: @escaping () -> Void) {
+        self.onToggle = onToggle
         super.init(frame: .zero)
-        let isAllowed = state == "allow"
+        let badge = PermissionBadge(symbol: symbol, isOn: state == "allow")
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let stateLabel = NSTextField(labelWithString: Self.names[state] ?? state)
+        stateLabel.font = .systemFont(ofSize: 12)
+        stateLabel.textColor = .secondaryLabelColor
 
-        let badge = NSView()
-        badge.wantsLayer = true
-        badge.layer?.cornerRadius = 13
-        badge.layer?.backgroundColor = isAllowed
-            ? NSColor.controlAccentColor.cgColor
-            : NSColor.labelColor.withAlphaComponent(0.1).cgColor
-        let icon = NSImageView(image: Theme.symbol(permission.symbol, size: 11) ?? NSImage())
-        icon.contentTintColor = isAllowed ? .white : .secondaryLabelColor
-        icon.translatesAutoresizingMaskIntoConstraints = false
-        badge.addSubview(icon)
-
-        let title = NSTextField(labelWithString: permission.title)
-        title.font = .systemFont(ofSize: 13)
-        title.lineBreakMode = .byTruncatingTail
-        title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let subtitle = NSTextField(labelWithString: Self.names[state] ?? state)
-        subtitle.font = .systemFont(ofSize: 11)
-        subtitle.textColor = .secondaryLabelColor
-
-        toggle.controlSize = .mini
-        toggle.state = isAllowed ? .on : .off
-        toggle.target = self
-        toggle.action = #selector(toggled)
-        toggle.setAccessibilityLabel(permission.title)
-
-        for view in [badge, title, subtitle, toggle] as [NSView] {
+        for view in [badge, titleLabel, stateLabel] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 42),
-            badge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            heightAnchor.constraint(equalToConstant: 46),
+            badge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             badge.centerYAnchor.constraint(equalTo: centerYAnchor),
-            badge.widthAnchor.constraint(equalToConstant: 26),
-            badge.heightAnchor.constraint(equalToConstant: 26),
-            icon.centerXAnchor.constraint(equalTo: badge.centerXAnchor),
-            icon.centerYAnchor.constraint(equalTo: badge.centerYAnchor),
-            title.leadingAnchor.constraint(equalTo: badge.trailingAnchor, constant: 10),
-            title.bottomAnchor.constraint(equalTo: centerYAnchor, constant: 1),
-            title.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -8),
-            subtitle.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            subtitle.topAnchor.constraint(equalTo: centerYAnchor, constant: 1),
-            toggle.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            toggle.centerYAnchor.constraint(equalTo: centerYAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: badge.trailingAnchor, constant: 10),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -8),
+            titleLabel.bottomAnchor.constraint(equalTo: centerYAnchor, constant: 1),
+            stateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            stateLabel.topAnchor.constraint(equalTo: centerYAnchor, constant: 1),
+        ])
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel("\(title) : \(Self.names[state] ?? state)")
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func press() { onToggle() }
+}
+
+/// A permission's symbol in a circle: solid when allowed, faint otherwise.
+private final class PermissionBadge: NSView {
+    private let icon = NSImageView()
+    private let isOn: Bool
+
+    init(symbol: String, isOn: Bool) {
+        self.isOn = isOn
+        super.init(frame: .zero)
+        wantsLayer = true
+        icon.image = Theme.symbol(symbol, size: 13)
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 32),
+            heightAnchor.constraint(equalToConstant: 32),
+            icon.centerXAnchor.constraint(equalTo: centerXAnchor),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    override func press() {
-        toggle.state = toggle.state == .on ? .off : .on
-        toggled()
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        let dark = isDarkAppearance
+        layer?.cornerRadius = 16
+        if isOn {
+            layer?.backgroundColor = (dark ? NSColor.white : NSColor.black.withAlphaComponent(0.85)).cgColor
+            icon.contentTintColor = dark ? .black : .white
+        } else {
+            layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(dark ? 0.14 : 0.1).cgColor
+            icon.contentTintColor = .secondaryLabelColor
+        }
     }
 
-    @objc private func toggled() { onChange(toggle.state == .on) }
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
 }
 
-/// A link to another page: a symbol, a title and a chevron.
-private final class LinkRow: HoverRow {
+/// The connection, in a soft pill, like Arc's "Secure".
+private final class ConnectionPill: NSView {
+    init(symbol: String, title: String) {
+        super.init(frame: .zero)
+        wantsLayer = true
+        let icon = NSImageView(image: Theme.symbol(symbol, size: 11) ?? NSImage())
+        icon.contentTintColor = .secondaryLabelColor
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 12, weight: .medium)
+        label.textColor = .secondaryLabelColor
+        let stack = NSStackView(views: [icon, label])
+        stack.spacing = 5
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 28),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        setAccessibilityElement(true)
+        setAccessibilityRole(.staticText)
+        setAccessibilityLabel("Connexion : \(title)")
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override var wantsUpdateLayer: Bool { true }
+    override func updateLayer() {
+        layer?.cornerRadius = 8
+        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(isDarkAppearance ? 0.1 : 0.06).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
+
+/// A round button with a symbol, like Arc's "…".
+private final class RoundButton: HoverRow {
     private let handler: () -> Void
 
     init(symbol: String, title: String, handler: @escaping () -> Void) {
         self.handler = handler
         super.init(frame: .zero)
-        let icon = NSImageView(image: Theme.symbol(symbol, size: 12) ?? NSImage())
-        icon.contentTintColor = .secondaryLabelColor
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 13)
-        let chevron = NSImageView(image: Theme.symbol("chevron.right", size: 10) ?? NSImage())
-        chevron.contentTintColor = .tertiaryLabelColor
-        for view in [icon, label, chevron] as [NSView] {
-            view.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(view)
-        }
+        let icon = NSImageView(image: Theme.symbol(symbol, size: 13, weight: .semibold) ?? NSImage())
+        icon.contentTintColor = .labelColor
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 32),
-            icon.centerXAnchor.constraint(equalTo: leadingAnchor, constant: 21),
+            widthAnchor.constraint(equalToConstant: 30),
+            heightAnchor.constraint(equalToConstant: 30),
+            icon.centerXAnchor.constraint(equalTo: centerXAnchor),
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 44),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-            chevron.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            chevron.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
+        toolTip = title
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel(title)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func updateLayer() {
+        layer?.cornerRadius = 15
+        let alpha: CGFloat = (isDarkAppearance ? 0.1 : 0.06) + (isHovered ? 0.05 : 0)
+        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(alpha).cgColor
+    }
 
     override func press() { handler() }
 }

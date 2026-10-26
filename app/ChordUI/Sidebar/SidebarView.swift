@@ -68,6 +68,12 @@ final class SidebarView: NSView {
     private let addressPill = AddressPillView()
     /// Where the compact command bar opens, over the address.
     var addressAnchor: NSView { addressPill }
+    /// The address's site controls button, kept shown while `pinsAddressButtons` is set.
+    var siteControlsAnchor: NSView { addressPill.siteControlsAnchor }
+    var pinsAddressButtons: Bool {
+        get { addressPill.pinsButtons }
+        set { addressPill.pinsButtons = newValue }
+    }
     private let resizeHandle = SidebarResizeHandle()
     // The first row shares the title bar with the traffic lights: a touch larger than
     // the other icons, so that they hold their own next to them.

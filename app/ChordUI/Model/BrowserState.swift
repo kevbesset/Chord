@@ -16,6 +16,18 @@ public enum StateChange: Equatable {
     case peek(URL)
     /// A download started.
     case downloadStarted
+    /// A page's site asks for permissions: the window showing the page asks the user.
+    case permission(PermissionAsk)
+}
+
+/// A site's question, with the page it comes from.
+public struct PermissionAsk: Equatable {
+    public let page: ChordWebPage
+    public let request: ChordPermissionRequest
+
+    public static func == (lhs: PermissionAsk, rhs: PermissionAsk) -> Bool {
+        lhs.page === rhs.page && lhs.request === rhs.request
+    }
 }
 
 /// Where a tab goes in the sidebar.
@@ -55,6 +67,8 @@ public final class BrowserState: NSObject {
 
     /// Favorites by profile. Like Arc, Spaces that share a profile share favorites.
     private var favoritesByProfile: [String: [Tab]] = [:]
+    /// The engines of the profiles other than the default one, made on first use.
+    private var profileEngines: [String: ChordWebEngine] = [:]
     /// How many pages stay alive besides the visible ones. Older tabs go to sleep.
     var maxAwakeTabs = 8
     /// Pages of tabs closed while their download runs: kept alive until it ends, since
@@ -74,6 +88,8 @@ public final class BrowserState: NSObject {
         self.engine = engine
         self.store = store
         self.isPrivate = isPrivate
+        var fromVersion = SessionSnapshot.currentVersion
+        var readSession = false
         if isPrivate {
             let space = Space(name: "Navigation privée", colorHex: Theme.privateSpaceColor)
             spaces = [space]
@@ -87,13 +103,37 @@ public final class BrowserState: NSObject {
             } else if let shared = snapshot.favorites {
                 favoritesByProfile[Space.defaultProfile] = shared.map { Tab(snapshot: $0, section: .favorites) }
             }
+            fromVersion = snapshot.version
+            readSession = true
         } else {
             let first = Space(name: "Chord", colorHex: Theme.spacePalette[0])
-            spaces = [first, Space(name: "Perso", colorHex: Theme.spacePalette[1])]
+            spaces = [first, Space(name: "Perso", colorHex: Theme.spacePalette[1], profileID: UUID().uuidString)]
             activeSpaceID = first.id
         }
         super.init()
         engine.setDelegate?(self)
+        if fromVersion < 4 { separateSessions() }
+        // Profiles left behind (a Space deleted while Chord did not quit properly) go,
+        // judged against a session actually read: never against a fresh one.
+        if readSession { engine.deleteProfiles?(except: Array(Set(spaces.map(\.profileID)))) }
+    }
+
+    /// Before version 4 a profile only grouped favorites, and every Space shared one
+    /// session. Arc's default profile, imported as "arc:Default", becomes Chord's
+    /// default one; the Spaces left on the default profile by default (the first
+    /// launch's "Perso", Spaces added since) get a profile, and so a session, of their own.
+    private func separateSessions() {
+        let arcDefault = "arc:Default"
+        if !spaces.contains(where: { $0.profileID == Space.defaultProfile }) {
+            for space in spaces where space.profileID == arcDefault { space.profileID = Space.defaultProfile }
+            if let favorites = favoritesByProfile.removeValue(forKey: arcDefault) {
+                favoritesByProfile[Space.defaultProfile] = favorites
+            }
+        }
+        for space in spaces.filter({ $0.profileID == Space.defaultProfile }).dropFirst() {
+            space.profileID = UUID().uuidString
+        }
+        scheduleSave()
     }
 
     // MARK: - Windows
@@ -221,6 +261,11 @@ public final class BrowserState: NSObject {
         favoritesByProfile.first { $0.value.contains { $0 === tab } }?.key
     }
 
+    /// The profile whose session a tab's page runs in.
+    private func profileID(of tab: Tab) -> String {
+        profile(ofFavorite: tab) ?? space(containing: tab)?.profileID ?? activeSpace.profileID
+    }
+
     /// The Space that shows a tab: its own Space, or for a favorite the active Space when
     /// it shares the profile, else the first Space that does.
     private func owningSpace(of tab: Tab) -> Space? {
@@ -242,12 +287,14 @@ public final class BrowserState: NSObject {
     /// loading the URL again.
     @discardableResult
     public func openTab(url: URL, select: Bool = true, adopting page: ChordWebPage? = nil, in space: Space? = nil) -> Tab {
+        let space = space ?? activeSpace
         let tab = Tab(url: page?.url ?? url, title: page?.title ?? url.host ?? "")
-        if let page {
+        // A page of another profile's session loads again in the Space's own.
+        if let page, engine(for: space).ownsPage?(page) ?? true {
             page.delegate = self
             tab.page = page
         }
-        (space ?? activeSpace).today.insert(tab, at: 0)
+        space.today.insert(tab, at: 0)
         changes.send(.tabs)
         if select { self.select(tab) }
         scheduleSave()
@@ -354,10 +401,20 @@ public final class BrowserState: NSObject {
             }
         }
 
+        let oldProfile = sourceProfile ?? source?.profileID
         if let sourceProfile { favoritesByProfile[sourceProfile]?.removeAll { $0 === tab } }
         source?.removePinned(tab)
         source?.today.removeAll { $0 === tab }
         insert(tab, at: destination, in: space)
+
+        // Moved to another profile, the tab loads again in that profile's session.
+        if oldProfile != space.profileID, tab.page != nil {
+            tab.page = nil
+            if visibleTabs.contains(where: { $0 === tab }) {
+                for visible in visibleTabs { page(for: visible) }
+                changes.send(.selection)
+            }
+        }
 
         // A tab sent to another Space leaves the selection and split of its old one.
         if let source, source !== space {
@@ -589,11 +646,12 @@ public final class BrowserState: NSObject {
         selectSpace(spaces[number - 1])
     }
 
-    /// A new Space shares the active Space's profile, and so its favorites.
+    /// A new Space has a profile of its own: its own favorites and session. Settings
+    /// can group it with other Spaces.
     @discardableResult
     public func addSpace(name: String? = nil, colorHex: String? = nil) -> Space {
         let color = colorHex ?? Theme.spacePalette[spaces.count % Theme.spacePalette.count]
-        let space = Space(name: name ?? "Space \(spaces.count + 1)", colorHex: color, profileID: activeSpace.profileID)
+        let space = Space(name: name ?? "Space \(spaces.count + 1)", colorHex: color, profileID: UUID().uuidString)
         spaces.append(space)
         changes.send(.spaces)
         selectSpace(space)
@@ -622,12 +680,18 @@ public final class BrowserState: NSObject {
         return order.map { id in (id, spaces.filter { $0.profileID == id }) }
     }
 
-    /// Moves a Space to another profile: it then shows that profile's favorites.
-    /// A new id gives the Space favorites of its own.
+    /// Moves a Space to another profile: it then shows that profile's favorites, and its
+    /// tabs load again in that profile's session. A new id gives the Space a profile
+    /// of its own.
     public func setProfile(_ space: Space, to profileID: String) {
         guard space.profileID != profileID else { return }
+        let used = Set(spaces.map(\.profileID))
         space.profileID = profileID
-        dropUnusedFavorites()
+        for tab in space.allTabs { tab.page = nil }
+        dropUnusedProfiles(previouslyUsed: used)
+        if space.id == activeSpaceID {
+            for visible in visibleTabs { page(for: visible) }
+        }
         changes.send(.spaces)
         changes.send(.tabs)
         if space.id == activeSpaceID { changes.send(.selection) }
@@ -637,10 +701,11 @@ public final class BrowserState: NSObject {
     /// Deletes a Space and its tabs. The last Space cannot be deleted.
     public func delete(_ space: Space) {
         guard spaces.count > 1, let index = spaces.firstIndex(where: { $0 === space }) else { return }
+        let used = Set(spaces.map(\.profileID))
         for tab in space.allTabs { tab.page = nil }
         let wasActive = space.id == activeSpaceID
         spaces.remove(at: index)
-        dropUnusedFavorites()
+        dropUnusedProfiles(previouslyUsed: used)
         if wasActive {
             activeSpaceID = spaces[max(0, index - 1)].id
             for visible in visibleTabs { page(for: visible) }
@@ -650,22 +715,64 @@ public final class BrowserState: NSObject {
         scheduleSave()
     }
 
-    /// Favorites of a profile no Space uses any more.
-    private func dropUnusedFavorites() {
+    /// What goes with a profile, for the alerts that come before.
+    public static let profileDeletionWarning = "C'est le dernier Space de son profil : le profil sera supprimé aussi, avec ses connexions, cookies, historique, extensions et favoris."
+
+    /// Whether the Space is the last one on its profile, which then goes with it (see
+    /// `dropUnusedProfiles`). The default profile always stays.
+    public func isLastSpace(ofItsProfile space: Space) -> Bool {
+        !isPrivate && space.profileID != Space.defaultProfile
+            && !spaces.contains { $0 !== space && $0.profileID == space.profileID }
+    }
+
+    /// A profile no Space uses any more loses its favorites, and its session (cookies,
+    /// history, extensions) is deleted to free its space on disk. The default profile
+    /// always stays: it is Chromium's first one.
+    private func dropUnusedProfiles(previouslyUsed: Set<String>) {
         let used = Set(spaces.map(\.profileID))
         for (profile, tabs) in favoritesByProfile where !used.contains(profile) {
             for tab in tabs { tab.page = nil }
             favoritesByProfile[profile] = nil
         }
+        guard !isPrivate else { return }
+        for profile in previouslyUsed.subtracting(used) where profile != Space.defaultProfile {
+            profileEngines[profile] = nil
+            engine.deleteProfile?(profile)
+        }
     }
 
     // MARK: - Pages
+
+    /// The engine of a profile, whose pages run in that profile's session.
+    func engine(forProfile id: String) -> ChordWebEngine {
+        guard !isPrivate, id != Space.defaultProfile else { return engine }
+        if let known = profileEngines[id] { return known }
+        let other = engine.engine?(forProfile: id) ?? engine
+        other.setDelegate?(self)
+        profileEngines[id] = other
+        return other
+    }
+
+    /// The engine for pages shown in a Space: its profile's.
+    public func engine(for space: Space) -> ChordWebEngine {
+        engine(forProfile: space.profileID)
+    }
+
+    /// The Space a page an engine opened by itself goes to, when no tab opened it: the
+    /// active Space if it is on the engine's profile, else the first one that is.
+    private func space(for engine: ChordWebEngine) -> Space {
+        let profile = isPrivate || engine === self.engine
+            ? Space.defaultProfile
+            : profileEngines.first { $0.value === engine }?.key
+        if activeSpace.profileID == profile { return activeSpace }
+        return spaces.first { $0.profileID == profile } ?? activeSpace
+    }
 
     /// The tab's page, created and loaded on first use.
     @discardableResult
     func page(for tab: Tab) -> ChordWebPage {
         if let page = tab.page { return page }
-        let page = engine.makePage()
+        let page = engine(forProfile: profileID(of: tab)).makePage()
         page.delegate = self
         tab.page = page
         if let url = tab.url { page.load(url) }
@@ -713,6 +820,7 @@ public final class BrowserState: NSObject {
     /// rather than duplicates. A first launch with nothing open loses its default Spaces.
     func add(spaces imported: [Space], favorites importedFavorites: [String: [Tab]]) {
         guard !imported.isEmpty || !importedFavorites.isEmpty else { return }
+        let used = Set(spaces.map(\.profileID))
         if isPristine, !imported.isEmpty {
             spaces = imported
         } else {
@@ -729,7 +837,7 @@ public final class BrowserState: NSObject {
             for tab in favoritesByProfile[profile] ?? [] { tab.page = nil }
             favoritesByProfile[profile] = tabs
         }
-        dropUnusedFavorites()
+        dropUnusedProfiles(previouslyUsed: used)
         if !spaces.contains(where: { $0.id == activeSpaceID }) { activeSpaceID = imported.first?.id ?? spaces[0].id }
         changes.send(.spaces)
         changes.send(.activeSpace)
@@ -753,7 +861,12 @@ extension BrowserState: ChordWebPageDelegate {
     }
 
     public func page(_ page: ChordWebPage, wantsNewTabWith url: URL) {
-        openTab(url: url)
+        openTab(url: url, in: space(opening: page))
+    }
+
+    /// The Space of the tab showing `page`, for the tabs it opens.
+    private func space(opening page: ChordWebPage) -> Space? {
+        tab(owning: page).flatMap { owningSpace(of: $0) }
     }
 
     /// ⇧-click opens a Peek, ⌘-click a background tab. Like Arc, a link that leaves the
@@ -764,7 +877,7 @@ extension BrowserState: ChordWebPageDelegate {
             return false
         }
         if modifiers.contains(.command) {
-            openTab(url: url, select: false)
+            openTab(url: url, select: false, in: space(opening: page))
             return false
         }
         if let tab = tab(owning: page), tab.section != .today,
@@ -810,7 +923,7 @@ extension BrowserState: ChordWebEngineDelegate {
     /// of the page that opened it.
     public func engine(_ engine: ChordWebEngine, didOpen page: ChordWebPage, opener: ChordWebPage?, inBackground: Bool) {
         guard tab(owning: page) == nil else { return }
-        let space = opener.flatMap { tab(owning: $0) }.flatMap { owningSpace(of: $0) }
+        let space = opener.flatMap { self.space(opening: $0) } ?? self.space(for: engine)
         openTab(url: page.url ?? URL(string: "about:blank")!, select: !inBackground, adopting: page, in: space)
     }
 
@@ -820,5 +933,9 @@ extension BrowserState: ChordWebEngineDelegate {
 
     public func engine(_ engine: ChordWebEngine, wantsToShow page: ChordWebPage) {
         if let tab = tab(owning: page) { select(tab) }
+    }
+
+    public func engine(_ engine: ChordWebEngine, page: ChordWebPage, requests request: ChordPermissionRequest) {
+        changes.send(.permission(PermissionAsk(page: page, request: request)))
     }
 }

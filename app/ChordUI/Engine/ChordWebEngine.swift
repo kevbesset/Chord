@@ -17,6 +17,23 @@ import AppKit
     /// An engine on a private profile, for private browsing windows: no history,
     /// cookies or cache kept once its last window closes.
     @objc optional func makePrivateEngine() -> ChordWebEngine
+    /// The engine of another of ChordUI's profiles, made on first use. Like Arc's
+    /// profiles, each keeps its own session (cookies, storage, history, extensions);
+    /// this engine's own profile is ChordUI's default one. Its pages may load a moment
+    /// later, while the profile opens.
+    @objc optional func engine(forProfile profileID: String) -> ChordWebEngine
+    /// Deletes another profile no Space uses any more, its data and its folder (some of
+    /// it at the next launch, for a profile that was open). Its pages are closed.
+    @objc optional func deleteProfile(_ profileID: String)
+    /// Deletes ChordUI's other profiles that are not among `profileIDs`.
+    @objc(deleteProfilesExcept:) optional func deleteProfiles(except profileIDs: [String])
+    /// Pages from this engine's profile history and bookmarks for what is typed in the
+    /// command bar, best first: "url", "title", and "isTopHit" ("1" when it completes the
+    /// text, like the omnibox's inline completion). `completion` may come several times
+    /// as more arrive, until the next call. An empty text ends the search.
+    @objc optional func suggest(_ text: String, completion: @escaping ([[String: String]]) -> Void)
+    /// Whether the page belongs to this engine's profile.
+    @objc optional func ownsPage(_ page: ChordWebPage) -> Bool
 }
 
 @objc(ChordWebEngineDelegate) public protocol ChordWebEngineDelegate: AnyObject {
@@ -28,6 +45,26 @@ import AppKit
     /// The engine wants the page on screen: the "back to tab" button of a
     /// picture-in-picture window, a notification clicked.
     @objc optional func engine(_ engine: ChordWebEngine, wantsToShow page: ChordWebPage)
+    /// The page's site asks for permissions (camera, notifications…). ChordUI shows the
+    /// question while the page is on screen and answers it once.
+    @objc optional func engine(_ engine: ChordWebEngine, page: ChordWebPage, requests request: ChordPermissionRequest)
+}
+
+/// A site's request for permissions, answered once with `allow()`, `block()` or
+/// `dismiss()` (no decision: the site may ask again later).
+@objc(ChordPermissionRequest) public protocol ChordPermissionRequest: AnyObject {
+    /// The site's host.
+    var site: String { get }
+    /// What the site asks for, as the engine words it ("Utiliser vos caméras").
+    var asks: [String] { get }
+    /// An SF Symbol for the first thing asked.
+    var symbol: String { get }
+    /// Set by ChordUI: the request went away unanswered (another tab was selected, the
+    /// tab closed). The engine asks again when it comes back.
+    var onCancel: (() -> Void)? { get set }
+    func allow()
+    func block()
+    func dismiss()
 }
 
 @objc(ChordWebPage) public protocol ChordWebPage: AnyObject {
@@ -68,15 +105,16 @@ import AppKit
     /// Where the page goes in an area of `size` while its tools are docked, with a
     /// top-left origin.
     @objc optional func pageFrame(withDevToolsIn size: NSSize) -> NSRect
-    /// What the page's site may do for a permission ("notifications", "geolocation",
-    /// "camera", "microphone", "popups", "sound", "autoPictureInPicture"): "allow",
-    /// "block" or "ask"; nil when the engine does not know it for this page.
+    /// What the page's site may do for a permission, by the engine's name for it
+    /// ("notifications", "media_stream_camera"…): "allow", "block" or "ask"; nil when
+    /// the engine does not know it for this page.
     @objc optional func permissionState(_ permission: String) -> String?
     /// Changes what the page's site may do; "default" goes back to the browser's choice.
     @objc optional func setPermission(_ permission: String, state: String)
-    /// Whether the permission was chosen for the page's site rather than inherited from
-    /// the browser's defaults.
-    @objc optional func permissionIsSiteSpecific(_ permission: String) -> Bool
+    /// The site's permissions worth showing: notifications, then every one chosen for
+    /// this site rather than left to the browser's default. Each has an "id" (as above),
+    /// a "title" in the browser's language and a "state".
+    @objc optional var sitePermissions: [[String: String]] { get }
 }
 
 @objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {

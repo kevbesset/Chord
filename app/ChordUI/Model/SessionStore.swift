@@ -35,7 +35,9 @@ struct SpaceSnapshot: Codable {
 }
 
 struct SessionSnapshot: Codable {
-    var version: Int = 3
+    /// 4: each profile is a session of its own (cookies, storage), not only favorites.
+    static let currentVersion = 4
+    var version: Int = SessionSnapshot.currentVersion
     var spaces: [SpaceSnapshot]
     var activeSpaceID: UUID
     /// Version 2: favorites shared by every Space. Read as the default profile's.

@@ -57,7 +57,17 @@
 - (void)togglePictureInPicture;
 - (NSString*)permissionState:(NSString*)permission;
 - (void)setPermission:(NSString*)permission state:(NSString*)state;
-- (BOOL)permissionIsSiteSpecific:(NSString*)permission;
+- (NSArray<NSDictionary<NSString*, NSString*>*>*)sitePermissions;
+@end
+
+@protocol ChordPermissionRequest <NSObject>
+@property(nonatomic, readonly, copy) NSString* site;
+@property(nonatomic, readonly, copy) NSArray<NSString*>* asks;
+@property(nonatomic, readonly, copy) NSString* symbol;
+@property(nonatomic, copy) void (^onCancel)(void);
+- (void)allow;
+- (void)block;
+- (void)dismiss;
 @end
 
 @protocol ChordWebEngine;
@@ -70,6 +80,9 @@
 - (void)engine:(id<ChordWebEngine>)engine didClose:(id<ChordWebPage>)page;
 @optional
 - (void)engine:(id<ChordWebEngine>)engine wantsToShow:(id<ChordWebPage>)page;
+- (void)engine:(id<ChordWebEngine>)engine
+          page:(id<ChordWebPage>)page
+      requests:(id<ChordPermissionRequest>)request;
 @end
 
 @protocol ChordWebEngine <NSObject>
@@ -78,6 +91,13 @@
 - (void)cancelDownload:(NSString*)downloadID;
 - (void)setDelegate:(id<ChordWebEngineDelegate>)delegate;
 - (id<ChordWebEngine>)makePrivateEngine;
+- (id<ChordWebEngine>)engineForProfile:(NSString*)profileID;
+- (void)deleteProfile:(NSString*)profileID;
+- (void)deleteProfilesExcept:(NSArray<NSString*>*)profileIDs;
+- (BOOL)ownsPage:(id<ChordWebPage>)page;
+- (void)suggest:(NSString*)text
+     completion:
+         (void (^)(NSArray<NSDictionary<NSString*, NSString*>*>*))completion;
 @end
 
 // The class methods of ChordUIHost, reached with NSClassFromString(@"ChordUIHost").
