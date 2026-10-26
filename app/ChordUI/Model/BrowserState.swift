@@ -18,6 +18,8 @@ public enum StateChange: Equatable {
     case downloadStarted
     /// A page's site asks for permissions: the window showing the page asks the user.
     case permission(PermissionAsk)
+    /// Extensions were added, removed or pinned, or a badge or icon changed.
+    case extensions
 }
 
 /// A site's question, with the page it comes from.
@@ -933,6 +935,10 @@ extension BrowserState: ChordWebEngineDelegate {
 
     public func engine(_ engine: ChordWebEngine, wantsToShow page: ChordWebPage) {
         if let tab = tab(owning: page) { select(tab) }
+    }
+
+    public func engineExtensionsDidChange(_ engine: ChordWebEngine) {
+        changes.send(.extensions)
     }
 
     public func engine(_ engine: ChordWebEngine, page: ChordWebPage, requests request: ChordPermissionRequest) {

@@ -30,6 +30,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private let siteControls = SiteControlsController()
     private var siteControlsTabID: UUID?
     private let permissionPrompt = PermissionPromptController()
+    private let extensionPopup = ExtensionPopupController()
     private let toast = ToastView()
     /// True while a swipe hands its Space to the state, which needs no slide of its own.
     private var isEndingSwipe = false
@@ -329,7 +330,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         pendingHide?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self, self.sidebarMode == .floating, !self.commandBar.isVisible, !self.siteControls.isVisible,
-                  !self.permissionPrompt.isVisible else { return }
+                  !self.permissionPrompt.isVisible, !self.extensionPopup.isVisible else { return }
             self.setSidebarMode(.hidden, animated: true)
         }
         pendingHide = work
@@ -355,6 +356,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         commandBar.actionsProvider = { [weak self] in self?.commandActions() ?? [] }
         commandBar.onDismiss = { [weak self] in self?.focusPage() }
         permissionPrompt.onClose = { [weak self] in self?.permissionPromptClosed() }
+        let extensionActions = makeExtensionActions()
+        sidebar.extensionActions = extensionActions
+        pageArea.toolbar.extensionActions = extensionActions
+        siteControls.extensionActions = extensionActions
+        extensionPopup.onClose = { [weak self] in self?.extensionPopupClosed() }
     }
 
     private func handle(_ key: ChordSettings.Key) {
@@ -413,6 +419,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             presentPeek(url)
         case .permission(let ask):
             presentPermission(ask)
+        case .extensions:
+            updateExtensions()
+            siteControls.refresh()
         }
     }
 
@@ -433,6 +442,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             window?.makeFirstResponder(view)
         }
         sidebar.updateNavigation(tab: selected)
+        updateExtensions()
         // Only the key window's page is the engine's active one.
         if window?.isKeyWindow == true { selected?.page?.didBecomeActive?() }
         updatePictureInPicture(showing: tabs.compactMap(\.page))
@@ -658,6 +668,61 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         if sidebarMode == .floating, let window,
            !sidebar.bounds.contains(sidebar.convert(window.mouseLocationOutsideOfEventStream, from: nil)) {
             scheduleHide()
+        }
+    }
+
+    // MARK: - Extensions
+
+    /// What extensions' buttons do, in the address fields and the site card: always on
+    /// the selected page.
+    private func makeExtensionActions() -> ExtensionActions {
+        ExtensionActions(
+            run: { [weak self] item, anchor in self?.runExtension(item, from: anchor) },
+            setPinned: { [weak self] item, pinned in self?.state.selectedTab?.page?.setExtension?(item.id, pinned: pinned) },
+            open: { [weak self] url in self?.state.openTab(url: url) },
+            uninstall: { [weak self] item in self?.confirmUninstall(item) }
+        )
+    }
+
+    /// The pinned extensions of the selected page, with its badges, in the address.
+    private func updateExtensions() {
+        let pinned = PageExtension.all(of: state.selectedTab?.page).filter(\.isPinned)
+        sidebar.setExtensions(pinned)
+        pageArea.toolbar.setExtensions(pinned)
+    }
+
+    /// Like a click on the extension's button in Chrome: it acts on the selected page,
+    /// and its popup, if it has one, hangs from `anchor`.
+    private func runExtension(_ item: PageExtension, from anchor: NSView) {
+        guard let page = state.selectedTab?.page else { return }
+        page.didBecomeActive?()
+        guard let popup = page.runExtension?(item.id) else { return }
+        // The sidebar's buttons stay while the popup hangs from one of them.
+        if anchor.isDescendant(of: sidebar) { sidebar.pinsAddressButtons = true }
+        pendingHide?.cancel()
+        extensionPopup.show(popup, from: anchor)
+    }
+
+    private func extensionPopupClosed() {
+        if !permissionPrompt.isVisible { sidebar.pinsAddressButtons = false }
+        if sidebarMode == .floating, let window,
+           !sidebar.bounds.contains(sidebar.convert(window.mouseLocationOutsideOfEventStream, from: nil)) {
+            scheduleHide()
+        }
+        focusPage()
+    }
+
+    private func confirmUninstall(_ item: PageExtension) {
+        guard let window, let page = state.selectedTab?.page else { return }
+        let alert = NSAlert()
+        alert.messageText = "Supprimer « \(item.name) » ?"
+        alert.informativeText = "L'extension et ses données sont supprimées de ce profil."
+        alert.addButton(withTitle: "Supprimer")
+        alert.addButton(withTitle: "Annuler")
+        alert.buttons.first?.hasDestructiveAction = true
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            page.uninstallExtension?(item.id)
         }
     }
 

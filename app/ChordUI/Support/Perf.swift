@@ -19,6 +19,7 @@ public enum Perf {
         "littlewindow.open": 100,
         "sitecontrols.open": 50,
         "permission.prompt": 50,
+        "extension.popup": 50,
         "app.launch": 1000,
     ]
 

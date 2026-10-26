@@ -55,6 +55,21 @@ import AppKit
     /// The page's site asks for permissions (camera, notifications…). ChordUI shows the
     /// question while the page is on screen and answers it once.
     @objc optional func engine(_ engine: ChordWebEngine, page: ChordWebPage, requests request: ChordPermissionRequest)
+    /// The engine's extensions changed: added, removed, pinned, a badge or an icon.
+    @objc optional func engineExtensionsDidChange(_ engine: ChordWebEngine)
+}
+
+/// An extension's popup, from its button. ChordUI shows `view` at `preferredSize`,
+/// which the popup's content decides.
+@objc(ChordExtensionPopup) public protocol ChordExtensionPopup: AnyObject {
+    var view: NSView { get }
+    var preferredSize: NSSize { get }
+    /// The content loaded, or changed size.
+    var onResize: (() -> Void)? { get set }
+    /// The popup closed itself (`window.close()`).
+    var onClose: (() -> Void)? { get set }
+    /// ChordUI closed it.
+    func close()
 }
 
 /// A site's request for permissions, answered once with `allow()`, `block()` or
@@ -122,6 +137,16 @@ import AppKit
     /// this site rather than left to the browser's default. Each has an "id" (as above),
     /// a "title" in the browser's language and a "state".
     @objc optional var sitePermissions: [[String: String]] { get }
+    /// The extensions with a button (a toolbar button in Chrome), as this page sees
+    /// them (badges are per tab), pinned ones first. Each: "id", "name", "icon"
+    /// (NSImage), "badge", "badgeColor" (NSColor), "pinned" (Bool), "options" (a URL).
+    @objc optional var extensions: [[String: Any]] { get }
+    /// Runs the extension's action on this page, as a click on its button: returns its
+    /// popup for ChordUI to show, or nil when the action shows none.
+    @objc optional func runExtension(_ id: String) -> ChordExtensionPopup?
+    /// Pins the extension's button in the address field, or takes it out.
+    @objc optional func setExtension(_ id: String, pinned: Bool)
+    @objc optional func uninstallExtension(_ id: String)
 }
 
 @objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {

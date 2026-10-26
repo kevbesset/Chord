@@ -74,6 +74,14 @@ final class SidebarView: NSView {
         get { addressPill.pinsButtons }
         set { addressPill.pinsButtons = newValue }
     }
+
+    var extensionActions: ExtensionActions? {
+        get { addressPill.extensionActions }
+        set { addressPill.extensionActions = newValue }
+    }
+
+    /// The pinned extensions, in the address.
+    func setExtensions(_ items: [PageExtension]) { addressPill.setExtensions(items) }
     private let resizeHandle = SidebarResizeHandle()
     // The first row shares the title bar with the traffic lights: a touch larger than
     // the other icons, so that they hold their own next to them.

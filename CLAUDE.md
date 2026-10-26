@@ -92,10 +92,12 @@ et corriger les erreurs avant de rendre la main.
 - Demandes de permission des pages : petite bulle discrète en haut de la page, comme
   Arc (Bloquer / Autoriser), qui ne bloque pas la page ; double-clic sur la vidéo PiP
   ou « retour à l'onglet » : l'onglet revient, Space compris.
-- Réglages du site comme Arc (bouton interrupteurs dans le champ d'adresse, barre
-  latérale ou barre du haut) : carte avec copier, partager, les notifications et les
-  autorisations choisies pour le site (interrupteurs, gardées dans les content settings
-  de Chromium) et un lien vers tous les réglages du site.
+- Réglages du site comme Arc (bouton du champ d'adresse, barre latérale ou barre du
+  haut) : carte avec partager, copier, outils de développement, les extensions (tuiles
+  avec badge ; clic = popup, clic droit = épingler, options, gérer, supprimer), les
+  autorisations choisies pour le site et un lien vers tous les réglages du site. Les
+  extensions épinglées ont leur bouton dans le champ d'adresse ; leurs popups s'ouvrent
+  dans une bulle native (//chord héberge l'`ExtensionViewHost`).
 - `chord://` pour les pages internes de Chromium (`chord://settings`,
   `chord://extensions`, aussi dans la barre de commande).
 - Après un plantage, le lancement suivant écrit un rapport lisible dans

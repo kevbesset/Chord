@@ -21,6 +21,10 @@ final class AddressPillView: NSView {
     /// The site controls button, which a site's question hangs from.
     var siteControlsAnchor: NSView { siteControlsButton }
 
+    /// What the pinned extensions' buttons do.
+    var extensionActions: ExtensionActions?
+    private var extensionButtons: [ExtensionButton] = []
+
     private let icon = NSImageView()
     /// Shown only for a site without encryption that is not local.
     private let insecureLabel = NSTextField(labelWithString: "Non sécurisé")
@@ -94,6 +98,19 @@ final class AddressPillView: NSView {
         setAccessibilityLabel((url.isInsecure ? "Non sécurisé. " : "") + "Adresse : \(url.absoluteString)")
         hasURL = true
         refreshButtons()
+    }
+
+    /// The pinned extensions, before the copy button, like Arc's.
+    func setExtensions(_ items: [PageExtension]) {
+        guard let extensionActions else { return }
+        for button in extensionButtons {
+            buttons.removeArrangedSubview(button)
+            button.removeFromSuperview()
+        }
+        extensionButtons = items.map { ExtensionButton(item: $0, actions: extensionActions, size: 24, iconSize: 15) }
+        for (index, button) in extensionButtons.enumerated() {
+            buttons.insertArrangedSubview(button, at: index)
+        }
     }
 
     private func refreshButtons() {

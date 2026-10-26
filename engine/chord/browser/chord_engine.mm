@@ -3,6 +3,7 @@
 #import "chord/browser/chord_engine.h"
 
 #include "chord/browser/chord_arc_import.h"
+#include "chord/browser/chord_extensions.h"
 #include "chord/browser/chord_hooks.h"
 #include "chord/browser/chord_suggester.h"
 
@@ -64,6 +65,11 @@
 #include "url/gurl.h"
 
 @class ChordPage;
+
+@interface ChordEngine ()
+// The profile's extensions, for its pages; nullptr for a private engine.
+- (chord::ExtensionsWatcher*)extensionsWatcher;
+@end
 
 namespace {
 
@@ -636,6 +642,32 @@ class PageObserver : public content::WebContentsObserver {
   settings->SetContentSettingDefaultScope(url, url, *type, setting);
 }
 
+// MARK: Extensions
+
+- (NSArray<NSDictionary<NSString*, id>*>*)extensions {
+  chord::ExtensionsWatcher* watcher =
+      _webContents ? [self.engine extensionsWatcher] : nullptr;
+  return watcher ? watcher->ExtensionsFor(_webContents) : @[];
+}
+
+- (id<ChordExtensionPopup>)runExtension:(NSString*)extensionID {
+  return _webContents ? chord::RunExtension(_webContents,
+                                            base::SysNSStringToUTF8(extensionID))
+                      : nil;
+}
+
+- (void)setExtension:(NSString*)extensionID pinned:(BOOL)pinned {
+  if (chord::ExtensionsWatcher* watcher = [self.engine extensionsWatcher]) {
+    watcher->SetPinned(base::SysNSStringToUTF8(extensionID), pinned);
+  }
+}
+
+- (void)uninstallExtension:(NSString*)extensionID {
+  if (chord::ExtensionsWatcher* watcher = [self.engine extensionsWatcher]) {
+    watcher->Uninstall(base::SysNSStringToUTF8(extensionID));
+  }
+}
+
 // Docked DevTools: their WebContents fills the page's area, the page sits where the
 // DevTools' layout leaves room (the same strategy as Chromium's DevtoolsUIController).
 - (NSView*)devToolsView {
@@ -834,6 +866,7 @@ void DeleteProfileAt(const base::FilePath& path) {
   std::unique_ptr<chord::Suggester> _suggester;
   // Work waiting for the profile to load (an Arc import).
   NSMutableArray<void (^)(void)>* _whenProfileLoads;
+  std::unique_ptr<chord::ExtensionsWatcher> _extensionsWatcher;
 }
 
 - (instancetype)initWithProfile:(Profile*)profile {
@@ -871,6 +904,23 @@ void DeleteProfileAt(const base::FilePath& path) {
   _profile = profile;
   _profileKeepAlive = std::make_unique<ScopedProfileKeepAlive>(
       profile, ProfileKeepAliveOrigin::kBrowserWindow);
+  if (!_private) {
+    ChordEngine* __weak weakSelf = self;
+    _extensionsWatcher = std::make_unique<chord::ExtensionsWatcher>(
+        profile, base::BindRepeating(^{
+          [weakSelf announceExtensionsChanged];
+        }));
+  }
+}
+
+- (chord::ExtensionsWatcher*)extensionsWatcher {
+  return _extensionsWatcher.get();
+}
+
+- (void)announceExtensionsChanged {
+  if ([_delegate respondsToSelector:@selector(engineExtensionsDidChange:)]) {
+    [_delegate engineExtensionsDidChange:self];
+  }
 }
 
 - (void)profileDidLoad:(Profile*)profile {
@@ -967,6 +1017,7 @@ void DeleteProfileAt(const base::FilePath& path) {
 - (void)forgetProfile {
   _forgotten = YES;
   _suggester.reset();
+  _extensionsWatcher.reset();
   [_waitingPages removeAllObjects];
   _profileKeepAlive.reset();
   _profile = nullptr;

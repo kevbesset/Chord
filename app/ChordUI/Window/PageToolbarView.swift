@@ -23,6 +23,13 @@ final class PageToolbarView: NSView {
     /// The site controls button at the end of the address, while there is a page.
     var siteControlsAnchor: NSView { address.siteControlsAnchor }
 
+    var extensionActions: ExtensionActions? {
+        get { address.extensionActions }
+        set { address.extensionActions = newValue }
+    }
+
+    func setExtensions(_ items: [PageExtension]) { address.setExtensions(items) }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
@@ -104,6 +111,9 @@ final class ToolbarAddressView: NSView {
     var onSiteControls: ((NSView) -> Void)?
     private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: "Réglages du site", target: self, action: #selector(siteControlsClicked), size: 20, pointSize: 13)
     var siteControlsAnchor: NSView { siteControlsButton }
+    var extensionActions: ExtensionActions?
+    /// The pinned extensions, before the site controls.
+    private let extensionsStack = NSStackView()
     private let icon = NSImageView()
     /// Shown only for a site without encryption that is not local.
     private let insecureLabel = NSTextField(labelWithString: "Non sécurisé")
@@ -127,11 +137,16 @@ final class ToolbarAddressView: NSView {
         siteControlsButton.isHidden = true
         siteControlsButton.translatesAutoresizingMaskIntoConstraints = false
         addSubview(siteControlsButton)
+        extensionsStack.spacing = 0
+        extensionsStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(extensionsStack)
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor),
             stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 28),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: siteControlsButton.leadingAnchor, constant: -4),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: extensionsStack.leadingAnchor, constant: -4),
+            extensionsStack.trailingAnchor.constraint(equalTo: siteControlsButton.leadingAnchor),
+            extensionsStack.centerYAnchor.constraint(equalTo: centerYAnchor),
             siteControlsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
             siteControlsButton.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
@@ -161,6 +176,14 @@ final class ToolbarAddressView: NSView {
     }
 
     @objc private func siteControlsClicked() { onSiteControls?(siteControlsButton) }
+
+    func setExtensions(_ items: [PageExtension]) {
+        extensionsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        guard let extensionActions else { return }
+        for item in items {
+            extensionsStack.addArrangedSubview(ExtensionButton(item: item, actions: extensionActions, size: 20, iconSize: 14))
+        }
+    }
 
     override var wantsUpdateLayer: Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }

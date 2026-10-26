@@ -1,8 +1,8 @@
 import AppKit
 
 /// The site's controls, from the button in the address field, like Arc's: quick actions
-/// in tiles, the site's permissions (notifications, and every one chosen for this site),
-/// then the connection and a way to all of the site's settings. A card laid over the
+/// in tiles, the extensions, the site's permissions (notifications, and every one chosen
+/// for this site), then the connection and a way to all of the site's settings. A card laid over the
 /// window, like the command bar; the engine keeps the permissions.
 final class SiteControlsController: NSObject {
     private static let width: CGFloat = 300
@@ -11,6 +11,9 @@ final class SiteControlsController: NSObject {
     /// Opens a page in a new tab (the site's full settings).
     var onOpen: ((URL) -> Void)?
     var onDismiss: (() -> Void)?
+    /// What the extensions' tiles do. A tile's popup hangs from the button that
+    /// opened the card, as the card closes.
+    var extensionActions: ExtensionActions?
     var isGlass = true
     private(set) var isVisible = false
 
@@ -20,6 +23,8 @@ final class SiteControlsController: NSObject {
     private let content = KeyCatcherView()
     private var page: ChordWebPage?
     private var url: URL?
+    private weak var anchor: NSView?
+    private weak var host: NSView?
 
     /// Shows the controls of `page` in `host`, under `anchor` (the button that opened them).
     func present(page: ChordWebPage, url: URL, in host: NSView, below anchor: NSView) {
@@ -27,9 +32,29 @@ final class SiteControlsController: NSObject {
         defer { DispatchQueue.main.async { interval.end() } }
         self.page = page
         self.url = url
+        self.anchor = anchor
+        self.host = host
         install(in: host)
         rebuild()
+        place()
+        panel.material = isGlass ? .popover : .windowBackground
 
+        scrim.isHidden = false
+        panelHost.isHidden = false
+        isVisible = true
+        host.window?.makeFirstResponder(content)
+    }
+
+    /// Draws the card again (an extension's badge or pin changed), where it is.
+    func refresh() {
+        guard isVisible else { return }
+        rebuild()
+        place()
+    }
+
+    /// Under the anchor, as tall as its content.
+    private func place() {
+        guard let anchor, let host else { return }
         content.layoutSubtreeIfNeeded()
         let size = NSSize(width: Self.width, height: content.fittingSize.height)
         let rect = anchor.convert(anchor.bounds, to: host)
@@ -37,12 +62,6 @@ final class SiteControlsController: NSObject {
         let gap: CGFloat = 6
         let y = host.isFlipped ? rect.maxY + gap : rect.minY - gap - size.height
         panelHost.frame = NSRect(x: x, y: y, width: size.width, height: size.height)
-        panel.material = isGlass ? .popover : .windowBackground
-
-        scrim.isHidden = false
-        panelHost.isHidden = false
-        isVisible = true
-        host.window?.makeFirstResponder(content)
     }
 
     func dismiss() {
@@ -93,6 +112,10 @@ final class SiteControlsController: NSObject {
         content.subviews.forEach { $0.removeFromSuperview() }
 
         var sections: [(view: NSView, gap: CGFloat)] = [(actions(), 0)]
+        if let extensionActions {
+            sections.append((SectionTitle("Extensions"), 14))
+            sections.append((extensionsGrid(PageExtension.all(of: page), actions: extensionActions), 6))
+        }
         let permissions = page.sitePermissions ?? []
         if !permissions.isEmpty {
             sections.append((SectionTitle("Autorisations"), 14))
@@ -193,6 +216,38 @@ final class SiteControlsController: NSObject {
         row.distribution = .fillEqually
         row.spacing = 8
         return row
+    }
+
+    /// The extensions in tiles, four to a row, then one to manage them all. A click runs
+    /// one (its popup comes from the card's button), a right click shows its menu.
+    private func extensionsGrid(_ items: [PageExtension], actions: ExtensionActions) -> NSView {
+        var tiles: [NSView] = items.map { item in
+            ExtensionTile(item: item, menu: { actions.menu(for: item) }) { [weak self] in
+                guard let self, let anchor = self.anchor else { return }
+                self.dismiss()
+                actions.run(item, anchor)
+            }
+        }
+        tiles.append(ExtensionTile(symbol: "plus", title: "Gérer les extensions") { [weak self] in
+            self?.dismiss()
+            if let url = URL(string: "chrome://extensions") { actions.open(url) }
+        })
+        let columns = 4
+        let rows = stride(from: 0, to: tiles.count, by: columns).map { start -> NSView in
+            var row = Array(tiles[start..<min(start + columns, tiles.count)])
+            // Empty cells keep the tiles of a short last row at their size.
+            while row.count < columns { row.append(NSView()) }
+            let stack = NSStackView(views: row)
+            stack.distribution = .fillEqually
+            stack.spacing = 8
+            return stack
+        }
+        let grid = NSStackView(views: rows)
+        grid.orientation = .vertical
+        grid.alignment = .width
+        grid.spacing = 8
+        for row in rows { row.widthAnchor.constraint(equalTo: grid.widthAnchor).isActive = true }
+        return grid
     }
 
     /// The connection, then every setting of the site.
@@ -360,6 +415,108 @@ private final class ActionTile: HoverRow {
     }
 
     override func press() { handler(self) }
+}
+
+/// An extension in the card: its icon and badge on a raised tile like the actions', a
+/// pin when it is pinned in the address. Or, without one, a symbol (manage them all).
+private final class ExtensionTile: HoverRow {
+    private let handler: () -> Void
+    private let contextMenu: (() -> NSMenu?)?
+
+    init(item: PageExtension, menu: @escaping () -> NSMenu?, handler: @escaping () -> Void) {
+        self.handler = handler
+        contextMenu = menu
+        super.init(frame: .zero)
+        let icon = ExtensionIconView(size: 20)
+        icon.configure(item)
+        addSubview(icon)
+        var constraints = [
+            heightAnchor.constraint(equalToConstant: 46),
+            icon.centerXAnchor.constraint(equalTo: centerXAnchor),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ]
+        if item.isPinned {
+            let pin = PinMark()
+            pin.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(pin)
+            constraints += [
+                pin.centerXAnchor.constraint(equalTo: icon.trailingAnchor, constant: 2),
+                pin.centerYAnchor.constraint(equalTo: icon.bottomAnchor, constant: 1),
+            ]
+        }
+        NSLayoutConstraint.activate(constraints)
+        toolTip = item.name
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(item.name)
+    }
+
+    init(symbol: String, title: String, handler: @escaping () -> Void) {
+        self.handler = handler
+        contextMenu = nil
+        super.init(frame: .zero)
+        let icon = NSImageView(image: Theme.symbol(symbol, size: 15) ?? NSImage())
+        icon.contentTintColor = .secondaryLabelColor
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 46),
+            icon.centerXAnchor.constraint(equalTo: centerXAnchor),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        toolTip = title
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(title)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func updateLayer() {
+        guard let layer else { return }
+        let dark = isDarkAppearance
+        layer.cornerRadius = 11
+        let alpha: CGFloat = dark ? (isHovered ? 0.12 : 0.07) : (isHovered ? 0.1 : 0.06)
+        layer.backgroundColor = NSColor.labelColor.withAlphaComponent(alpha).cgColor
+    }
+
+    override func menu(for event: NSEvent) -> NSMenu? { contextMenu?() }
+    override func press() { handler() }
+
+    /// VoiceOver's "show menu": the same menu as a right click.
+    override func accessibilityPerformShowMenu() -> Bool {
+        guard let menu = contextMenu?() else { return false }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.maxY), in: self)
+        return true
+    }
+}
+
+/// The small pin on a pinned extension's tile, like Arc's.
+private final class PinMark: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        let icon = NSImageView(image: Theme.symbol("pin.fill", size: 6, weight: .bold) ?? NSImage())
+        icon.contentTintColor = .white
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 13),
+            heightAnchor.constraint(equalToConstant: 13),
+            icon.centerXAnchor.constraint(equalTo: centerXAnchor),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override var wantsUpdateLayer: Bool { true }
+    override func updateLayer() {
+        layer?.cornerRadius = 6.5
+        layer?.backgroundColor = NSColor.black.withAlphaComponent(0.85).cgColor
+        layer?.borderWidth = 1.5
+        layer?.borderColor = NSColor.white.withAlphaComponent(isDarkAppearance ? 0.2 : 0.9).cgColor
+    }
 }
 
 /// One permission, like Arc's settings: a round badge, filled when allowed, the name and

@@ -14,6 +14,14 @@
 
 @protocol ChordWebPage;
 
+@protocol ChordExtensionPopup <NSObject>
+@property(nonatomic, readonly, strong) NSView* view;
+@property(nonatomic, readonly) NSSize preferredSize;
+@property(nonatomic, copy) void (^onResize)(void);
+@property(nonatomic, copy) void (^onClose)(void);
+- (void)close;
+@end
+
 @protocol ChordWebPageDelegate <NSObject>
 - (void)pageDidUpdate:(id<ChordWebPage>)page;
 - (void)page:(id<ChordWebPage>)page wantsNewTabWith:(NSURL*)url;
@@ -58,6 +66,11 @@
 - (NSString*)permissionState:(NSString*)permission;
 - (void)setPermission:(NSString*)permission state:(NSString*)state;
 - (NSArray<NSDictionary<NSString*, NSString*>*>*)sitePermissions;
+@property(nonatomic, readonly, copy)
+    NSArray<NSDictionary<NSString*, id>*>* extensions;
+- (id<ChordExtensionPopup>)runExtension:(NSString*)extensionID;
+- (void)setExtension:(NSString*)extensionID pinned:(BOOL)pinned;
+- (void)uninstallExtension:(NSString*)extensionID;
 @end
 
 @protocol ChordPermissionRequest <NSObject>
@@ -83,6 +96,7 @@
 - (void)engine:(id<ChordWebEngine>)engine
           page:(id<ChordWebPage>)page
       requests:(id<ChordPermissionRequest>)request;
+- (void)engineExtensionsDidChange:(id<ChordWebEngine>)engine;
 @end
 
 @protocol ChordWebEngine <NSObject>

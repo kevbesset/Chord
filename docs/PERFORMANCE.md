@@ -15,6 +15,7 @@ qui le dépasse ne sort pas.
 | Ouvrir une petite fenêtre | `littlewindow.open` | 100 ms |
 | Ouvrir les réglages du site | `sitecontrols.open` | 50 ms |
 | Afficher la demande d'autorisation d'un site | `permission.prompt` | 50 ms |
+| Afficher la popup d'une extension, une fois chargée | `extension.popup` | 50 ms |
 | Lancement jusqu'à la première fenêtre | `app.launch` | 1 000 ms |
 | Défilement et animations | — | 120 images/s sur ProMotion, aucune image sautée |
 
