@@ -134,18 +134,12 @@ Les raccourcis reprennent ceux d'Arc partout où ils existent, pour que les anci
 
 Chord est open source. C'est la réponse au problème d'Arc : le code appartient à la communauté et survit au projet.
 
-**Licence : à trancher avant le premier contributeur externe.** Tant que Kevin possède 100 % du code, il peut changer de licence quand il veut. Dès qu'un contributeur arrive, il faut son accord, d'où un CLA (Contributor License Agreement) dès le premier jour, qui garde la possibilité de relicencier, de proposer une édition commerciale, ou d'accepter un rachat. Ce qui a été publié reste ouvert pour toujours ; seules les versions futures peuvent changer.
-
-| Option | Pour le projet | Pour la communauté |
-| --- | --- | --- |
-| Apache-2.0 | Liberté maximale, rachat simple | N'importe qui peut aussi faire une version fermée |
-| MPL-2.0 | Modules propriétaires possibles à côté | Les fichiers modifiés restent ouverts |
-| GPL-3 + CLA | Seul le détenteur du CLA peut fermer ou vendre | Garantie forte, mais inspire moins confiance aux entreprises |
+**Licence : GPL-3.0** (décision 0005). Le code de Chord reste libre, dérivés compris ; Chromium, ungoogled-chromium et Sparkle gardent leurs licences (BSD, MIT). Tant que Kevin possède 100 % du code, il peut encore changer de licence. Dès qu'un contributeur arrive, ses contributions sont sous GPL-3.0 et il faudrait son accord : un CLA (Contributor License Agreement) avant la première contribution externe garde la possibilité de relicencier, de proposer une édition commerciale ou d'accepter un rachat. Ce qui a été publié reste ouvert pour toujours ; seules les versions futures peuvent changer.
 
 **Modèle économique :** gratuit, financé par les dons (GitHub Sponsors, Open Collective). Si le projet grandit, le modèle classique d'un navigateur ouvert est de vendre des services, jamais le code : synchronisation entre appareils, fonctionnalités Pro hébergées, support aux équipes. Aucune monétisation des utilisateurs ni de leurs données.
 
-- [ ] Choisir la licence (avis juridique recommandé)
-- [ ] Rédiger le CLA
+- [x] Choisir la licence : GPL-3.0
+- [ ] Rédiger le CLA, avant la première contribution externe
 - [ ] Vérifier le nom « Chord » : domaine, organisation GitHub, marques (INPI, EUIPO)
 
 ## Ce qu'on ne fait pas, pour l'instant
