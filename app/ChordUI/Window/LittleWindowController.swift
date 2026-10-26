@@ -182,7 +182,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     private func setTarget(_ space: Space) {
         targetSpace = space
         openButton.configure(space: space)
-        tint.layer?.backgroundColor = space.color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
+        tint.layer?.backgroundColor = space.color.withAlphaComponent(Theme.spaceTintBottom).cgColor
         card.setLoading(page?.isLoading ?? false, accent: space.accent)
     }
 

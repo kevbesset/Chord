@@ -33,6 +33,7 @@ source_set("browser") {
     "//chrome/common",
     "//components/input",
     "//components/os_crypt/common:switches",
+    "//components/prefs",
     "//components/tabs:public",
     "//components/web_modal",
     "//content/public/browser",

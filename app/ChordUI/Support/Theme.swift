@@ -8,8 +8,12 @@ enum Theme {
     /// Gap around the content card. Zero in edgeless mode.
     static let contentInset: CGFloat = 10
     static let cardRadius: CGFloat = 10
-    /// How strongly the active Space colours the window glass.
-    static let spaceTintAlpha: CGFloat = 0.07
+    /// How strongly the active Space colours the window glass (the sidebar), from the
+    /// top of the window to its bottom.
+    static let spaceTintTop: CGFloat = 0.16
+    static let spaceTintBottom: CGFloat = 0.07
+    static let spaceTintTopDark: CGFloat = 0.22
+    static let spaceTintBottomDark: CGFloat = 0.10
     static let tabRowHeight: CGFloat = 32
     /// The sidebar's first row (traffic lights, panel toggle, navigation). Like Arc, its
     /// buttons start level with the top of the page card, so the row sits a little lower

@@ -14,11 +14,15 @@
 #import "chord/browser/chord_browser_window.h"
 #import "chord/browser/chord_engine.h"
 #import "chord/browser/chord_ui.h"
+#include "base/values.h"
+#include "chrome/browser/browser_process.h"
 #include "chrome/browser/chrome_browser_main_extra_parts.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/common/chrome_switches.h"
+#include "chrome/common/pref_names.h"
+#include "components/prefs/pref_service.h"
 #include "components/os_crypt/common/os_crypt_switches.h"
 
 namespace chord {
@@ -93,6 +97,10 @@ class ChordBrowserMainExtraParts : public ChromeBrowserMainExtraParts {
   // On the next turn of the run loop, once AppKit has finished launching and
   // Chromium has built its menu, which ChordUI's replaces.
   void PostBrowserStart() override {
+    // ⌘Q quits at once, like Arc: no "hold ⌘Q to quit" panel, whose own event loop
+    // held up the whole interface.
+    g_browser_process->local_state()->SetDefaultPrefValue(
+        prefs::kConfirmToQuitEnabled, base::Value(false));
     dispatch_async(dispatch_get_main_queue(), ^{
       StartChordUI();
     });

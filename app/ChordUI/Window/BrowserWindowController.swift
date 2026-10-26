@@ -22,7 +22,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private let rootView = NSVisualEffectView()
     private let frostView = GlassFrostView()
-    private let tintView = NSView()
+    private let tintView = SpaceTintView()
     private let sidebar = SidebarView()
     private let pageArea = PageAreaView()
     private let edgeHover = EdgeHoverView()
@@ -125,7 +125,6 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         rootView.state = .active
         window.contentView = rootView
 
-        tintView.wantsLayer = true
         sidebar.delegate = self
         edgeHover.isHidden = true
         edgeHover.onEnter = { [weak self] in self?.scheduleReveal() }
@@ -206,12 +205,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     }
 
     private func updateTint(animated: Bool) {
-        let color = state.activeSpace.color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = animated ? Theme.motionDuration : 0
-            context.allowsImplicitAnimation = animated
-            self.tintView.layer?.backgroundColor = color
-        }
+        tintView.setColor(state.activeSpace.color, duration: animated ? Theme.motionDuration : 0)
         pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.accent)
     }
 
@@ -969,21 +963,11 @@ extension BrowserWindowController: SidebarDelegate {
     /// The window's tint follows the swipe from one Space's colour to the other's.
     func sidebarSwipeProgress(toward space: Space?, fraction: CGFloat) {
         guard let space else { return }
-        let color = state.activeSpace.color.blended(withFraction: fraction, of: space.color) ?? space.color
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        tintView.layer?.backgroundColor = color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
-        CATransaction.commit()
+        tintView.setColor(state.activeSpace.color.blended(withFraction: fraction, of: space.color) ?? space.color)
     }
 
     func sidebarSwipeWillEnd(on space: Space?, duration: TimeInterval) {
-        let color = (space ?? state.activeSpace).color.withAlphaComponent(Theme.spaceTintAlpha).cgColor
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = duration
-            context.timingFunction = Theme.motionCurve
-            context.allowsImplicitAnimation = true
-            self.tintView.layer?.backgroundColor = color
-        }
+        tintView.setColor((space ?? state.activeSpace).color, duration: duration)
     }
 
     func sidebarSwipeEnded(on space: Space?) {
