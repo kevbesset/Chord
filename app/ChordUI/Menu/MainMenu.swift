@@ -160,6 +160,20 @@ public enum MainMenu {
         }
     }
 
+    /// Shortcuts every Mac app shares, which stay as they are: editing (⌘Z, ⌘X, ⌘C, ⌘V,
+    /// ⌘A) and the app menu (⌘, ⌘H ⌘Q).
+    private static let reservedActions: Set<Selector> = [
+        Selector(("undo:")), Selector(("redo:")), #selector(NSText.cut(_:)), #selector(NSText.copy(_:)),
+        #selector(NSText.paste(_:)), #selector(NSText.selectAll(_:)),
+    ]
+
+    private static func isReserved(_ item: NSMenuItem, in menu: NSMenu) -> Bool {
+        if let action = item.action, reservedActions.contains(action) { return true }
+        // The app menu (À propos, Réglages, Masquer, Quitter).
+        guard let appMenu = menu.items.first?.submenu else { return false }
+        return appMenu.items.contains { $0 === item }
+    }
+
     /// The items that can be remapped, menu by menu, for the settings.
     public static func remappableItems(in menu: NSMenu?) -> [(menu: String, title: String, id: String)] {
         guard let menu else { return [] }
@@ -167,11 +181,24 @@ public enum MainMenu {
         for top in menu.items.dropFirst() {
             for item in top.submenu?.items ?? [] {
                 // Only Chord's own items: macOS adds some (Tout fermer…) that it manages itself.
-                guard let id = item.identifier?.rawValue, defaults[id] != nil else { continue }
+                guard let id = item.identifier?.rawValue, defaults[id] != nil, !isReserved(item, in: menu) else { continue }
                 result.append((top.title, item.title, id))
             }
         }
         return result
+    }
+
+    /// Who already answers `shortcut`, besides the item `id`: another command, or a
+    /// reserved shortcut that cannot be taken.
+    public static func owner(of shortcut: Shortcut, besides id: String, in menu: NSMenu?) -> (id: String, title: String, reserved: Bool)? {
+        guard let menu, !shortcut.key.isEmpty else { return nil }
+        var found: (String, String, Bool)?
+        forEachItem(in: menu) { item in
+            guard found == nil, let itemID = item.identifier?.rawValue, itemID != id, defaults[itemID] != nil,
+                  Shortcut(key: item.keyEquivalent, modifiers: item.keyEquivalentModifierMask) == shortcut else { return }
+            found = (itemID, item.title, isReserved(item, in: menu))
+        }
+        return found
     }
 
     public static func defaultShortcut(for id: String) -> Shortcut? { defaults[id] }

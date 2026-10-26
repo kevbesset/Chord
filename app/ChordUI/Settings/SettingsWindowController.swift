@@ -16,6 +16,13 @@ final class SettingsWindowController: NSWindowController {
         window.setContentSize(NSSize(width: 620, height: 480))
         window.center()
         super.init(window: window)
+        // A shortcut being recorded stops when the window is left: the key monitor
+        // must not take keys typed elsewhere.
+        for name in [NSWindow.didResignKeyNotification, NSWindow.willCloseNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak model] _ in
+                model?.stopRecording()
+            }
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -27,6 +34,9 @@ final class SettingsModel: ObservableObject {
     let settings: ChordSettings
     let onImportArc: () -> Void
     @Published private(set) var revision = 0
+    /// The shortcut being recorded, if any.
+    @Published private(set) var recordingID: String?
+    fileprivate var keyMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
 
     init(state: BrowserState, settings: ChordSettings, onImportArc: @escaping () -> Void) {
@@ -209,129 +219,218 @@ private struct SpaceRow: View {
 
 private struct ShortcutsPane: View {
     @ObservedObject var model: SettingsModel
+    @State private var search = ""
+    @State private var confirmingReset = false
 
     var body: some View {
         let _ = model.revision
-        let items = MainMenu.remappableItems(in: NSApp.mainMenu)
+        let overrides = model.settings.shortcutOverrides
+        let items = MainMenu.remappableItems(in: NSApp.mainMenu).filter { entry in
+            ShortcutSearch.matches(search, title: entry.title, menu: entry.menu,
+                                   shortcut: MainMenu.currentShortcut(for: entry.id, in: NSApp.mainMenu))
+        }
+        let menus = items.reduce(into: [String]()) { if !$0.contains($1.menu) { $0.append($1.menu) } }
         VStack(alignment: .leading, spacing: 10) {
+            TextField("Rechercher une commande ou un raccourci (⌘T, cmd maj c…)", text: $search)
+                .textFieldStyle(.roundedBorder)
             List {
-                ForEach(Array(Dictionary(grouping: items, by: \.menu).sorted { lhs, rhs in
-                    (items.firstIndex { $0.menu == lhs.key } ?? 0) < (items.firstIndex { $0.menu == rhs.key } ?? 0)
-                }), id: \.key) { group in
-                    Section(group.key) {
-                        ForEach(group.value, id: \.id) { entry in
+                ForEach(menus, id: \.self) { menu in
+                    Section(menu) {
+                        ForEach(items.filter { $0.menu == menu }, id: \.id) { entry in
+                            let modified = overrides[entry.id] != nil
                             HStack {
                                 Text(entry.title)
+                                if modified {
+                                    Circle().fill(Color.accentColor).frame(width: 6, height: 6)
+                                        .help("Modifié")
+                                }
                                 Spacer()
-                                ShortcutRecorder(model: model, id: entry.id)
-                                    .frame(width: 120, height: 22)
+                                ShortcutField(model: model, id: entry.id, title: entry.title)
                                 Button {
-                                    var overrides = model.settings.shortcutOverrides
-                                    overrides[entry.id] = nil
-                                    model.settings.shortcutOverrides = overrides
+                                    model.setShortcut(nil, for: entry.id)
                                 } label: { Image(systemName: "arrow.uturn.backward") }
                                     .buttonStyle(.borderless)
-                                    .help("Rétablir le raccourci par défaut")
-                                    .disabled(model.settings.shortcutOverrides[entry.id] == nil)
+                                    .help("Rétablir \(MainMenu.defaultShortcut(for: entry.id)?.display ?? "—")")
+                                    .disabled(!modified)
                             }
                         }
                     }
                 }
             }
-            Text("Cliquez sur un raccourci puis tapez la nouvelle combinaison. ⌫ le retire, esc annule.")
-                .font(.caption).foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Cliquez sur un raccourci puis tapez la nouvelle combinaison. ⌫ le retire, esc annule.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Réinitialiser tous les raccourcis…") { confirmingReset = true }
+                    .disabled(overrides.isEmpty)
+            }
+        }
+        .onDisappear { model.stopRecording() }
+        .confirmationDialog("Réinitialiser tous les raccourcis ?", isPresented: $confirmingReset) {
+            Button("Réinitialiser", role: .destructive) { model.settings.shortcutOverrides = [:] }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Chaque commande retrouve son raccourci d'origine. Vos \(overrides.count) modification\(overrides.count > 1 ? "s" : "") seront perdue\(overrides.count > 1 ? "s" : "").")
         }
     }
 }
 
-/// Click, then type a key combination. Backspace removes the shortcut, Escape cancels.
-private struct ShortcutRecorder: NSViewRepresentable {
+extension SettingsModel {
+    /// Starts listening for the next key combination, for the item `id`. A key monitor
+    /// sees it before the menu does, so that recording ⌘T does not open a tab.
+    func startRecording(_ id: String, title: String) {
+        stopRecording()
+        recordingID = id
+        let window = NSApp.keyWindow
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .leftMouseDown]) { [weak self] event in
+            guard let self else { return event }
+            // Only what happens in the settings window.
+            guard event.window === window else {
+                self.stopRecording()
+                return event
+            }
+            if event.type == .leftMouseDown {
+                // A click elsewhere ends the recording (a click on another shortcut starts its own).
+                self.stopRecording()
+                return event
+            }
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            switch event.keyCode {
+            case 53: // esc
+                self.stopRecording()
+            case 51 where modifiers.isEmpty: // backspace: no shortcut
+                self.stopRecording()
+                self.setShortcut(MainMenu.Shortcut(key: "", modifiers: []), for: id)
+            default:
+                guard !modifiers.subtracting(.shift).isEmpty,
+                      let key = event.charactersIgnoringModifiers?.lowercased(), !key.isEmpty else {
+                    NSSound.beep()
+                    return nil
+                }
+                self.stopRecording()
+                self.record(MainMenu.Shortcut(key: key, modifiers: modifiers), for: id, title: title, in: window)
+            }
+            return nil
+        }
+    }
+
+    func stopRecording() {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
+        if recordingID != nil { recordingID = nil }
+    }
+
+    /// Sets the shortcut of the item `id`; nil goes back to its default. A default is
+    /// stored as no override, so that resetting and re-recording it look the same.
+    func setShortcut(_ shortcut: MainMenu.Shortcut?, for id: String) {
+        var overrides = settings.shortcutOverrides
+        if let shortcut, shortcut != MainMenu.defaultShortcut(for: id) {
+            overrides[id] = shortcut.stored
+        } else {
+            overrides[id] = nil
+        }
+        settings.shortcutOverrides = overrides
+    }
+
+    /// Records `shortcut` for `id`. If another command has it, offers to take it from
+    /// that command, which is left without one; a reserved shortcut (⌘C, ⌘Q…) stays put.
+    func record(_ shortcut: MainMenu.Shortcut, for id: String, title: String, in window: NSWindow?) {
+        guard let owner = MainMenu.owner(of: shortcut, besides: id, in: NSApp.mainMenu) else {
+            setShortcut(shortcut, for: id)
+            return
+        }
+        let alert = NSAlert()
+        if owner.reserved {
+            alert.messageText = "\(shortcut.display) est réservé à « \(owner.title) »"
+            alert.informativeText = "Ce raccourci est commun à toutes les apps du Mac. Choisissez-en un autre pour « \(title) »."
+            alert.addButton(withTitle: "OK")
+            if let window { alert.beginSheetModal(for: window) } else { alert.runModal() }
+            return
+        }
+        alert.messageText = "\(shortcut.display) est déjà utilisé par « \(owner.title) »"
+        alert.informativeText = "Le donner à « \(title) » ? « \(owner.title) » n'aura plus de raccourci."
+        alert.addButton(withTitle: "Remplacer")
+        alert.addButton(withTitle: "Annuler")
+        let apply: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            var overrides = self.settings.shortcutOverrides
+            overrides[owner.id] = MainMenu.Shortcut(key: "", modifiers: []).stored
+            if shortcut != MainMenu.defaultShortcut(for: id) { overrides[id] = shortcut.stored } else { overrides[id] = nil }
+            self.settings.shortcutOverrides = overrides
+        }
+        if let window { alert.beginSheetModal(for: window, completionHandler: apply) } else { apply(alert.runModal()) }
+    }
+}
+
+/// A command's shortcut: click it, then type the new combination.
+private struct ShortcutField: View {
     @ObservedObject var model: SettingsModel
     let id: String
+    let title: String
 
-    func makeNSView(context: Context) -> ShortcutRecorderView {
-        let view = ShortcutRecorderView()
-        view.onRecord = { shortcut in
-            var overrides = model.settings.shortcutOverrides
-            overrides[id] = shortcut.stored
-            model.settings.shortcutOverrides = overrides
+    var body: some View {
+        let _ = model.revision
+        let recording = model.recordingID == id
+        let shortcut = MainMenu.currentShortcut(for: id, in: NSApp.mainMenu)
+        Button {
+            if recording { model.stopRecording() } else { model.startRecording(id, title: title) }
+        } label: {
+            Text(recording ? "Tapez…" : (shortcut?.display ?? "—"))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(recording ? Color.accentColor : Color.primary)
+                .frame(width: 104, height: 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(recording ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(recording ? Color.accentColor : Color(nsColor: .separatorColor))
+                )
+                .contentShape(Rectangle())
         }
-        return view
-    }
-
-    func updateNSView(_ view: ShortcutRecorderView, context: Context) {
-        _ = model.revision
-        view.shortcut = MainMenu.currentShortcut(for: id, in: NSApp.mainMenu)
+        .buttonStyle(.plain)
+        .help(recording ? "Tapez la combinaison, ⌫ pour la retirer, esc pour annuler" : "Changer le raccourci")
     }
 }
 
-final class ShortcutRecorderView: NSView {
-    var onRecord: ((MainMenu.Shortcut) -> Void)?
-    var shortcut: MainMenu.Shortcut? { didSet { label.stringValue = shortcut?.display ?? "—" } }
-    private let label = NSTextField(labelWithString: "—")
-    private var isRecording = false { didSet { refresh() } }
+/// Searching the shortcuts by command, by menu, or by the keys themselves: "⌘T",
+/// "cmd t", "maj cmd c", "ctrl tab".
+enum ShortcutSearch {
+    private static let words: [String: String] = [
+        "cmd": "⌘", "command": "⌘", "commande": "⌘",
+        "shift": "⇧", "maj": "⇧", "majuscule": "⇧",
+        "opt": "⌥", "option": "⌥", "alt": "⌥",
+        "ctrl": "⌃", "control": "⌃", "contrôle": "⌃",
+        "tab": "⇥", "return": "↩", "enter": "↩", "esc": "⎋", "space": "Espace", "espace": "Espace",
+        "left": "←", "gauche": "←", "right": "→", "droite": "→", "up": "↑", "haut": "↑", "down": "↓", "bas": "↓",
+    ]
 
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-        label.alignment = .center
-        label.font = .systemFont(ofSize: 12, weight: .medium)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-        refresh()
+    static func matches(_ query: String, title: String, menu: String, shortcut: MainMenu.Shortcut?) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return true }
+        if title.localizedCaseInsensitiveContains(query) || menu.localizedCaseInsensitiveContains(query) { return true }
+        guard let display = shortcut?.display, display != "—" else { return false }
+        // Every part of the query names a key of the shortcut: "⇧⌘C" splits into ⇧, ⌘, C.
+        let keys = parts(of: display)
+        let wanted = query.lowercased()
+            .split(whereSeparator: { $0 == " " || $0 == "+" || $0 == "-" })
+            .flatMap { token -> [String] in
+                if let symbol = words[String(token)] { return [symbol] }
+                return parts(of: String(token).uppercased())
+            }
+        return !wanted.isEmpty && wanted.allSatisfy { keys.contains($0) }
     }
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
-
-    override var acceptsFirstResponder: Bool { true }
-
-    override func mouseDown(with event: NSEvent) {
-        window?.makeFirstResponder(self)
-        isRecording = true
-    }
-
-    override func resignFirstResponder() -> Bool {
-        isRecording = false
-        return true
-    }
-
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard isRecording else { return false }
-        keyDown(with: event)
-        return true
-    }
-
-    override func keyDown(with event: NSEvent) {
-        guard isRecording else { return super.keyDown(with: event) }
-        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
-        if event.keyCode == 53 { // esc
-            isRecording = false
-            return
+    /// "⇧⌘C" → ["⇧", "⌘", "C"]; "⌃Espace" → ["⌃", "ESPACE"].
+    private static func parts(of display: String) -> [String] {
+        var result: [String] = []
+        var rest = Substring(display)
+        while let first = rest.first, "⌃⌥⇧⌘".contains(first) {
+            result.append(String(first))
+            rest = rest.dropFirst()
         }
-        if event.keyCode == 51, modifiers.isEmpty { // backspace
-            onRecord?(MainMenu.Shortcut(key: "", modifiers: []))
-            isRecording = false
-            return
-        }
-        guard !modifiers.subtracting(.shift).isEmpty, let key = event.charactersIgnoringModifiers?.lowercased(), !key.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        onRecord?(MainMenu.Shortcut(key: key, modifiers: modifiers))
-        isRecording = false
-    }
-
-    private func refresh() {
-        layer?.cornerRadius = 6
-        layer?.borderWidth = 1
-        layer?.borderColor = (isRecording ? NSColor.controlAccentColor : NSColor.separatorColor).cgColor
-        layer?.backgroundColor = (isRecording ? NSColor.controlAccentColor.withAlphaComponent(0.12) : NSColor.controlBackgroundColor).cgColor
-        label.stringValue = isRecording ? "Tapez…" : (shortcut?.display ?? "—")
-        label.textColor = isRecording ? .controlAccentColor : .labelColor
+        if !rest.isEmpty { result.append(rest.uppercased()) }
+        return result
     }
 }
