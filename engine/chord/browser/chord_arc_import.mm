@@ -6,6 +6,7 @@
 #import <Security/Security.h>
 
 #include <array>
+#include <map>
 #include <memory>
 #include <optional>
 #include <set>
@@ -27,6 +28,7 @@
 #include "base/synchronization/lock.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
+#include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
@@ -71,16 +73,21 @@
 namespace chord {
 namespace {
 
-// Left in a Chord profile's folder after an import, as JSON: Arc's profile folder
-// ("arc"), whose site storage joins the profile at the next launch, and the
-// extensions the import installed ("extensions"), whose data comes with it.
-constexpr char kPendingSiteStorage[] = "Chord Arc Site Storage";
+// Left in a Chord profile's folder after an import, as JSON: the source profile's
+// folder ("arc"), whose site storage joins the profile at the next launch, and the
+// extensions the import installed ("extensions"), whose data comes with it. One per
+// browser imported from: "Chord Arc Site Storage", "Chord Google Chrome Site
+// Storage"…
+constexpr char kPendingSiteStoragePrefix[] = "Chord ";
+constexpr char kPendingSiteStorageSuffix[] = " Site Storage";
 
-// In a Chord profile's folder: the last visit of Arc's history already imported,
-// so that importing again adds only what is newer.
-constexpr char kHistoryImported[] = "Chord Arc History";
-// The same for the values typed in forms (Arc's autocomplete), in seconds.
-constexpr char kFormValuesImported[] = "Chord Arc Form Values";
+// In a Chord profile's folder: the last visit of the source's history already
+// imported ("Chord Arc History"), so that importing again adds only what is newer.
+// The same for the values typed in forms ("Chord Arc Form Values"), in seconds.
+base::FilePath::StringType Marker(const ChromiumSource& source,
+                                  const char* what) {
+  return std::string(kPendingSiteStoragePrefix) + source.name + " " + what;
+}
 
 // Like Chromium's history, only the last 90 days.
 constexpr base::TimeDelta kHistoryKept = base::Days(90);
@@ -116,13 +123,15 @@ struct ArcData {
   bool key_denied = false;
 };
 
-// Arc's own Chromium key, derived like Chromium's from the password of Arc's keychain
-// item. macOS asks the user before handing it to Chord.
-std::optional<std::vector<uint8_t>> ReadArcKey() {
+// The browser's own Chromium key, derived like Chromium's from the password of its
+// keychain item ("Arc Safe Storage"). macOS asks the user before handing it to Chord.
+std::optional<std::vector<uint8_t>> ReadKey(const ChromiumSource& source) {
   NSDictionary* query = @{
     (__bridge id)kSecClass : (__bridge id)kSecClassGenericPassword,
-    (__bridge id)kSecAttrService : @"Arc Safe Storage",
-    (__bridge id)kSecAttrAccount : @"Arc",
+    (__bridge id)kSecAttrService :
+        base::SysUTF8ToNSString(source.keychain_service),
+    (__bridge id)kSecAttrAccount :
+        base::SysUTF8ToNSString(source.keychain_account),
     (__bridge id)kSecReturnData : @YES,
     (__bridge id)kSecMatchLimit : (__bridge id)kSecMatchLimitOne,
   };
@@ -145,22 +154,26 @@ std::optional<std::vector<uint8_t>> ReadArcKey() {
   return key;
 }
 
-// The key, asked once for all of Arc's profiles imported together (they share it):
-// the answer, given or refused, holds for a minute.
-std::optional<std::vector<uint8_t>> ArcKey() {
+// The key, asked once for all of a browser's profiles imported together (they
+// share it): the answer, given or refused, holds for a minute.
+std::optional<std::vector<uint8_t>> KeyFor(const ChromiumSource& source) {
+  struct Asked {
+    base::TimeTicks when;
+    std::optional<std::vector<uint8_t>> key;
+  };
   struct Cache {
     base::Lock lock;
-    base::TimeTicks asked;
-    std::optional<std::vector<uint8_t>> key;
+    std::map<std::string, Asked> asked;
   };
   static base::NoDestructor<Cache> cache;
   base::AutoLock lock(cache->lock);
-  if (cache->asked.is_null() ||
-      base::TimeTicks::Now() - cache->asked > base::Minutes(1)) {
-    cache->key = ReadArcKey();
-    cache->asked = base::TimeTicks::Now();
+  Asked& asked = cache->asked[source.keychain_service];
+  if (asked.when.is_null() ||
+      base::TimeTicks::Now() - asked.when > base::Minutes(1)) {
+    asked.key = ReadKey(source);
+    asked.when = base::TimeTicks::Now();
   }
-  return cache->key;
+  return asked.key;
 }
 
 // A value Arc encrypted ("v10", AES-128-CBC with an IV of spaces).
@@ -328,7 +341,8 @@ void ReadPasswords(const base::FilePath& arc_profile,
   }
 }
 
-void ReadHistory(const base::FilePath& arc_profile,
+void ReadHistory(const ChromiumSource& source,
+                 const base::FilePath& arc_profile,
                  const base::FilePath& chord_profile,
                  const base::ScopedTempDir& temp,
                  ArcData& data) {
@@ -342,7 +356,7 @@ void ReadHistory(const base::FilePath& arc_profile,
                       .InMicroseconds();
   std::string imported;
   int64_t last_import = 0;
-  if (base::ReadFileToString(chord_profile.Append(kHistoryImported),
+  if (base::ReadFileToString(chord_profile.Append(Marker(source, "History")),
                              &imported) &&
       base::StringToInt64(base::TrimWhitespaceASCII(imported, base::TRIM_ALL),
                           &last_import)) {
@@ -370,7 +384,8 @@ void ReadHistory(const base::FilePath& arc_profile,
 
 // The values typed in Arc's forms since the last import (Chromium's autocomplete:
 // the emails, names and searches a field offers again).
-void ReadFormValues(const base::FilePath& arc_profile,
+void ReadFormValues(const ChromiumSource& source,
+                    const base::FilePath& arc_profile,
                     const base::FilePath& chord_profile,
                     const base::ScopedTempDir& temp,
                     ArcData& data) {
@@ -380,7 +395,7 @@ void ReadFormValues(const base::FilePath& arc_profile,
   }
   std::string imported;
   int64_t since = 0;
-  if (base::ReadFileToString(chord_profile.Append(kFormValuesImported),
+  if (base::ReadFileToString(chord_profile.Append(Marker(source, "Form Values")),
                              &imported)) {
     base::StringToInt64(base::TrimWhitespaceASCII(imported, base::TRIM_ALL),
                         &since);
@@ -432,22 +447,23 @@ void ReadExtensions(const base::FilePath& arc_profile, ArcData& data) {
 }
 
 // Blocking: on a pool thread.
-std::unique_ptr<ArcData> ReadArcProfile(const base::FilePath& arc_profile,
+std::unique_ptr<ArcData> ReadArcProfile(const ChromiumSource& source,
+                                        const base::FilePath& arc_profile,
                                         const base::FilePath& chord_profile) {
   auto data = std::make_unique<ArcData>();
   base::ScopedTempDir temp;
   if (!temp.CreateUniqueTempDir()) {
     return data;
   }
-  std::optional<std::vector<uint8_t>> key = ArcKey();
+  std::optional<std::vector<uint8_t>> key = KeyFor(source);
   if (key) {
     ReadCookies(arc_profile, temp, *key, *data);
     ReadPasswords(arc_profile, temp, *key, *data);
   } else {
     data->key_denied = true;
   }
-  ReadHistory(arc_profile, chord_profile, temp, *data);
-  ReadFormValues(arc_profile, chord_profile, temp, *data);
+  ReadHistory(source, arc_profile, chord_profile, temp, *data);
+  ReadFormValues(source, arc_profile, chord_profile, temp, *data);
   ReadExtensions(arc_profile, *data);
   data->site_storage =
       base::PathExists(arc_profile.Append("Local Storage")) ||
@@ -640,7 +656,8 @@ class StoreExtensionInstaller {
   std::unique_ptr<network::SimpleURLLoader> loader_;
 };
 
-void ApplyArcData(base::WeakPtr<Profile> weak_profile,
+void ApplyArcData(ChromiumSource source,
+                  base::WeakPtr<Profile> weak_profile,
                   base::FilePath arc_profile,
                   base::OnceCallback<void(ArcImportCounts)> done,
                   std::unique_ptr<ArcData> data) {
@@ -663,7 +680,7 @@ void ApplyArcData(base::WeakPtr<Profile> weak_profile,
             [](base::FilePath file, int64_t newest) {
               base::WriteFile(file, base::NumberToString(newest));
             },
-            profile->GetPath().Append(kHistoryImported),
+            profile->GetPath().Append(Marker(source, "History")),
             data->newest_page.ToDeltaSinceWindowsEpoch().InMicroseconds()));
   }
 
@@ -682,7 +699,7 @@ void ApplyArcData(base::WeakPtr<Profile> weak_profile,
             [](base::FilePath file, int64_t newest) {
               base::WriteFile(file, base::NumberToString(newest));
             },
-            profile->GetPath().Append(kFormValuesImported),
+            profile->GetPath().Append(Marker(source, "Form Values")),
             data->newest_form_value));
   }
 
@@ -722,7 +739,8 @@ void ApplyArcData(base::WeakPtr<Profile> weak_profile,
             }
             std::move(done).Run(counts->data);
           },
-          counts, installed, profile->GetPath().Append(kPendingSiteStorage),
+          counts, installed,
+          profile->GetPath().Append(Marker(source, "Site Storage")),
           arc_profile, std::move(done)));
 
   // The extensions this profile does not have yet.
@@ -905,11 +923,20 @@ void ReplaceExtensionData(const base::FilePath& arc,
 void ImportArcProfile(Profile* profile,
                       const base::FilePath& arc_profile,
                       base::OnceCallback<void(ArcImportCounts)> done) {
+  ImportChromiumProfile(profile, ChromiumSource::Arc(), arc_profile,
+                        std::move(done));
+}
+
+void ImportChromiumProfile(Profile* profile,
+                           const ChromiumSource& source,
+                           const base::FilePath& source_profile,
+                           base::OnceCallback<void(ArcImportCounts)> done) {
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
-      base::BindOnce(&ReadArcProfile, arc_profile, profile->GetPath()),
-      base::BindOnce(&ApplyArcData, profile->GetWeakPtr(), arc_profile,
-                     std::move(done)));
+      base::BindOnce(&ReadArcProfile, source, source_profile,
+                     profile->GetPath()),
+      base::BindOnce(&ApplyArcData, source, profile->GetWeakPtr(),
+                     source_profile, std::move(done)));
 }
 
 void MergePendingArcSiteStorage(const base::FilePath& user_data_dir) {
@@ -917,32 +944,39 @@ void MergePendingArcSiteStorage(const base::FilePath& user_data_dir) {
                                 base::FileEnumerator::DIRECTORIES);
   for (base::FilePath profile = profiles.Next(); !profile.empty();
        profile = profiles.Next()) {
-    base::FilePath marker = profile.Append(kPendingSiteStorage);
-    std::string contents;
-    if (!base::ReadFileToString(marker, &contents)) {
-      continue;
-    }
-    base::DeleteFile(marker);
-    // JSON, or, from the first version, Arc's folder alone.
-    std::optional<base::DictValue> pending =
-        base::JSONReader::ReadDict(contents, base::JSON_PARSE_RFC);
-    const std::string* arc_profile = pending ? pending->FindString("arc") : nullptr;
-    base::FilePath arc(arc_profile ? *arc_profile : contents);
-    std::set<std::string> new_extensions;
-    if (const base::ListValue* ids =
-            pending ? pending->FindList("extensions") : nullptr) {
-      for (const base::Value& id : *ids) {
-        if (id.is_string()) {
-          new_extensions.insert(id.GetString());
+    base::FileEnumerator markers(profile, /*recursive=*/false,
+                                 base::FileEnumerator::FILES,
+                                 std::string(kPendingSiteStoragePrefix) + "*" +
+                                     kPendingSiteStorageSuffix);
+    for (base::FilePath marker = markers.Next(); !marker.empty();
+         marker = markers.Next()) {
+      std::string contents;
+      if (!base::ReadFileToString(marker, &contents)) {
+        continue;
+      }
+      base::DeleteFile(marker);
+      // JSON, or, from the first version, Arc's folder alone.
+      std::optional<base::DictValue> pending =
+          base::JSONReader::ReadDict(contents, base::JSON_PARSE_RFC);
+      const std::string* source_profile =
+          pending ? pending->FindString("arc") : nullptr;
+      base::FilePath source(source_profile ? *source_profile : contents);
+      std::set<std::string> new_extensions;
+      if (const base::ListValue* ids =
+              pending ? pending->FindList("extensions") : nullptr) {
+        for (const base::Value& id : *ids) {
+          if (id.is_string()) {
+            new_extensions.insert(id.GetString());
+          }
         }
       }
-    }
-    MergeLocalStorage(arc.Append("Local Storage").Append("leveldb"),
-                      profile.Append("Local Storage").Append("leveldb"),
-                      new_extensions);
-    MergeIndexedDB(arc.Append("IndexedDB"), profile.Append("IndexedDB"));
-    for (const std::string& id : new_extensions) {
-      ReplaceExtensionData(arc, profile, id);
+      MergeLocalStorage(source.Append("Local Storage").Append("leveldb"),
+                        profile.Append("Local Storage").Append("leveldb"),
+                        new_extensions);
+      MergeIndexedDB(source.Append("IndexedDB"), profile.Append("IndexedDB"));
+      for (const std::string& id : new_extensions) {
+        ReplaceExtensionData(source, profile, id);
+      }
     }
   }
 }

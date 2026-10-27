@@ -4,7 +4,33 @@ import Combine
 /// User preferences. Stored in UserDefaults.
 public final class ChordSettings {
     public enum Key {
-        case edgeless, searchTemplate, appearance, addressBar, sidebarWidth, commandBar, shortcuts, pictureInPicture
+        case edgeless, searchTemplate, appearance, addressBar, sidebarWidth, commandBar, shortcuts, pictureInPicture, archive
+    }
+
+    /// How long a tab of today's tabs stays unused before it is archived, like Arc.
+    public enum ArchiveDelay: String, CaseIterable {
+        case twelveHours, day, week, month, never
+
+        /// Nil for never.
+        public var interval: TimeInterval? {
+            switch self {
+            case .twelveHours: return 12 * 3600
+            case .day: return 24 * 3600
+            case .week: return 7 * 24 * 3600
+            case .month: return 30 * 24 * 3600
+            case .never: return nil
+            }
+        }
+
+        public var title: String {
+            switch self {
+            case .twelveHours: return String(localized: "After 12 hours", bundle: .chordUI)
+            case .day: return String(localized: "After 24 hours", bundle: .chordUI)
+            case .week: return String(localized: "After 7 days", bundle: .chordUI)
+            case .month: return String(localized: "After 30 days", bundle: .chordUI)
+            case .never: return String(localized: "Never", bundle: .chordUI)
+            }
+        }
     }
 
     public enum Appearance: String, CaseIterable {
@@ -72,6 +98,19 @@ public final class ChordSettings {
     public var commandBarGlass: Bool {
         get { defaults.object(forKey: "commandBarGlass") as? Bool ?? true }
         set { set(newValue, "commandBarGlass", .commandBar) }
+    }
+
+    /// Today's tabs left unused this long go to the archive, like Arc (12 hours by
+    /// default). Pinned tabs and favorites never do.
+    public var archiveAfter: ArchiveDelay {
+        get { defaults.string(forKey: "archiveAfter").flatMap(ArchiveDelay.init(rawValue:)) ?? .twelveHours }
+        set { set(newValue.rawValue, "archiveAfter", .archive) }
+    }
+
+    /// Whether the first launch's welcome was shown.
+    public var welcomeShown: Bool {
+        get { defaults.bool(forKey: "welcomeShown") }
+        set { defaults.set(newValue, forKey: "welcomeShown") }
     }
 
     /// Whether Chord already offered to import Arc's sidebar.

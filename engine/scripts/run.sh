@@ -102,6 +102,10 @@ if $INSTALL; then
   # ChordUI signed by someone else.
   if $PREBUILT; then
     CHORD_SIGN_IDENTITY=- "$ENGINE_DIR/scripts/sign.sh" "$APP" --quick >/dev/null
+  elif ! codesign --verify "$APP/Contents/Frameworks/Chord Framework.framework" 2>/dev/null; then
+    # Chromium was rebuilt without build.sh (ninja alone), which signs it at the end:
+    # macOS would refuse to launch Chord. Everything is signed again.
+    "$ENGINE_DIR/scripts/sign.sh" "$APP" >/dev/null
   else
     "$ENGINE_DIR/scripts/sign.sh" "$APP" --quick >/dev/null
   fi

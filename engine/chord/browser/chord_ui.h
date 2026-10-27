@@ -39,6 +39,9 @@
        download:(NSString*)downloadID
     didFinishAt:(NSURL*)fileURL;
 - (void)page:(id<ChordWebPage>)page
+         download:(NSString*)downloadID
+    needsApproval:(NSString*)warning;
+- (void)page:(id<ChordWebPage>)page
     didFindMatches:(NSInteger)count
        activeMatch:(NSInteger)activeMatch
            isFinal:(BOOL)isFinal;
@@ -84,6 +87,10 @@
 @property(nonatomic, readonly) BOOL isMuted;
 - (void)setMuted:(BOOL)muted;
 @property(nonatomic, readonly) BOOL isCapturingMedia;
+@property(nonatomic, readonly) BOOL isFullscreen;
+@property(nonatomic, readonly) BOOL hasMedia;
+@property(nonatomic, readonly) BOOL isPlayingMedia;
+- (void)toggleMediaPlayback;
 - (BOOL)sleep;
 @property(nonatomic, readonly) BOOL isAsleep;
 - (void)wake;
@@ -126,6 +133,7 @@
 - (id<ChordWebPage>)makePage;
 @optional
 - (void)cancelDownload:(NSString*)downloadID;
+- (void)keepDownload:(NSString*)downloadID;
 - (void)setDelegate:(id<ChordWebEngineDelegate>)delegate;
 - (id<ChordWebEngine>)makePrivateEngine;
 - (id<ChordWebEngine>)engineForProfile:(NSString*)profileID;
@@ -136,6 +144,13 @@
 - (void)importFromArc:(NSString*)arcProfile
            completion:
                (void (^)(NSDictionary<NSString*, NSNumber*>*))completion;
+- (void)importFromBrowser:(NSString*)name
+            keychainService:(NSString*)service
+            keychainAccount:(NSString*)account
+                    profile:(NSString*)profilePath
+                 completion:
+                     (void (^)(NSDictionary<NSString*, NSNumber*>*))completion;
+- (void)addHistory:(NSArray<NSDictionary<NSString*, id>*>*)pages;
 - (void)suggest:(NSString*)text
      completion:
          (void (^)(NSArray<NSDictionary<NSString*, NSString*>*>*))completion;

@@ -35,7 +35,18 @@ Each interaction opens an `OSSignposter` interval (subsystem `app.chord`).
 log stream --predicate 'subsystem == "app.chord"' --level debug
 ```
 
+## The gate
+
+`engine/scripts/perf-gate.sh` launches Chord on a fresh data folder with
+`CHORD_PERF_REPORT` set: ChordUI then replays the interactions above several times
+(`BrowserWindowController+PerfReplay.swift`), writes every duration to a report and
+quits. The script prints each interaction's median, 90th percentile and maximum next to
+its budget, and fails when a median is over budget. Chromium is too big to build in
+continuous integration, so the gate runs on a Mac: before each release
+(`docs/RELEASING.md`) and after a change to an interaction. The swipe and the
+permission, site controls and extension popup intervals need a person's gestures or a
+site's question: they are measured in use, not replayed.
+
 ## Later
 
-- An integration test that replays the interactions and fails in CI above budget
 - The same measurements on Chromium's side (`WebContents` creation, first paint)

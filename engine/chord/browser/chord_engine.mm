@@ -4,6 +4,7 @@
 
 #include "chord/browser/chord_arc_import.h"
 #include "chord/browser/chord_data_migration.h"
+#include "chord/browser/chord_downloads.h"
 #include "chord/browser/chord_extensions.h"
 #include "chord/browser/chord_hooks.h"
 #include "chord/browser/chord_suggester.h"
@@ -47,6 +48,7 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/profiles/profile_metrics.h"
 #include "chrome/browser/resource_coordinator/tab_lifecycle_unit_external.h"
+#include "chrome/common/pref_names.h"
 #include "chrome/browser/ui/browser_active_state_manager/browser_active_state_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
@@ -63,6 +65,11 @@
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/media_session.h"
+#include "chrome/browser/history/history_service_factory.h"
+#include "components/history/core/browser/history_service.h"
+#include "components/history/core/browser/url_row.h"
+#include "components/keyed_service/core/service_access_type.h"
+#include "services/media_session/public/mojom/media_session.mojom.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/render_frame_host.h"
@@ -297,6 +304,10 @@ HostContentSettingsMap* SettingsFor(content::WebContents* contents, GURL* url) {
 - (void)detach;
 - (void)replaceWebContents:(content::WebContents*)contents;
 - (void)didFindMatches:(int)count active:(int)active final:(BOOL)final;
+// Media started or stopped playing in the page (a pause included).
+- (void)mediaDidChange:(BOOL)playing;
+// A new document: its media is not the previous one's.
+- (void)resetMedia;
 @end
 
 namespace {
@@ -336,6 +347,7 @@ class PageObserver : public content::WebContentsObserver,
   void ReadyToCommitNavigation(content::NavigationHandle* handle) override {
     if (handle->IsInPrimaryMainFrame() && !handle->IsSameDocument()) {
       [page_ resetFavicon];
+      [page_ resetMedia];
     }
   }
   void DidFinishNavigation(content::NavigationHandle* handle) override {
@@ -355,6 +367,22 @@ class PageObserver : public content::WebContentsObserver,
     [page_ updateFavicon:candidates];
   }
   void OnAudioStateChanged(bool audible) override { [page_ notifyUpdate]; }
+  // A video in full screen: ChordUI gives the page the whole window.
+  void DidToggleFullscreenModeForTab(bool entered_fullscreen,
+                                     bool will_cause_resize) override {
+    [page_ notifyUpdate];
+  }
+  void MediaStartedPlaying(const MediaPlayerInfo& info,
+                           const content::MediaPlayerId& id) override {
+    if (info.has_audio || info.has_video) {
+      [page_ mediaDidChange:YES];
+    }
+  }
+  void MediaStoppedPlaying(const MediaPlayerInfo& info,
+                           const content::MediaPlayerId& id,
+                           MediaStoppedReason reason) override {
+    [page_ mediaDidChange:NO];
+  }
   void DidUpdateAudioMutingState(bool muted) override { [page_ notifyUpdate]; }
   void WebContentsDestroyed() override { [page_ detach]; }
 
@@ -376,6 +404,11 @@ class PageObserver : public content::WebContentsObserver,
   BOOL _waitingForProfile;
   NSURL* _pendingURL;
   NSView* _placeholder;
+  // Players playing now, and whether ChordUI paused them (the sidebar's media
+  // controls): a page paused by Chord keeps its controls, one that paused itself
+  // does not.
+  int _playingMedia;
+  BOOL _pausedByChord;
 }
 
 @synthesize engine = _engine;
@@ -469,6 +502,19 @@ class PageObserver : public content::WebContentsObserver,
                  (page:didFindMatches:activeMatch:isFinal:)]) {
     [_delegate page:self didFindMatches:count activeMatch:active isFinal:final];
   }
+}
+
+- (void)mediaDidChange:(BOOL)playing {
+  _playingMedia = std::max(0, _playingMedia + (playing ? 1 : -1));
+  if (playing) {
+    _pausedByChord = NO;
+  }
+  [self notifyUpdate];
+}
+
+- (void)resetMedia {
+  _playingMedia = 0;
+  _pausedByChord = NO;
 }
 
 // A new document declares its own icon: the previous one must not be taken for it.
@@ -890,6 +936,37 @@ class PageObserver : public content::WebContentsObserver,
          indicator->IsBeingMirrored(_webContents);
 }
 
+// A page element in full screen (a video): the browser window is in full screen
+// with it, and ChordUI shows only the page.
+- (BOOL)isFullscreen {
+  return _webContents && _webContents->IsFullscreen();
+}
+
+// The sidebar's media controls, like Arc's mini player: a page playing sound or
+// video, or one Chord paused, which it can play again.
+- (BOOL)hasMedia {
+  return _webContents && (_playingMedia > 0 || _pausedByChord);
+}
+
+- (BOOL)isPlayingMedia {
+  return _webContents && _playingMedia > 0;
+}
+
+// Through the page's media session, as the Mac's media keys do.
+- (void)toggleMediaPlayback {
+  if (!_webContents || (_playingMedia == 0 && !_pausedByChord)) {
+    return;
+  }
+  content::MediaSession* session = content::MediaSession::Get(_webContents);
+  if (_playingMedia > 0) {
+    _pausedByChord = YES;
+    session->Suspend(media_session::mojom::MediaSession::SuspendType::kUI);
+  } else {
+    session->Resume(media_session::mojom::MediaSession::SuspendType::kUI);
+  }
+  [self notifyUpdate];
+}
+
 // Chromium's own tab discarding, as Chrome's Memory Saver does it: the renderer goes,
 // the tab keeps its history and each page's state (scroll position, form fields),
 // which come back when it loads again. The tab strip replaces the WebContents, which
@@ -966,6 +1043,8 @@ class PageObserver : public content::WebContentsObserver,
 - (BOOL)announcePermissionRequest:(id<ChordPermissionRequest>)request
                           forPage:(ChordPage*)page;
 - (BOOL)ownsProfile:(Profile*)profile;
+// The browser holding the engine's pages, without making one.
+- (BrowserWindowInterface*)existingBrowser;
 // The profile is being deleted: the engine lets go of it.
 - (void)forgetProfile;
 - (instancetype)initWithProfile:(Profile*)profile
@@ -1129,6 +1208,8 @@ void DeleteProfileAt(const base::FilePath& path) {
   // Work waiting for the profile to load (an Arc import).
   NSMutableArray<void (^)(void)>* _whenProfileLoads;
   std::unique_ptr<chord::ExtensionsWatcher> _extensionsWatcher;
+  // The profile's downloads, for ChordUI's downloads panel.
+  std::unique_ptr<chord::DownloadsWatcher> _downloadsWatcher;
 }
 
 - (instancetype)initWithProfile:(Profile*)profile {
@@ -1172,8 +1253,13 @@ void DeleteProfileAt(const base::FilePath& path) {
   // Chrome and Arc do by default.
   profile->GetPrefs()->SetDefaultPrefValue(
       autofill::prefs::kAutofillProfileEnabled, base::Value(true));
+  // ungoogled-chromium asks where to save each download; Chrome and Arc save them in
+  // Downloads, which Chord's panel shows. A choice made in chord://settings stays.
+  profile->GetPrefs()->SetDefaultPrefValue(prefs::kPromptForDownload,
+                                           base::Value(false));
   _profileKeepAlive = std::make_unique<ScopedProfileKeepAlive>(
       profile, ProfileKeepAliveOrigin::kBrowserWindow);
+  _downloadsWatcher = std::make_unique<chord::DownloadsWatcher>([self profile]);
   if (!_private) {
     ChordEngine* __weak weakSelf = self;
     _extensionsWatcher = std::make_unique<chord::ExtensionsWatcher>(
@@ -1295,6 +1381,7 @@ void DeleteProfileAt(const base::FilePath& path) {
   _forgotten = YES;
   _suggester.reset();
   _extensionsWatcher.reset();
+  _downloadsWatcher.reset();
   [_waitingPages removeAllObjects];
   _profileKeepAlive.reset();
   _profile = nullptr;
@@ -1350,9 +1437,111 @@ void DeleteProfileAt(const base::FilePath& path) {
   }
 }
 
+// The same from another browser built on Chromium (Google Chrome, Brave, Edge…):
+// `service` and `account` name its keychain item ("Chrome Safe Storage", "Chrome").
+- (void)importFromBrowser:(NSString*)name
+            keychainService:(NSString*)service
+            keychainAccount:(NSString*)account
+                    profile:(NSString*)profilePath
+                 completion:
+                     (void (^)(NSDictionary<NSString*, NSNumber*>*))completion {
+  chord::ChromiumSource source{base::SysNSStringToUTF8(name),
+                               base::SysNSStringToUTF8(service),
+                               base::SysNSStringToUTF8(account)};
+  ChordEngine* __weak weakSelf = self;
+  void (^run)(void) = ^{
+    ChordEngine* engine = weakSelf;
+    if (!engine || engine->_private || engine->_forgotten || !engine->_profile) {
+      completion(@{});
+      return;
+    }
+    chord::ImportChromiumProfile(
+        engine->_profile, source,
+        base::FilePath(base::SysNSStringToUTF8(profilePath)),
+        base::BindOnce(^(chord::ArcImportCounts counts) {
+          completion(@{
+            @"cookies" : @(counts.cookies),
+            @"passwords" : @(counts.passwords),
+            @"pages" : @(counts.pages),
+            @"formValues" : @(counts.form_values),
+            @"extensions" : @(counts.extensions),
+            @"siteStorage" : @(counts.site_storage),
+            @"keyDenied" : @(counts.key_denied),
+          });
+        }));
+  };
+  if (_profile || _forgotten || _private) {
+    run();
+  } else {
+    [_whenProfileLoads addObject:run];
+  }
+}
+
+// Pages visited in another browser (Safari), into the profile's history: what the
+// command bar suggests. Each has "url" (NSURL), "title", "visits" and "lastVisit"
+// (NSDate).
+- (void)addHistory:(NSArray<NSDictionary<NSString*, id>*>*)pages {
+  ChordEngine* __weak weakSelf = self;
+  void (^run)(void) = ^{
+    ChordEngine* engine = weakSelf;
+    if (!engine || engine->_private || engine->_forgotten || !engine->_profile) {
+      return;
+    }
+    history::HistoryService* history = HistoryServiceFactory::GetForProfile(
+        engine->_profile, ServiceAccessType::EXPLICIT_ACCESS);
+    if (!history) {
+      return;
+    }
+    history::URLRows rows;
+    for (NSDictionary<NSString*, id>* page in pages) {
+      NSURL* url = page[@"url"];
+      GURL gurl = [url isKindOfClass:[NSURL class]] ? net::GURLWithNSURL(url)
+                                                     : GURL();
+      if (!gurl.is_valid() || !gurl.SchemeIsHTTPOrHTTPS()) {
+        continue;
+      }
+      history::URLRow row(gurl);
+      if (NSString* title = page[@"title"]; [title isKindOfClass:[NSString class]]) {
+        row.set_title(base::SysNSStringToUTF16(title));
+      }
+      NSNumber* visits = page[@"visits"];
+      row.set_visit_count(
+          std::max(1, [visits isKindOfClass:[NSNumber class]] ? visits.intValue : 1));
+      NSDate* last = page[@"lastVisit"];
+      row.set_last_visit([last isKindOfClass:[NSDate class]]
+                             ? base::Time::FromNSDate(last)
+                             : base::Time::Now());
+      rows.push_back(std::move(row));
+    }
+    if (!rows.empty()) {
+      history->AddPagesWithDetails(rows, history::SOURCE_SAFARI_IMPORTED);
+    }
+  };
+  if (_profile || _forgotten || _private) {
+    run();
+  } else {
+    [_whenProfileLoads addObject:run];
+  }
+}
+
+// A download of any of ChordUI's profiles: ChordUI keeps one list for them all.
+- (void)cancelDownload:(NSString*)downloadID {
+  chord::CancelDownload(base::SysNSStringToUTF8(downloadID));
+}
+
+// The user kept a download the browser warned about (a file type that can harm the
+// Mac, a file from an insecure address).
+- (void)keepDownload:(NSString*)downloadID {
+  chord::KeepDownload(base::SysNSStringToUTF8(downloadID));
+}
+
 - (BOOL)ownsPage:(id<ChordWebPage>)page {
   return [page isKindOfClass:[ChordPage class]] &&
          static_cast<ChordPage*>(page).engine == self;
+}
+
+- (BrowserWindowInterface*)existingBrowser {
+  return _browser && !_browser->IsDeleteScheduled() ? _browser.get() : nullptr;
 }
 
 // The browser that holds ChordUI's pages. Created on first use, and again if
@@ -1458,6 +1647,26 @@ void ShowPage(content::WebContents* contents) {
   dispatch_async(dispatch_get_main_queue(), ^{
     [engine announceShowPage:page];
   });
+}
+
+id<ChordWebPage> PageForContents(content::WebContents* contents) {
+  return contents ? PageFor(contents) : nil;
+}
+
+id<ChordWebPage> ActivePageForProfile(content::BrowserContext* context) {
+  Profile* profile = Profile::FromBrowserContext(context);
+  for (ChordEngine* engine in Engines()) {
+    if (![engine ownsProfile:profile]) {
+      continue;
+    }
+    BrowserWindowInterface* browser = [engine existingBrowser];
+    content::WebContents* active =
+        browser ? browser->GetTabStripModel()->GetActiveWebContents() : nullptr;
+    if (ChordPage* page = active ? PageFor(active) : nil) {
+      return page;
+    }
+  }
+  return nil;
 }
 
 bool RequestPermission(content::WebContents* contents,

@@ -52,6 +52,18 @@ final class PageHostView: NSView {
 
     override func layout() {
         super.layout()
+        // Chromium's views take their final size at once. Inside an animated layout
+        // (edgeless, sidebar, address bar) AppKit would animate their frames too, and a
+        // frame animation overtaken by the next layout pass left the page's render view
+        // smaller than its card until a reload.
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            context.allowsImplicitAnimation = false
+            layoutPage()
+        }
+    }
+
+    private func layoutPage() {
         guard let page else { return }
         let pageView = page.view
         if pageView.superview !== self {

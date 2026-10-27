@@ -24,6 +24,10 @@ public enum Perf {
         "app.launch": 1000,
     ]
 
+    /// Every interval's duration by name, while a replay records them
+    /// (`engine/scripts/perf-gate.sh`); nil otherwise.
+    static var recorded: [String: [Double]]?
+
     static let signposter = OSSignposter(logHandle: OSLog(subsystem: "app.chord", category: .pointsOfInterest))
     static let logger = Logger(subsystem: "app.chord", category: "perf")
 
@@ -38,6 +42,7 @@ public enum Perf {
             Perf.signposter.endInterval(name, state)
             let elapsed = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
             let key = "\(name)"
+            Perf.recorded?[key, default: []].append(elapsed)
             if let budget = Perf.budgets[key], elapsed > budget {
                 Perf.logger.warning("\(key, privacy: .public) took \(elapsed, format: .fixed(precision: 1)) ms, budget \(budget, format: .fixed(precision: 0)) ms")
             } else {

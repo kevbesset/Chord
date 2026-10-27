@@ -39,12 +39,14 @@ public enum MainMenu {
             .separator(),
             item(String(localized: "Close Tab", bundle: .chordUI), #selector(C.closeTab(_:)), "w"),
             item(String(localized: "Reopen Closed Tab", bundle: .chordUI), #selector(C.reopenClosedTab(_:)), "t", [.command, .shift]),
+            item(String(localized: "Archived Tabs", bundle: .chordUI), #selector(C.showArchive(_:)), "a", [.command, .option]),
             item(String(localized: "Close Window", bundle: .chordUI), #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
             .separator(),
             item(String(localized: "Print…", bundle: .chordUI), #selector(C.printPage(_:)), "p"),
             .separator(),
             item(String(localized: "Import from Arc…", bundle: .chordUI), #selector(C.importFromArc(_:))),
             item(String(localized: "Import Logins from Arc…", bundle: .chordUI), #selector(C.importArcLogins(_:))),
+            item(String(localized: "Import from Another Browser…", bundle: .chordUI), #selector(C.importFromBrowser(_:))),
         ]))
 
         main.addItem(submenu(String(localized: "Edit", bundle: .chordUI), [
@@ -271,6 +273,15 @@ public enum MainMenu {
         return item
     }
 
+    /// The shortcut of the menu bar's item for `action` as it stands (remapped or not),
+    /// "⇧⌘C"; nil when it has none. `tag` picks among numbered items.
+    public static func shortcutDisplay(for action: Selector, tag: Int = 0) -> String? {
+        guard let menu = NSApp.mainMenu,
+              let item = items(with: [action], in: menu).first(where: { $0.tag == tag || tag == 0 && !$0.isHidden }),
+              !item.keyEquivalent.isEmpty else { return nil }
+        return Shortcut(key: item.keyEquivalent, modifiers: item.keyEquivalentModifierMask).display
+    }
+
     /// Points the items with these actions at `target` instead of the responder chain.
     public static func setTarget(_ target: AnyObject, for actions: [Selector], in menu: NSMenu) {
         items(with: actions, in: menu).forEach { $0.target = target }
@@ -302,5 +313,15 @@ public enum MainMenu {
 
     fileprivate static func arrow(_ key: Int) -> String {
         String(Character(UnicodeScalar(UInt32(key))!))
+    }
+}
+
+/// Chord's menu replaces Chromium's (docs/decisions/0006). In a window that is not one of
+/// Chord's (Chromium's undocked developer tools, a site's popup, the picture-in-picture
+/// window), ⌘W closes the window, as Chromium's own "Close Tab" would. Chord's windows
+/// answer the command first: this is only reached when none did.
+extension NSApplication {
+    @objc func closeTab(_ sender: Any?) {
+        keyWindow?.performClose(sender)
     }
 }

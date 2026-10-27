@@ -19,7 +19,9 @@ class CommandLine;
 }
 
 namespace content {
+class NavigationThrottleRegistry;
 class WebContents;
+struct OpenURLParams;
 }
 
 #if defined(__OBJC__)
@@ -52,6 +54,16 @@ bool CanDockDevTools(BrowserWindowInterface* browser);
 // chrome/browser/devtools/devtools_window.cc, devtools_window_views.cc: the docked
 // DevTools of `inspected` opened, closed, moved or were resized.
 void UpdateDevTools(content::WebContents* inspected);
+
+// chrome/browser/chrome_content_browser_client.cc: a link clicked in one of Chord's
+// pages may open elsewhere (a pinned tab's link leaving its site goes to a Peek).
+void AddNavigationThrottles(content::NavigationThrottleRegistry& registry);
+
+// chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc:
+// a link opened from a page in a new window (⇧-click). Returns true when ChordUI
+// opened it itself (a Peek).
+bool HandleOpenURL(content::WebContents* source,
+                   const content::OpenURLParams& params);
 
 #if defined(__OBJC__)
 // chrome/browser/app_controller_mac.mm: the Dock icon was clicked. Returns true when

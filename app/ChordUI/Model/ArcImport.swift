@@ -173,8 +173,9 @@ public enum ArcImport {
 
     /// Copies the icons Arc already has for these tabs into Chord's cache. Arc keeps them
     /// in Chromium's `Favicons` database: page URL → icon → bitmaps of 16 and 32 px.
-    /// The database is read from a copy, since Arc may have it open.
-    private static func importIcons(for tabs: [Tab], from database: URL) {
+    /// The database is read from a copy, since Arc may have it open. Other browsers
+    /// built on Chromium keep the same database.
+    static func importIcons(for tabs: [Tab], from database: URL) {
         guard !tabs.isEmpty, FileManager.default.fileExists(atPath: database.path) else { return }
         let copy = FileManager.default.temporaryDirectory.appendingPathComponent("chord-arc-favicons-\(UUID().uuidString)")
         guard (try? FileManager.default.copyItem(at: database, to: copy)) != nil else { return }

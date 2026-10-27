@@ -8,6 +8,15 @@ struct TabSnapshot: Codable {
     /// sessions, where it is the tab's own URL.
     var pinnedURL: URL?
     var pinnedTitle: String?
+    /// When the tab was last shown, for the archive. Missing in older sessions.
+    var lastActive: Date?
+}
+
+/// A tab of the archive: closed with ⌘W, or left unused (see `ChordSettings.archiveAfter`).
+struct ArchivedTabSnapshot: Codable {
+    var tab: TabSnapshot
+    var spaceID: UUID
+    var date: Date
 }
 
 struct FolderSnapshot: Codable {
@@ -36,6 +45,8 @@ struct SpaceSnapshot: Codable {
     var pinnedTree: [PinnedSnapshot]?
     /// Added in version 3.
     var profileID: String?
+    /// Added in version 4: the Space's emoji.
+    var icon: String?
 }
 
 struct SessionSnapshot: Codable {
@@ -50,6 +61,8 @@ struct SessionSnapshot: Codable {
     var profileFavorites: [String: [TabSnapshot]]?
     /// Added in version 4: where each profile's address bar sits, when it chose.
     var profileAddressBarOnTop: [String: Bool]?
+    /// Added in version 4: the archived tabs, newest first.
+    var archive: [ArchivedTabSnapshot]?
 }
 
 /// Saves and restores Spaces and tabs as a small JSON file.
@@ -75,13 +88,17 @@ public final class SessionStore {
 }
 
 extension Tab {
+    /// A tab of an older session, which did not keep when tabs were last shown, counts as
+    /// shown now: the archive starts counting from this launch.
     convenience init(snapshot: TabSnapshot, section: TabSection) {
         self.init(id: snapshot.id, url: snapshot.url, title: snapshot.title, section: section,
+                  lastSelected: snapshot.lastActive ?? Date(),
                   pinnedURL: snapshot.pinnedURL, pinnedTitle: snapshot.pinnedTitle)
     }
 
     var snapshot: TabSnapshot {
-        TabSnapshot(id: id, url: url, title: title, pinnedURL: pinnedURL, pinnedTitle: pinnedTitle)
+        TabSnapshot(id: id, url: url, title: title, pinnedURL: pinnedURL, pinnedTitle: pinnedTitle,
+                    lastActive: lastSelected == .distantPast ? nil : lastSelected)
     }
 }
 
@@ -115,6 +132,7 @@ extension Space {
             id: snapshot.id,
             name: snapshot.name,
             colorHex: snapshot.colorHex,
+            icon: snapshot.icon,
             profileID: snapshot.profileID ?? Space.defaultProfile,
             pinnedItems: pinned,
             today: snapshot.today.map { Tab(snapshot: $0, section: .today) },
@@ -133,7 +151,8 @@ extension Space {
             selectedTabID: selectedTabID,
             split: split.isEmpty ? nil : split,
             pinnedTree: pinnedItems.map(\.snapshot),
-            profileID: profileID
+            profileID: profileID,
+            icon: icon
         )
     }
 }

@@ -17,6 +17,22 @@
         }
       }
     },
+    "%@ imported": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ importado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ importé"
+          }
+        }
+      }
+    },
     "%@ is already used by “%@”": {
       "localizations": {
         "en": {
@@ -61,6 +77,22 @@
         }
       }
     },
+    "%@, tabs: %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, pestañas: %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, onglets : %lld"
+          }
+        }
+      }
+    },
     "%@: %@": {
       "localizations": {
         "en": {
@@ -79,6 +111,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ : %2$@"
+          }
+        }
+      }
+    },
+    "%lld Spaces with %lld bookmarks as pinned tabs. A Space imported before is updated rather than duplicated.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Spaces con %lld marcadores como pestañas fijadas. Un Space ya importado se actualiza en lugar de duplicarse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Spaces avec %lld favoris en onglets épinglés. Un Space déjà importé est mis à jour plutôt que dupliqué."
           }
         }
       }
@@ -117,6 +165,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld extensions installées depuis le Chrome Web Store."
+          }
+        }
+      }
+    },
+    "%lld history pages imported. Safari's passwords stay in iCloud Keychain, where Chord can't read them.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld páginas del historial importadas. Las contraseñas de Safari se quedan en el llavero de iCloud, que Chord no puede leer."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld pages d'historique importées. Les mots de passe de Safari restent dans le trousseau iCloud, que Chord ne peut pas lire."
+          }
+        }
+      }
+    },
+    "%lld login cookies, %lld passwords and %lld history pages imported, each into the profile of its Space. What was already in Chord is kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld cookies de sesión, %lld contraseñas y %lld páginas del historial importados, cada uno en el perfil de su Space. Lo que ya estaba en Chord se conserva."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld cookies de connexion, %lld mots de passe et %lld pages d'historique importés, chacun dans le profil de son Space. Ce qui était déjà dans Chord est conservé."
           }
         }
       }
@@ -161,6 +241,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$lld sur %2$lld"
+          }
+        }
+      }
+    },
+    "1 Space with %lld bookmarks as pinned tabs. A Space imported before is updated rather than duplicated.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Space con %lld marcadores como pestañas fijadas. Un Space ya importado se actualiza en lugar de duplicarse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Space avec %lld favoris en onglets épinglés. Un Space déjà importé est mis à jour plutôt que dupliqué."
           }
         }
       }
@@ -357,6 +453,70 @@
         }
       }
     },
+    "After 12 hours": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después de 12 horas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après 12 heures"
+          }
+        }
+      }
+    },
+    "After 24 hours": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después de 24 horas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après 24 heures"
+          }
+        }
+      }
+    },
+    "After 30 days": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después de 30 días"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après 30 jours"
+          }
+        }
+      }
+    },
+    "After 7 days": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después de 7 días"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après 7 jours"
+          }
+        }
+      }
+    },
     "All Site Settings": {
       "localizations": {
         "es": {
@@ -443,6 +603,22 @@
         }
       }
     },
+    "Another browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro navegador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un autre navigateur"
+          }
+        }
+      }
+    },
     "Appearance": {
       "localizations": {
         "es": {
@@ -519,6 +695,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Le fichier de la barre latérale d'Arc n'a pas pu être lu."
+          }
+        }
+      }
+    },
+    "Arc's sidebar, Spaces and command bar, native on the Mac. Three things, and you're home.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra lateral, los Spaces y la barra de comandos de Arc, nativos en el Mac. Tres cosas, y estás en casa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barre latérale, les Spaces et la barre de commande d'Arc, natifs sur le Mac. Trois choses, et vous êtes chez vous."
+          }
+        }
+      }
+    },
+    "Archive today's tabs": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivar las pestañas de hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiver les onglets du jour"
+          }
+        }
+      }
+    },
+    "Archived Tabs": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pestañas archivadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onglets archivés"
           }
         }
       }
@@ -651,6 +875,22 @@
         }
       }
     },
+    "Bookmarks Menu": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menú Marcadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu Signets"
+          }
+        }
+      }
+    },
     "Bring over your Arc sidebar?": {
       "localizations": {
         "es": {
@@ -663,6 +903,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reprendre votre barre latérale Arc ?"
+          }
+        }
+      }
+    },
+    "Bring your browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trae tu navegador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apportez votre navigateur"
           }
         }
       }
@@ -795,6 +1051,22 @@
         }
       }
     },
+    "Choose": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir"
+          }
+        }
+      }
+    },
     "Chord found Arc on this Mac. Your Spaces, favorites and pinned tabs can come over as they are. Arc is left unchanged.": {
       "localizations": {
         "es": {
@@ -827,6 +1099,22 @@
         }
       }
     },
+    "Chord imports from Google Chrome, Brave, Microsoft Edge, Vivaldi, Chromium and Safari.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chord importa desde Google Chrome, Brave, Microsoft Edge, Vivaldi, Chromium y Safari."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chord importe depuis Google Chrome, Brave, Microsoft Edge, Vivaldi, Chromium et Safari."
+          }
+        }
+      }
+    },
     "Chord is your default browser": {
       "localizations": {
         "es": {
@@ -855,6 +1143,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chord s'est arrêté de manière inattendue"
+          }
+        }
+      }
+    },
+    "Clear": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer"
           }
         }
       }
@@ -1115,6 +1419,22 @@
         }
       }
     },
+    "Couldn't import from %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo importar desde %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'importer depuis %@"
+          }
+        }
+      }
+    },
     "Couldn't import from Arc": {
       "localizations": {
         "es": {
@@ -1127,6 +1447,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Impossible d'importer depuis Arc"
+          }
+        }
+      }
+    },
+    "Current Space": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space actual"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space actuel"
           }
         }
       }
@@ -1403,6 +1739,22 @@
         }
       }
     },
+    "Downloaded from an insecure address": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargado desde una dirección no segura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargé depuis une adresse non sécurisée"
+          }
+        }
+      }
+    },
     "Downloads": {
       "localizations": {
         "es": {
@@ -1431,6 +1783,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Téléchargements (⇧⌘J)"
+          }
+        }
+      }
+    },
+    "Each profile of the browser becomes a Space, with its bookmarks bar as pinned tabs. Logins, passwords, history and extensions come into that Space's profile. The browser is left unchanged.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada perfil del navegador se convierte en un Space, con su barra de marcadores como pestañas fijadas. Sesiones, contraseñas, historial y extensiones llegan al perfil de ese Space. El navegador no cambia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque profil du navigateur devient un Space, avec sa barre de favoris en onglets épinglés. Connexions, mots de passe, historique et extensions arrivent dans le profil de ce Space. Le navigateur reste inchangé."
           }
         }
       }
@@ -2001,6 +2369,22 @@
         }
       }
     },
+    "Google Chrome, Brave, Edge, Vivaldi or Safari: bookmarks, logins, passwords and history.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Chrome, Brave, Edge, Vivaldi o Safari: marcadores, sesiones, contraseñas e historial."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Chrome, Brave, Edge, Vivaldi ou Safari : favoris, connexions, mots de passe et historique."
+          }
+        }
+      }
+    },
     "Green": {
       "localizations": {
         "es": {
@@ -2081,6 +2465,22 @@
         }
       }
     },
+    "Icon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icono"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icône"
+          }
+        }
+      }
+    },
     "Import": {
       "localizations": {
         "es": {
@@ -2129,6 +2529,38 @@
         }
       }
     },
+    "Import from Another Browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar desde otro navegador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer depuis un autre navigateur"
+          }
+        }
+      }
+    },
+    "Import from Another Browser…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar desde otro navegador…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer depuis un autre navigateur…"
+          }
+        }
+      }
+    },
     "Import from Arc": {
       "localizations": {
         "es": {
@@ -2157,6 +2589,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Importer depuis Arc…"
+          }
+        }
+      }
+    },
+    "Import from another browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar desde otro navegador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer depuis un autre navigateur"
+          }
+        }
+      }
+    },
+    "Import from…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar desde…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer depuis…"
           }
         }
       }
@@ -2241,6 +2705,22 @@
         }
       }
     },
+    "Its profiles couldn't be read.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron leer sus perfiles."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses profils n'ont pas pu être lus."
+          }
+        }
+      }
+    },
     "Its tab will be closed.": {
       "localizations": {
         "es": {
@@ -2253,6 +2733,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Son onglet sera fermé."
+          }
+        }
+      }
+    },
+    "Keep": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conservar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserver"
+          }
+        }
+      }
+    },
+    "Keyboard shortcuts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajos de teclado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccourcis clavier"
           }
         }
       }
@@ -2301,6 +2813,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clair"
+          }
+        }
+      }
+    },
+    "Links from other apps open in %@ for now.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por ahora, los enlaces de otras apps se abren en %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour l'instant, les liens des autres apps s'ouvrent dans %@."
           }
         }
       }
@@ -2381,6 +2909,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Faire de %@ le navigateur par défaut"
+          }
+        }
+      }
+    },
+    "Make Chord the Default Browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hacer de Chord el navegador predeterminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faire de Chord le navigateur par défaut"
           }
         }
       }
@@ -2541,6 +3085,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nom"
+          }
+        }
+      }
+    },
+    "Never": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jamais"
           }
         }
       }
@@ -2721,6 +3281,22 @@
         }
       }
     },
+    "No Icon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin icono"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune icône"
+          }
+        }
+      }
+    },
     "No Results": {
       "localizations": {
         "es": {
@@ -2753,6 +3329,38 @@
         }
       }
     },
+    "No archived tab matches": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna pestaña archivada coincide"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun onglet archivé ne correspond"
+          }
+        }
+      }
+    },
+    "No archived tabs": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay pestañas archivadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun onglet archivé"
+          }
+        }
+      }
+    },
     "No downloads": {
       "localizations": {
         "es": {
@@ -2781,6 +3389,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aucun autre Space n'utilise son profil actuel : il sera supprimé, avec ses connexions, cookies, historique, extensions et favoris."
+          }
+        }
+      }
+    },
+    "No other browser found": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró otro navegador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun autre navigateur trouvé"
+          }
+        }
+      }
+    },
+    "No other browser found on this Mac.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay otro navegador en este Mac."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun autre navigateur sur ce Mac."
           }
         }
       }
@@ -2877,6 +3517,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ouvrir l'adresse"
+          }
+        }
+      }
+    },
+    "Open System Settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes del Sistema"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir les Réglages Système"
           }
         }
       }
@@ -3009,6 +3665,22 @@
         }
       }
     },
+    "Opens the tab again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a abrir la pestaña"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rouvre l'onglet"
+          }
+        }
+      }
+    },
     "Options": {
       "localizations": {
         "es": {
@@ -3037,6 +3709,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Orange"
+          }
+        }
+      }
+    },
+    "Other Bookmarks": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros marcadores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autres favoris"
+          }
+        }
+      }
+    },
+    "Other Emoji…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro emoji…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autre emoji…"
           }
         }
       }
@@ -3085,6 +3789,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Coller"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        }
+      }
+    },
+    "Peek": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peek"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peek"
           }
         }
       }
@@ -3181,6 +3917,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Épingler dans la barre d'adresse"
+          }
+        }
+      }
+    },
+    "Play": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproducir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture"
+          }
+        }
+      }
+    },
+    "Playing in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproduciendo en %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En lecture dans %@"
           }
         }
       }
@@ -3761,6 +4529,22 @@
         }
       }
     },
+    "Search archived tabs": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en las pestañas archivadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher dans les onglets archivés"
+          }
+        }
+      }
+    },
     "Search engine": {
       "localizations": {
         "es": {
@@ -4065,6 +4849,22 @@
         }
       }
     },
+    "Space Icon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icono del Space"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icône du Space"
+          }
+        }
+      }
+    },
     "Spaces": {
       "localizations": {
         "es": {
@@ -4193,6 +4993,22 @@
         }
       }
     },
+    "Start Browsing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commencer"
+          }
+        }
+      }
+    },
     "Stop (⌘.)": {
       "localizations": {
         "es": {
@@ -4273,6 +5089,22 @@
         }
       }
     },
+    "Tabs left unused this long go to the archive (⌥⌘A), like Arc. Pinned tabs and favorites stay.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las pestañas sin usar durante este tiempo van al archivo (⌥⌘A), como en Arc. Las fijadas y los favoritos se quedan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les onglets inutilisés depuis ce temps vont aux archives (⌥⌘A), comme dans Arc. Les onglets épinglés et les favoris restent."
+          }
+        }
+      }
+    },
     "Teal": {
       "localizations": {
         "es": {
@@ -4337,6 +5169,22 @@
         }
       }
     },
+    "This type of file can harm your Mac": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este tipo de archivo puede dañar tu Mac"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce type de fichier peut endommager votre Mac"
+          }
+        }
+      }
+    },
     "Today": {
       "localizations": {
         "es": {
@@ -4397,6 +5245,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Activer le mode edgeless"
+          }
+        }
+      }
+    },
+    "Type an emoji, or press fn E (🌐 E) to pick one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe un emoji, o pulsa fn E (🌐 E) para elegir uno."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tapez un emoji, ou appuyez sur fn E (🌐 E) pour en choisir un."
           }
         }
       }
@@ -4609,6 +5473,22 @@
         }
       }
     },
+    "Welcome to Chord": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te damos la bienvenida a Chord"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bienvenue dans Chord"
+          }
+        }
+      }
+    },
     "Window": {
       "localizations": {
         "es": {
@@ -4817,6 +5697,22 @@
         }
       }
     },
+    "macOS didn't give access to %@'s key: logins and passwords stayed in %@. %lld history pages imported.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS no dio acceso a la clave de %@: las sesiones y contraseñas se quedaron en %@. %lld páginas del historial importadas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS n'a pas donné accès à la clé de %@ : connexions et mots de passe sont restés dans %@. %lld pages d'historique importées."
+          }
+        }
+      }
+    },
     "macOS didn't give access to Arc's key: logins and passwords stayed in Arc. %lld history pages imported.": {
       "localizations": {
         "es": {
@@ -4829,6 +5725,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS n'a pas donné accès à la clé d'Arc : les connexions et les mots de passe sont restés dans Arc. %lld pages d'historique reprises."
+          }
+        }
+      }
+    },
+    "macOS keeps Safari's bookmarks and history from other apps. Give Chord Full Disk Access in System Settings › Privacy & Security, then import again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS protege los marcadores y el historial de Safari de otras apps. Da a Chord acceso total al disco en Ajustes del Sistema › Privacidad y seguridad, y vuelve a importar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS protège les favoris et l'historique de Safari des autres apps. Donnez à Chord l'accès complet au disque dans Réglages Système › Confidentialité et sécurité, puis importez à nouveau."
           }
         }
       }
@@ -4861,6 +5773,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "↑ ↓ naviguer      ↩ ouvrir      ⌘↩ nouvel onglet"
+          }
+        }
+      }
+    },
+    "⇧-click": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⇧-clic"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⇧-clic"
           }
         }
       }

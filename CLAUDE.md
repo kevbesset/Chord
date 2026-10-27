@@ -123,8 +123,19 @@ errors before handing back.
 - Sleeping tabs keep their history, scroll position and forms (Chromium's tab
   discarding, woken when shown); tabs playing sound or using the camera, microphone or
   screen stay awake. A speaker in the sidebar mutes a tab playing sound.
-- Not yet on the Chromium side: Peek on ⇧-click, downloads in Chord's panel, video full
-  screen in the interface.
+- On the Chromium side too: Peek on ⇧-click and for links leaving a pinned tab
+  (`chord_links.mm`), downloads in Chord's panel (`chord_downloads.mm`), video full
+  screen with the page alone in the window, one menu bar (ChordUI's, decision 0006).
+- Archive like Arc's (⌘W and unused today's tabs, ⌥⌘A, setting), media controls in the
+  sidebar, an emoji per Space, the shortcut cheat sheet in the command bar, a welcome on
+  first launch, import from Chrome, Brave, Edge, Vivaldi, Chromium and Safari
+  (`BrowserImport.swift`, the Arc importer generalized on the engine side).
+- Latency gate: `engine/scripts/perf-gate.sh` replays the interactions and checks each
+  budget (docs/PERFORMANCE.md). VoiceOver: `app/scripts/ax-audit.swift`
+  (docs/ACCESSIBILITY.md). The name: docs/NAME.md.
+- `BrowserWindowController` and `BrowserState` are split by area into extensions
+  (`BrowserWindowController+CommandBar.swift`, `BrowserState+Tabs.swift`…): add to the
+  file of the area, or a new one.
 - Sharing: Chord signed with the Mac's best certificate (`engine/scripts/sign.sh`), data
   in `~/Library/Application Support/Chord` (older builds' data is moved there and
   re-encrypted with the keychain key), Chord's name and icon everywhere, Chrome Web

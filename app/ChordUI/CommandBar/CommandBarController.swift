@@ -38,11 +38,15 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     private let header = NSStackView()
     private var headerHeight: NSLayoutConstraint!
     private var footerViews: [NSView] = []
+    private var sheetViews: [NSView] = []
     private var centeredConstraints: [NSLayoutConstraint] = []
     private var anchoredLeading: NSLayoutConstraint!
     private var anchoredTop: NSLayoutConstraint!
     private var anchoredWidth: NSLayoutConstraint!
     private let results = NSStackView()
+    /// The shortcuts, under the results while nothing is typed.
+    private let shortcutSheet = ShortcutSheetView()
+    private var isCompact = false
     private var items: [CommandItem] = []
     private var rows: [CommandRowView] = []
     private var selectedIndex = -1
@@ -75,6 +79,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         self.accent = accent
         field.placeholderString = mode == .split ? String(localized: "Page to show alongside", bundle: .chordUI) : String(localized: "Search or enter URL", bundle: .chordUI)
         field.stringValue = text
+        shortcutSheet.refresh()
         scrim.isHidden = false
         panelHost.isHidden = false
         isVisible = true
@@ -165,7 +170,10 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
         let footerRule = makeRule()
         footerViews = [footerRule, footer]
-        let column = NSStackView(views: [header, makeRule(), results, footerRule, footer])
+        let sheetRule = makeRule()
+        shortcutSheet.translatesAutoresizingMaskIntoConstraints = false
+        let column = NSStackView(views: [header, makeRule(), results, sheetRule, shortcutSheet, footerRule, footer])
+        sheetViews = [sheetRule, shortcutSheet]
         column.orientation = .vertical
         column.alignment = .width
         column.spacing = 0
@@ -213,6 +221,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             header.widthAnchor.constraint(equalTo: column.widthAnchor),
             results.widthAnchor.constraint(equalTo: column.widthAnchor),
             footer.widthAnchor.constraint(equalTo: column.widthAnchor),
+            shortcutSheet.widthAnchor.constraint(equalTo: column.widthAnchor),
             headerHeight,
             footer.heightAnchor.constraint(equalToConstant: 36),
         ])
@@ -225,6 +234,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     /// address was, the results below it, and no keyboard hints.
     private func place(in host: NSView, anchoredTo anchor: NSView?) {
         let compact = anchor != nil
+        isCompact = compact
         if let anchor {
             let rect = anchor.convert(anchor.bounds, to: host)
             let top = host.isFlipped ? rect.minY : host.bounds.height - rect.maxY
@@ -265,6 +275,9 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         }
         selectionMoved = false
         rebuildItems()
+        // The cheat sheet while nothing is typed, in the full bar.
+        let showsSheet = query.isEmpty && !isCompact && mode != .split
+        sheetViews.forEach { $0.isHidden = !showsSheet }
     }
 
     /// Asks the active Space's engine, so its profile's history, for pages matching
@@ -334,6 +347,19 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
         let pages = history.filter { !Self.contains(shown, $0.url) }.prefix(Self.maxHistory)
         result += pages.map { historyItem($0, section: String(localized: "History", bundle: .chordUI)) }
+        shown += pages.map(\.url)
+
+        // The Space's archived tabs that match, like Arc's archive search.
+        if !query.isEmpty, mode != .split {
+            let archived = state.archive.filter { item in
+                item.spaceID == activeSpace.id && !(item.url.map { Self.contains(shown, $0) } ?? true)
+                    && (item.displayTitle.localizedStandardContains(query) || (item.url?.absoluteString.localizedStandardContains(query) ?? false))
+            }.prefix(3)
+            result += archived.map { item in
+                CommandItem(section: String(localized: "Archived Tabs", bundle: .chordUI), title: item.displayTitle, subtitle: item.url?.displayHost,
+                            tileURL: item.url, action: .run { [weak self] in self?.state.restore(item) })
+            }
+        }
 
         // Picking a page for a split: only pages, no actions.
         if mode != .split {
@@ -425,6 +451,11 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         selectedIndex = ((selectedIndex + delta) % items.count + items.count) % items.count
         selectionMoved = true
         updateSelection()
+        // The focus stays in the field: VoiceOver says which result is picked.
+        let item = items[selectedIndex]
+        let spoken = [item.title, item.subtitle, item.section].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+        NSAccessibility.post(element: field, notification: .announcementRequested,
+                             userInfo: [.announcement: spoken, .priority: NSAccessibilityPriorityLevel.high.rawValue])
     }
 
     private func updateSelection() {

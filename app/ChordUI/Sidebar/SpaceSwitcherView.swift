@@ -41,21 +41,32 @@ final class SpaceChipView: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel(String(localized: "Space \(space.name)", bundle: .chordUI))
+        // VoiceOver says which Space is shown, and how to reach each one.
+        setAccessibilityValue(isActive ? String(localized: "Current Space", bundle: .chordUI) : nil)
+        if number <= 9 { setAccessibilityHelp("⌃\(number)") }
         registerForDraggedTypes([.chordTab])
 
-        let dot = NSView()
-        dot.wantsLayer = true
-        dot.layer?.cornerRadius = 4
-        dot.layer?.backgroundColor = space.color.withAlphaComponent(isActive ? 1 : 0.45).cgColor
+        // The Space's emoji when it has one, else its coloured dot.
+        let dot: NSView
+        var constraints = [heightAnchor.constraint(equalToConstant: 24)]
+        if let icon = space.icon {
+            let emoji = NSTextField(labelWithString: icon)
+            emoji.font = .systemFont(ofSize: 13)
+            emoji.alphaValue = isActive ? 1 : 0.6
+            dot = emoji
+        } else {
+            dot = NSView()
+            dot.wantsLayer = true
+            dot.layer?.cornerRadius = 4
+            dot.layer?.backgroundColor = space.color.withAlphaComponent(isActive ? 1 : 0.45).cgColor
+            constraints += [
+                dot.widthAnchor.constraint(equalToConstant: 8),
+                dot.heightAnchor.constraint(equalToConstant: 8),
+            ]
+        }
         dot.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dot)
-
-        var constraints = [
-            heightAnchor.constraint(equalToConstant: 24),
-            dot.widthAnchor.constraint(equalToConstant: 8),
-            dot.heightAnchor.constraint(equalToConstant: 8),
-            dot.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ]
+        constraints.append(dot.centerYAnchor.constraint(equalTo: centerYAnchor))
 
         if isActive {
             let label = NSTextField(labelWithString: space.name)
@@ -64,7 +75,7 @@ final class SpaceChipView: NSView {
             label.translatesAutoresizingMaskIntoConstraints = false
             addSubview(label)
             constraints += [
-                dot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+                dot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: space.icon == nil ? 10 : 8),
                 label.leadingAnchor.constraint(equalTo: dot.trailingAnchor, constant: 6),
                 label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
                 label.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -129,6 +140,20 @@ final class SpaceChipView: NSView {
         }
         colors.submenu = palette
         menu.addItem(colors)
+        let icons = NSMenuItem(title: String(localized: "Icon", bundle: .chordUI), action: nil, keyEquivalent: "")
+        let choices = NSMenu()
+        for icon in Space.suggestedIcons {
+            let entry = closureItem(icon) { [weak self] in self?.delegate?.sidebarSetIcon(space, icon: icon) }
+            entry.state = icon == space.icon ? .on : .off
+            choices.addItem(entry)
+        }
+        choices.addItem(.separator())
+        choices.addItem(closureItem(String(localized: "Other Emoji…", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarChooseIcon(space) })
+        let none = closureItem(String(localized: "No Icon", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarSetIcon(space, icon: nil) }
+        none.state = space.icon == nil ? .on : .off
+        choices.addItem(none)
+        icons.submenu = choices
+        menu.addItem(icons)
         menu.addItem(.separator())
         let delete = closureItem(String(localized: "Delete Space…", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarDelete(space) }
         delete.isEnabled = canDelete

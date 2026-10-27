@@ -44,6 +44,9 @@ public final class Space {
     public let id: UUID
     public internal(set) var name: String
     public internal(set) var colorHex: String
+    /// An emoji standing for the Space, like Arc's Space icons: shown in place of its
+    /// coloured dot. Nil for the dot alone.
+    public internal(set) var icon: String?
     /// Like Arc, a Space belongs to a profile, and favorites and the session (cookies,
     /// storage, extensions) belong to the profile: Spaces sharing a profile share them.
     public internal(set) var profileID: String
@@ -58,11 +61,12 @@ public final class Space {
 
     static let defaultProfile = "default"
 
-    init(id: UUID = UUID(), name: String, colorHex: String, profileID: String = Space.defaultProfile,
+    init(id: UUID = UUID(), name: String, colorHex: String, icon: String? = nil, profileID: String = Space.defaultProfile,
          pinnedItems: [PinnedItem] = [], today: [Tab] = [], selectedTabID: UUID? = nil, split: [UUID] = []) {
         self.id = id
         self.name = name
         self.colorHex = colorHex
+        self.icon = icon
         self.profileID = profileID
         self.pinnedItems = pinnedItems
         self.today = today
@@ -71,6 +75,18 @@ public final class Space {
     }
 
     public var color: NSColor { NSColor(hex: colorHex) }
+
+    /// A few icons to pick from at once; any emoji works.
+    public static let suggestedIcons = ["🏠", "💼", "💻", "🧪", "🚀", "🎨", "📚", "🎵", "🎮", "✈️", "🌱", "⭐️"]
+
+    /// The first character of `text` when it is an emoji (flags and skin tones
+    /// included), else nil.
+    static func icon(from text: String) -> String? {
+        guard let first = text.trimmingCharacters(in: .whitespacesAndNewlines).first,
+              first.unicodeScalars.contains(where: { $0.properties.isEmojiPresentation || $0.properties.isEmoji && $0.value > 0x238C })
+        else { return nil }
+        return String(first)
+    }
 
     /// The colour for accents (the mark's chord, selection, the active split pane). A
     /// neutral Space (grey, black or white, as Arc themes can be) has no accent of its

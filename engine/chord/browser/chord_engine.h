@@ -14,6 +14,7 @@ class BrowserWindowInterface;
 class Profile;
 
 namespace content {
+class BrowserContext;
 class WebContents;
 }
 
@@ -38,6 +39,13 @@ void WatchBrowser(BrowserWindowInterface* browser);
 // to tab", a window brought forward), whatever Space it is in.
 void ShowPage(content::WebContents* contents);
 void UnwatchBrowser(BrowserWindowInterface* browser);
+
+// The page ChordUI knows for `contents`, nil for one it does not show.
+id<ChordWebPage> PageForContents(content::WebContents* contents);
+
+// The active page of the profile's browser (the tab ChordUI selected last), nil when
+// it has none.
+id<ChordWebPage> ActivePageForProfile(content::BrowserContext* context);
 
 // Hands a permission request of `contents` to ChordUI, through the engine of its
 // profile. Returns false when ChordUI does not know the page.

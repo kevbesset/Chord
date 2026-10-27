@@ -6,6 +6,7 @@ import Combine
 /// in the Finder, and files can be dragged out to other apps.
 final class DownloadsPanelController: NSViewController {
     var onCancel: ((String) -> Void)?
+    var onKeep: ((String) -> Void)?
     var onDismissFailed: ((String) -> Void)?
 
     private let downloads: Downloads
@@ -85,6 +86,7 @@ final class DownloadsPanelController: NSViewController {
             let row = rows[item.url] ?? DownloadRowView()
             row.configure(item)
             row.onCancel = { [weak self] in if let id = item.id { self?.onCancel?(id) } }
+            row.onKeep = { [weak self] in if let id = item.id { self?.onKeep?(id) } }
             row.onDismiss = { [weak self] in if let id = item.id { self?.onDismissFailed?(id) } }
             list.addArrangedSubview(row)
             kept[item.url] = row
@@ -103,6 +105,7 @@ final class DownloadsPanelController: NSViewController {
 /// One download: the file's icon, its name, then its progress or its size and age.
 final class DownloadRowView: NSView, NSDraggingSource {
     var onCancel: (() -> Void)?
+    var onKeep: (() -> Void)?
     var onDismiss: (() -> Void)?
 
     private var item: Downloads.Item?
@@ -112,6 +115,12 @@ final class DownloadRowView: NSView, NSDraggingSource {
     private let progress = NSProgressIndicator()
     private lazy var revealButton = IconButton(symbol: "magnifyingglass", label: String(localized: "Show in Finder", bundle: .chordUI), target: self, action: #selector(reveal), size: 24, pointSize: 11)
     private lazy var cancelButton = IconButton(symbol: "xmark", label: String(localized: "Cancel download", bundle: .chordUI), target: self, action: #selector(cancel), size: 24, pointSize: 10)
+    private lazy var keepButton: NSButton = {
+        let button = NSButton(title: String(localized: "Keep", bundle: .chordUI), target: self, action: #selector(keep))
+        button.controlSize = .small
+        button.bezelStyle = .push
+        return button
+    }()
     private var isHovered = false
     private var mouseDownEvent: NSEvent?
 
@@ -149,7 +158,7 @@ final class DownloadRowView: NSView, NSDraggingSource {
         texts.orientation = .vertical
         texts.alignment = .leading
         texts.spacing = 3
-        for view in [icon, texts, revealButton, cancelButton] as [NSView] {
+        for view in [icon, texts, keepButton, revealButton, cancelButton] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -161,7 +170,10 @@ final class DownloadRowView: NSView, NSDraggingSource {
             icon.heightAnchor.constraint(equalToConstant: 32),
             texts.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 10),
             texts.centerYAnchor.constraint(equalTo: centerYAnchor),
-            texts.trailingAnchor.constraint(equalTo: revealButton.leadingAnchor, constant: -6),
+            texts.trailingAnchor.constraint(lessThanOrEqualTo: keepButton.leadingAnchor, constant: -6),
+            texts.trailingAnchor.constraint(lessThanOrEqualTo: revealButton.leadingAnchor, constant: -6),
+            keepButton.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -4),
+            keepButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             progress.widthAnchor.constraint(equalTo: texts.widthAnchor),
             revealButton.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -2),
             revealButton.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -195,17 +207,32 @@ final class DownloadRowView: NSView, NSDraggingSource {
             progress.isHidden = true
             detail.stringValue = String(localized: "Download failed", bundle: .chordUI)
             name.textColor = .secondaryLabelColor
+        case .needsApproval(let warning):
+            progress.isHidden = true
+            detail.stringValue = warning == "insecure"
+                ? String(localized: "Downloaded from an insecure address", bundle: .chordUI)
+                : String(localized: "This type of file can harm your Mac", bundle: .chordUI)
+            name.textColor = .labelColor
         }
         refreshButtons()
     }
 
     private var isRunning: Bool {
-        if case .running = item?.state { return true }
+        switch item?.state {
+        case .running, .needsApproval: return true
+        default: return false
+        }
+    }
+
+    private var needsApproval: Bool {
+        if case .needsApproval = item?.state { return true }
         return false
     }
 
     private func refreshButtons() {
         // Cancel while running, dismiss a failure; the magnifier on hover once it exists.
+        // A download held back offers to keep it.
+        keepButton.isHidden = !needsApproval
         cancelButton.isHidden = !(isRunning || item?.state == .failed)
         cancelButton.toolTip = isRunning ? String(localized: "Cancel download", bundle: .chordUI) : String(localized: "Remove from list", bundle: .chordUI)
         revealButton.isHidden = !(isHovered && item?.state == .done)
@@ -267,5 +294,9 @@ final class DownloadRowView: NSView, NSDraggingSource {
 
     @objc private func cancel() {
         if isRunning { onCancel?() } else { onDismiss?() }
+    }
+
+    @objc private func keep() {
+        onKeep?()
     }
 }

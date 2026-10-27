@@ -75,12 +75,10 @@ every page load waits for the answer.
 
 ## Known items to handle
 
-- **Not wired yet**: Peek on ⇧-click and links leaving a pinned tab (a
-  `NavigationThrottle` in `//chord`), downloads into ChordUI's panel, video full screen
-  in the interface (hide the sidebar).
-- **Main menu**: Chromium builds its own. Choose between replacing it with ChordUI's
-  and wiring its commands to ChordUI's.
 - **Updates**: a major Chromium version every four weeks. `UPSTREAM` changes, the
   patches in `patches/` are reapplied.
 
-Done since: Chord's icon, the Chrome Web Store and Widevine (see `patches/README.md`).
+Done since: Chord's icon, the Chrome Web Store and Widevine (see `patches/README.md`);
+Peek on ⇧-click and links leaving a pinned tab (`chord_links.mm`, `chord-links.patch`);
+downloads in ChordUI's panel (`chord_downloads.mm`); video full screen in the interface
+(the page alone in the window); one menu bar, ChordUI's (decision 0006).

@@ -20,6 +20,8 @@ that installed Chords read (decision 0005).
 # 1. the number in VERSION (0.1.0 → 0.2.0), "Unreleased" in CHANGELOG.md renamed
 #    "<version> — <date>" (with a new empty "Unreleased" above), commit, push
 engine/scripts/build.sh --release   # optimized Chromium (LTO): long the first time
+engine/scripts/perf-gate.sh engine/vendor/ungoogled-chromium-macos/build/src/out/Release/Chord.app
+                                    # every interaction within its latency budget
 engine/scripts/package.sh           # dist/Chord-<version>.dmg, signed (notarized when possible)
 engine/scripts/release.sh           # signed appcast, then asks before publishing
 ```

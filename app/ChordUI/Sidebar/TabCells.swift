@@ -160,6 +160,8 @@ final class NewTabCellView: SidebarRowCellView {
             shortcut.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
         setAccessibilityLabel(String(localized: "New Tab", bundle: .chordUI))
+        setAccessibilityHelp("⌘T")
+        setAccessibilityChildren([])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -194,6 +196,11 @@ final class HeaderCellView: NSTableCellView {
     func configure(title: String, count: Int) {
         titleLabel.stringValue = title.uppercased()
         countLabel.stringValue = count > 0 ? "\(count)" : ""
+        // Read as one heading: "Today, 3 tabs".
+        setAccessibilityElement(true)
+        setAccessibilityRole(.staticText)
+        setAccessibilityLabel(count > 0 ? String(localized: "\(title), tabs: \(count)", bundle: .chordUI) : title)
+        setAccessibilityChildren([])
     }
 }
 

@@ -24,6 +24,33 @@ public enum StateChange: Equatable {
     case extensions
     /// A profile's address bar moved between the sidebar and the top of the page.
     case addressBar
+    /// Tabs went to the archive, or came back from it.
+    case archive
+}
+
+/// A tab of the archive: closed with ⌘W, or archived after a while unused, like Arc's.
+/// Restoring it opens it again in its Space.
+public struct ArchivedTab {
+    public let id: UUID
+    public let url: URL?
+    public let title: String
+    public let spaceID: UUID
+    public let date: Date
+    let snapshot: TabSnapshot
+
+    init(snapshot: TabSnapshot, spaceID: UUID, date: Date) {
+        id = snapshot.id
+        url = snapshot.url
+        title = snapshot.title
+        self.spaceID = spaceID
+        self.date = date
+        self.snapshot = snapshot
+    }
+
+    public var displayTitle: String {
+        if !title.isEmpty { return title }
+        return url?.host ?? url?.absoluteString ?? String(localized: "New Tab", bundle: .chordUI)
+    }
 }
 
 /// A site's question, with the page it comes from.
@@ -58,11 +85,11 @@ public enum TabDestination {
 /// What one browser window shows: its Space, and in each Space its selected tab and
 /// split. Windows share the Spaces and their tabs, like Arc's; each picks its own.
 public final class WindowSelection {
-    fileprivate var activeSpaceID: UUID
-    fileprivate var selectedTabIDs: [UUID: UUID] = [:]
-    fileprivate var splits: [UUID: [UUID]] = [:]
+    var activeSpaceID: UUID
+    var selectedTabIDs: [UUID: UUID] = [:]
+    var splits: [UUID: [UUID]] = [:]
 
-    fileprivate init(activeSpaceID: UUID) {
+    init(activeSpaceID: UUID) {
         self.activeSpaceID = activeSpaceID
     }
 }
@@ -77,32 +104,37 @@ public final class BrowserState: NSObject {
     /// A private browsing window's state: one Space, nothing saved.
     public let isPrivate: Bool
     public let changes = PassthroughSubject<StateChange, Never>()
-    public private(set) var spaces: [Space] = []
-    public private(set) var activeSpaceID: UUID
+    public internal(set) var spaces: [Space] = []
+    public internal(set) var activeSpaceID: UUID
     /// This session's downloads and the Downloads folder's recent files.
     public let downloads = Downloads()
 
     /// Favorites by profile. Like Arc, Spaces that share a profile share favorites.
-    private var favoritesByProfile: [String: [Tab]] = [:]
+    var favoritesByProfile: [String: [Tab]] = [:]
     /// Where each profile's address bar sits: on top of the page or in the sidebar. A
     /// profile missing here follows the default of the settings.
-    private var addressBarOnTopByProfile: [String: Bool] = [:]
+    var addressBarOnTopByProfile: [String: Bool] = [:]
     /// The engines of the profiles other than the default one, made on first use.
-    private var profileEngines: [String: ChordWebEngine] = [:]
+    var profileEngines: [String: ChordWebEngine] = [:]
     /// How many pages stay alive besides the visible ones. Older tabs go to sleep.
     var maxAwakeTabs = 8
     /// Pages of tabs closed while their download runs: kept alive until it ends, since
     /// an engine may stop a download whose page goes away.
-    private var downloadingPages: [String: ChordWebPage] = [:]
+    var downloadingPages: [String: ChordWebPage] = [:]
     /// Most recent last, for ⇧⌘T.
-    private var closedTabs: [(snapshot: TabSnapshot, spaceID: UUID)] = []
+    var closedTabs: [(snapshot: TabSnapshot, spaceID: UUID)] = []
+    /// Archived tabs, newest first: kept 30 days, at most `archiveLimit`.
+    public internal(set) var archive: [ArchivedTab] = []
+    static let archiveLimit = 500
+    static let archiveKept: TimeInterval = 30 * 24 * 3600
+    var archiveTimer: Timer?
 
-    private let store: SessionStore?
-    private var pendingSave: DispatchWorkItem?
+    let store: SessionStore?
+    var pendingSave: DispatchWorkItem?
 
     /// The selection of each open window; `loaded` is the one the Spaces hold now.
-    private var windows: [WindowSelection] = []
-    private var loaded: WindowSelection?
+    var windows: [WindowSelection] = []
+    var loaded: WindowSelection?
 
     public init(engine: ChordWebEngine, store: SessionStore?, isPrivate: Bool = false) {
         self.engine = engine
@@ -124,6 +156,7 @@ public final class BrowserState: NSObject {
                 favoritesByProfile[Space.defaultProfile] = shared.map { Tab(snapshot: $0, section: .favorites) }
             }
             addressBarOnTopByProfile = snapshot.profileAddressBarOnTop ?? [:]
+            archive = (snapshot.archive ?? []).map { ArchivedTab(snapshot: $0.tab, spaceID: $0.spaceID, date: $0.date) }
             fromVersion = snapshot.version
             readSession = true
         } else {
@@ -137,13 +170,14 @@ public final class BrowserState: NSObject {
         // Profiles left behind (a Space deleted while Chord did not quit properly) go,
         // judged against a session actually read: never against a fresh one.
         if readSession { engine.deleteProfiles?(except: Array(Set(spaces.map(\.profileID)))) }
+        if !isPrivate { startArchiving() }
     }
 
     /// Before version 4 a profile only grouped favorites, and every Space shared one
     /// session. Arc's default profile, imported as "arc:Default", becomes Chord's
     /// default one; the Spaces left on the default profile by default (the first
     /// launch's "Personal", Spaces added since) get a profile, and so a session, of their own.
-    private func separateSessions() {
+    func separateSessions() {
         let arcDefault = "arc:Default"
         if !spaces.contains(where: { $0.profileID == Space.defaultProfile }) {
             for space in spaces where space.profileID == arcDefault { space.profileID = Space.defaultProfile }
@@ -193,7 +227,7 @@ public final class BrowserState: NSObject {
     }
 
     /// Puts the loaded window's selection away and brings `window`'s into the Spaces.
-    private func load(_ window: WindowSelection) {
+    func load(_ window: WindowSelection) {
         guard let current = loaded, current !== window else { return }
         current.activeSpaceID = activeSpaceID
         for space in spaces {
@@ -233,7 +267,7 @@ public final class BrowserState: NSObject {
     }
 
     /// A tab the Space shows: its own, or a favorite of its profile.
-    private func tab(withID id: UUID, in space: Space) -> Tab? {
+    func tab(withID id: UUID, in space: Space) -> Tab? {
         favorites(of: space).first { $0.id == id } ?? space.allTabs.first { $0.id == id }
     }
 
@@ -266,7 +300,7 @@ public final class BrowserState: NSObject {
         }
     }
 
-    private var everyTab: [Tab] {
+    var everyTab: [Tab] {
         favoritesByProfile.values.flatMap { $0 } + spaces.flatMap(\.allTabs)
     }
 
@@ -278,18 +312,18 @@ public final class BrowserState: NSObject {
         spaces.first { $0.contains(tab) }
     }
 
-    private func profile(ofFavorite tab: Tab) -> String? {
+    func profile(ofFavorite tab: Tab) -> String? {
         favoritesByProfile.first { $0.value.contains { $0 === tab } }?.key
     }
 
     /// The profile whose session a tab's page runs in.
-    private func profileID(of tab: Tab) -> String {
+    func profileID(of tab: Tab) -> String {
         profile(ofFavorite: tab) ?? space(containing: tab)?.profileID ?? activeSpace.profileID
     }
 
     /// The Space that shows a tab: its own Space, or for a favorite the active Space when
     /// it shares the profile, else the first Space that does.
-    private func owningSpace(of tab: Tab) -> Space? {
+    func owningSpace(of tab: Tab) -> Space? {
         if let space = space(containing: tab) { return space }
         guard let profile = profile(ofFavorite: tab) else { return nil }
         if activeSpace.profileID == profile { return activeSpace }
@@ -301,714 +335,4 @@ public final class BrowserState: NSObject {
         favoritesByProfile.values.allSatisfy(\.isEmpty) && spaces.allSatisfy { $0.allTabs.isEmpty }
     }
 
-    // MARK: - Tabs
-
-    /// Opens a tab at the top of today's tabs, in the active Space or in `space`. `page`,
-    /// when given, is adopted as it is (from a Peek or a little window) instead of
-    /// loading the URL again.
-    @discardableResult
-    public func openTab(url: URL, select: Bool = true, adopting page: ChordWebPage? = nil, in space: Space? = nil) -> Tab {
-        let space = space ?? activeSpace
-        // Opening a tab counts as using it: it does not go to sleep before the older ones.
-        let tab = Tab(url: page?.url ?? url, title: page?.title ?? url.host ?? "", lastSelected: Date())
-        // A page of another profile's session loads again in the Space's own.
-        if let page, engine(for: space).ownsPage?(page) ?? true {
-            page.delegate = self
-            tab.page = page
-        }
-        space.today.insert(tab, at: 0)
-        changes.send(.tabs)
-        if select { self.select(tab) }
-        scheduleSave()
-        return tab
-    }
-
-    /// Adds a tab without selecting it, where a dragged link was dropped.
-    @discardableResult
-    public func insertTab(url: URL, at destination: TabDestination) -> Tab {
-        let tab = Tab(url: url, title: url.host ?? "")
-        insert(tab, at: destination, in: activeSpace)
-        changes.send(.tabs)
-        scheduleSave()
-        return tab
-    }
-
-    public func select(_ tab: Tab) {
-        guard let space = owningSpace(of: tab) else { return }
-        let switchesSpace = space.id != activeSpaceID
-        activeSpaceID = space.id
-        // Picking a tab outside the split leaves the split, which stays for later.
-        space.selectedTabID = tab.id
-        tab.lastSelected = Date()
-        // A tab picked with ⌘1…9 or the command bar shows, even inside a closed folder.
-        for folder in space.ancestors(of: tab) { folder.isExpanded = true }
-        for visible in visibleTabs { page(for: visible) }
-        enforceSleepPolicy()
-        changes.send(switchesSpace ? .activeSpace : .selection)
-        scheduleSave()
-    }
-
-    public func close(_ tab: Tab) {
-        let space = owningSpace(of: tab) ?? activeSpace
-        let wasSelected = space.selectedTabID == tab.id
-        let wasVisible = visibleTabs.contains { $0 === tab }
-        let splitPartners = space.split.filter { $0 != tab.id }
-
-        // Like Arc, favorites and pinned tabs are never removed: they go back to sleep, on
-        // the page they were pinned on.
-        tab.page = nil
-        tab.returnToPinnedURL()
-        if tab.section == .today {
-            space.today.removeAll { $0 === tab }
-            closedTabs.append((tab.snapshot, space.id))
-            if closedTabs.count > 50 { closedTabs.removeFirst() }
-        }
-        removeFromSplits(tab)
-
-        if wasSelected {
-            // Back to the other pane of a split, else to the most recently used tab that is
-            // still awake, like Arc. Sleeping tabs are not woken up: with none awake, the
-            // Space shows Chord's home page.
-            let next: Tab?
-            if let partner = splitPartners.first.flatMap({ id in self.tab(withID: id) }), wasVisible {
-                next = partner
-            } else {
-                next = sidebarTabs(in: space)
-                    .filter { $0 !== tab && $0.isAwake }
-                    .max { $0.lastSelected < $1.lastSelected }
-            }
-            space.selectedTabID = next?.id
-            if let next, space.id == activeSpaceID {
-                next.lastSelected = Date()
-                for visible in visibleTabs { page(for: visible) }
-            }
-        }
-        changes.send(.tabs)
-        if wasSelected || wasVisible { changes.send(.selection) }
-        scheduleSave()
-    }
-
-    /// ⇧⌘T: brings back the last tab closed with ⌘W.
-    public func reopenClosedTab() {
-        guard let closed = closedTabs.popLast() else { return }
-        let space = spaces.first { $0.id == closed.spaceID } ?? activeSpace
-        let tab = Tab(snapshot: closed.snapshot, section: .today)
-        space.today.insert(tab, at: 0)
-        changes.send(.tabs)
-        select(tab)
-    }
-
-    public var canReopenClosedTab: Bool { !closedTabs.isEmpty }
-
-    /// Moves a tab to another section, folder, position or Space. The index is counted in
-    /// the destination list as it was before the move, like a drop indicator.
-    public func move(_ tab: Tab, to destination: TabDestination, in target: Space? = nil) {
-        let source = space(containing: tab)
-        let sourceProfile = profile(ofFavorite: tab)
-        let space = target ?? source ?? activeSpace
-        var destination = destination
-
-        // Positions shift when a tab moves down inside its own list.
-        switch destination {
-        case .favorites(let index):
-            if sourceProfile == space.profileID, let old = favorites(of: space).firstIndex(where: { $0 === tab }), old < index {
-                destination = .favorites(index - 1)
-            }
-        case .pinned(let folder, let index):
-            if source === space, tab.isPinned, space.parent(of: tab) === folder,
-               let old = space.items(in: folder).firstIndex(where: { $0.object === tab }), old < index {
-                destination = .pinned(folder, index - 1)
-            }
-        case .today(let index):
-            if source === space, let old = space.today.firstIndex(where: { $0 === tab }), old < index {
-                destination = .today(index - 1)
-            }
-        }
-
-        let oldProfile = sourceProfile ?? source?.profileID
-        if let sourceProfile { favoritesByProfile[sourceProfile]?.removeAll { $0 === tab } }
-        source?.removePinned(tab)
-        source?.today.removeAll { $0 === tab }
-        insert(tab, at: destination, in: space)
-
-        // Moved to another profile, the tab loads again in that profile's session.
-        if oldProfile != space.profileID, tab.page != nil {
-            tab.page = nil
-            if visibleTabs.contains(where: { $0 === tab }) {
-                for visible in visibleTabs { page(for: visible) }
-                changes.send(.selection)
-            }
-        }
-
-        // A tab sent to another Space leaves the selection and split of its old one.
-        if let source, source !== space {
-            source.split.removeAll { $0 == tab.id }
-            if source.split.count < 2 { source.split = [] }
-            if source.selectedTabID == tab.id {
-                source.selectedTabID = (source.today.first ?? source.pinned.first)?.id
-                if source.id == activeSpaceID { changes.send(.selection) }
-            }
-        }
-        changes.send(.tabs)
-        scheduleSave()
-    }
-
-    private func insert(_ tab: Tab, at destination: TabDestination, in space: Space) {
-        switch destination {
-        case .favorites(let index):
-            tab.section = .favorites
-            var list = favorites(of: space)
-            list.insert(tab, at: max(0, min(index, list.count)))
-            favoritesByProfile[space.profileID] = list
-        case .pinned(let folder, let index):
-            tab.section = .pinned
-            space.insertPinned(.tab(tab), in: folder, at: index)
-        case .today(let index):
-            tab.section = .today
-            space.today.insert(tab, at: max(0, min(index, space.today.count)))
-        }
-    }
-
-    /// ⌘D, like Arc: pins a tab, or sends a pinned one back to today's tabs.
-    public func togglePin(_ tab: Tab) {
-        let space = space(containing: tab) ?? activeSpace
-        if tab.isPinned {
-            move(tab, to: .today(0), in: space)
-        } else {
-            move(tab, to: .pinned(nil, space.pinnedItems.count), in: space)
-        }
-    }
-
-    public func toggleFavorite(_ tab: Tab) {
-        let space = owningSpace(of: tab) ?? activeSpace
-        if tab.isFavorite {
-            move(tab, to: .today(0), in: space)
-        } else {
-            move(tab, to: .favorites(favorites(of: space).count), in: space)
-        }
-    }
-
-    /// Loads `url` in the selected tab, or in a new tab when nothing is selected.
-    public func navigateSelected(to url: URL) {
-        guard let tab = selectedTab else {
-            openTab(url: url)
-            return
-        }
-        tab.url = url
-        page(for: tab).load(url)
-        changes.send(.tab(tab.id))
-        scheduleSave()
-    }
-
-    public func selectTab(offset: Int) {
-        let space = activeSpace
-        let tabs = sidebarTabs(in: space)
-        guard !tabs.isEmpty else { return }
-        let current = tabs.firstIndex { $0.id == space.selectedTabID } ?? -1
-        let next = ((current + offset) % tabs.count + tabs.count) % tabs.count
-        select(tabs[next])
-    }
-
-    /// ⌘1…⌘8 select that tab of the sidebar, favorites first, ⌘9 the last one.
-    public func selectTab(number: Int) {
-        let tabs = sidebarTabs(in: activeSpace)
-        guard !tabs.isEmpty, number >= 1 else { return }
-        let index = number == 9 ? tabs.count - 1 : number - 1
-        guard index < tabs.count else { return }
-        select(tabs[index])
-    }
-
-    // MARK: - Folders
-
-    /// A new folder in the active Space's pinned tabs. With a tab, the folder takes the
-    /// tab's place (pinning it first if needed) and holds it.
-    @discardableResult
-    public func newFolder(with tab: Tab? = nil) -> Folder {
-        let space = tab.flatMap { self.space(containing: $0) } ?? activeSpace
-        let folder = Folder(name: String(localized: "New Folder", bundle: .chordUI))
-        if let tab, tab.isPinned, let place = space.removePinned(tab) {
-            space.insertPinned(.folder(folder), in: place.parent, at: place.index)
-            folder.items = [.tab(tab)]
-        } else {
-            space.insertPinned(.folder(folder), in: nil, at: space.pinnedItems.count)
-            if let tab {
-                space.today.removeAll { $0 === tab }
-                if let profile = profile(ofFavorite: tab) { favoritesByProfile[profile]?.removeAll { $0 === tab } }
-                tab.section = .pinned
-                folder.items = [.tab(tab)]
-            }
-        }
-        changes.send(.tabs)
-        scheduleSave()
-        return folder
-    }
-
-    /// Moves a folder, with everything in it, into another folder or the top level.
-    public func move(_ folder: Folder, into parent: Folder?, at index: Int) {
-        let space = activeSpace
-        if let parent, space.folder(folder, contains: parent) { return }
-        var index = index
-        if space.parent(of: folder) === parent,
-           let old = space.items(in: parent).firstIndex(where: { $0.object === folder }), old < index {
-            index -= 1
-        }
-        guard space.removePinned(folder) != nil else { return }
-        space.insertPinned(.folder(folder), in: parent, at: index)
-        changes.send(.tabs)
-        scheduleSave()
-    }
-
-    public func rename(_ folder: Folder, to name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != folder.name else { return }
-        folder.name = trimmed
-        changes.send(.tabs)
-        scheduleSave()
-    }
-
-    /// Remembers whether a folder is open. The outline view already shows it.
-    public func setExpanded(_ folder: Folder, _ expanded: Bool) {
-        guard folder.isExpanded != expanded else { return }
-        folder.isExpanded = expanded
-        scheduleSave()
-    }
-
-    /// Removes the folder but keeps its contents, in its place.
-    public func ungroup(_ folder: Folder) {
-        let space = activeSpace
-        guard let place = space.removePinned(folder) else { return }
-        for (offset, item) in folder.items.enumerated() {
-            space.insertPinned(item, in: place.parent, at: place.index + offset)
-        }
-        changes.send(.tabs)
-        scheduleSave()
-    }
-
-    /// Deletes the folder and the tabs in it.
-    public func delete(_ folder: Folder) {
-        let space = activeSpace
-        let tabs = folder.tabs
-        guard space.removePinned(folder) != nil else { return }
-        for tab in tabs {
-            tab.page = nil
-            removeFromSplits(tab)
-        }
-        if let selected = space.selectedTabID, tabs.contains(where: { $0.id == selected }) {
-            space.selectedTabID = (space.today.first ?? space.pinned.first)?.id
-            changes.send(.selection)
-        }
-        changes.send(.tabs)
-        scheduleSave()
-    }
-
-    // MARK: - Split view
-
-    /// Shows `tab` beside the selected tab, up to four panes, and makes it active.
-    public func addToSplit(_ tab: Tab) {
-        let space = activeSpace
-        guard let current = selectedTab(in: space), current !== tab,
-              self.tab(withID: tab.id, in: space) != nil else { return }
-        var panes = space.split.contains(current.id) ? space.split : [current.id]
-        panes.removeAll { $0 == tab.id }
-        guard panes.count < 4 else { return }
-        panes.append(tab.id)
-        space.split = panes
-        select(tab)
-    }
-
-    /// Takes a tab out of the split. The tab itself stays in the sidebar.
-    public func removeFromSplit(_ tab: Tab) {
-        let space = activeSpace
-        guard space.split.contains(tab.id) else { return }
-        let remaining = space.split.filter { $0 != tab.id }
-        space.split = remaining.count < 2 ? [] : remaining
-        if space.selectedTabID == tab.id, let next = remaining.first.flatMap({ self.tab(withID: $0) }) {
-            select(next)
-        } else {
-            changes.send(.selection)
-            scheduleSave()
-        }
-    }
-
-    public func unsplit() {
-        guard !activeSpace.split.isEmpty else { return }
-        activeSpace.split = []
-        changes.send(.selection)
-        scheduleSave()
-    }
-
-    private func removeFromSplits(_ tab: Tab) {
-        for space in spaces where space.split.contains(tab.id) {
-            space.split.removeAll { $0 == tab.id }
-            if space.split.count < 2 { space.split = [] }
-        }
-    }
-
-    // MARK: - Spaces
-
-    public func selectSpace(_ space: Space) {
-        guard space.id != activeSpaceID else { return }
-        activeSpaceID = space.id
-        if let tab = selectedTab(in: space) {
-            tab.lastSelected = Date()
-        }
-        for visible in visibleTabs { page(for: visible) }
-        enforceSleepPolicy()
-        changes.send(.activeSpace)
-        scheduleSave()
-    }
-
-    public func selectSpace(offset: Int) {
-        guard spaces.count > 1, let index = spaces.firstIndex(where: { $0.id == activeSpaceID }) else { return }
-        let next = ((index + offset) % spaces.count + spaces.count) % spaces.count
-        selectSpace(spaces[next])
-    }
-
-    /// ⌃1…⌃9, like Arc.
-    public func selectSpace(number: Int) {
-        guard number >= 1, number <= spaces.count else { return }
-        selectSpace(spaces[number - 1])
-    }
-
-    /// A new Space has a profile of its own: its own favorites and session. Settings
-    /// can group it with other Spaces.
-    @discardableResult
-    public func addSpace(name: String? = nil, colorHex: String? = nil) -> Space {
-        let color = colorHex ?? Theme.spacePalette[spaces.count % Theme.spacePalette.count]
-        let space = Space(name: name ?? String(localized: "Space \(spaces.count + 1)", bundle: .chordUI), colorHex: color, profileID: UUID().uuidString)
-        spaces.append(space)
-        changes.send(.spaces)
-        selectSpace(space)
-        return space
-    }
-
-    public func rename(_ space: Space, to name: String) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != space.name else { return }
-        space.name = trimmed
-        changes.send(.spaces)
-        scheduleSave()
-    }
-
-    public func setColor(_ space: Space, hex: String) {
-        guard hex != space.colorHex else { return }
-        space.colorHex = hex
-        changes.send(.spaces)
-        scheduleSave()
-    }
-
-    /// The profiles in use, each with the Spaces that share it, in Space order.
-    public var profiles: [(id: String, spaces: [Space])] {
-        var order: [String] = []
-        for space in spaces where !order.contains(space.profileID) { order.append(space.profileID) }
-        return order.map { id in (id, spaces.filter { $0.profileID == id }) }
-    }
-
-    /// Whether the address bar of the Space's profile sits on top of the page, or nil
-    /// when the profile follows the default.
-    public func addressBarOnTop(for space: Space) -> Bool? {
-        addressBarOnTopByProfile[space.profileID]
-    }
-
-    /// Moves the address bar of the Space's profile, and so of every Space sharing it.
-    public func setAddressBarOnTop(_ onTop: Bool, for space: Space) {
-        guard addressBarOnTopByProfile[space.profileID] != onTop else { return }
-        addressBarOnTopByProfile[space.profileID] = onTop
-        changes.send(.addressBar)
-        scheduleSave()
-    }
-
-    /// Moves a Space to another profile: it then shows that profile's favorites, and its
-    /// tabs load again in that profile's session. A new id gives the Space a profile
-    /// of its own.
-    public func setProfile(_ space: Space, to profileID: String) {
-        guard space.profileID != profileID else { return }
-        let used = Set(spaces.map(\.profileID))
-        space.profileID = profileID
-        for tab in space.allTabs { tab.page = nil }
-        dropUnusedProfiles(previouslyUsed: used)
-        if space.id == activeSpaceID {
-            for visible in visibleTabs { page(for: visible) }
-        }
-        changes.send(.spaces)
-        changes.send(.tabs)
-        if space.id == activeSpaceID { changes.send(.selection) }
-        scheduleSave()
-    }
-
-    /// Deletes a Space and its tabs. The last Space cannot be deleted.
-    public func delete(_ space: Space) {
-        guard spaces.count > 1, let index = spaces.firstIndex(where: { $0 === space }) else { return }
-        let used = Set(spaces.map(\.profileID))
-        for tab in space.allTabs { tab.page = nil }
-        let wasActive = space.id == activeSpaceID
-        spaces.remove(at: index)
-        dropUnusedProfiles(previouslyUsed: used)
-        if wasActive {
-            activeSpaceID = spaces[max(0, index - 1)].id
-            for visible in visibleTabs { page(for: visible) }
-            changes.send(.activeSpace)
-        }
-        changes.send(.spaces)
-        scheduleSave()
-    }
-
-    /// What goes with a profile, for the alerts that come before.
-    public static let profileDeletionWarning = String(localized: "This is the last Space on its profile: the profile will be deleted too, with its logins, cookies, history, extensions and favorites.", bundle: .chordUI)
-
-    /// Whether the Space is the last one on its profile, which then goes with it (see
-    /// `dropUnusedProfiles`). The default profile always stays.
-    public func isLastSpace(ofItsProfile space: Space) -> Bool {
-        !isPrivate && space.profileID != Space.defaultProfile
-            && !spaces.contains { $0 !== space && $0.profileID == space.profileID }
-    }
-
-    /// A profile no Space uses any more loses its favorites, and its session (cookies,
-    /// history, extensions) is deleted to free its space on disk. The default profile
-    /// always stays: it is Chromium's first one.
-    private func dropUnusedProfiles(previouslyUsed: Set<String>) {
-        let used = Set(spaces.map(\.profileID))
-        for (profile, tabs) in favoritesByProfile where !used.contains(profile) {
-            for tab in tabs { tab.page = nil }
-            favoritesByProfile[profile] = nil
-        }
-        addressBarOnTopByProfile = addressBarOnTopByProfile.filter { used.contains($0.key) }
-        guard !isPrivate else { return }
-        for profile in previouslyUsed.subtracting(used) where profile != Space.defaultProfile {
-            profileEngines[profile] = nil
-            engine.deleteProfile?(profile)
-        }
-    }
-
-    // MARK: - Pages
-
-    /// The engine of a profile, whose pages run in that profile's session.
-    func engine(forProfile id: String) -> ChordWebEngine {
-        guard !isPrivate, id != Space.defaultProfile else { return engine }
-        if let known = profileEngines[id] { return known }
-        let other = engine.engine?(forProfile: id) ?? engine
-        other.setDelegate?(self)
-        profileEngines[id] = other
-        return other
-    }
-
-    /// The engine for pages shown in a Space: its profile's.
-    public func engine(for space: Space) -> ChordWebEngine {
-        engine(forProfile: space.profileID)
-    }
-
-    /// The Space a page an engine opened by itself goes to, when no tab opened it: the
-    /// active Space if it is on the engine's profile, else the first one that is.
-    private func space(for engine: ChordWebEngine) -> Space {
-        let profile = isPrivate || engine === self.engine
-            ? Space.defaultProfile
-            : profileEngines.first { $0.value === engine }?.key
-        if activeSpace.profileID == profile { return activeSpace }
-        return spaces.first { $0.profileID == profile } ?? activeSpace
-    }
-
-    /// The tab's page, created and loaded on first use, woken up when it sleeps.
-    @discardableResult
-    func page(for tab: Tab) -> ChordWebPage {
-        if let page = tab.page {
-            if page.isAsleep == true {
-                page.wake?()
-                // Asleep with nothing to load again: back to the tab's address.
-                if page.url == nil, let url = tab.url { page.load(url) }
-            }
-            return page
-        }
-        let page = engine(forProfile: profileID(of: tab)).makePage()
-        page.delegate = self
-        tab.page = page
-        if let url = tab.url { page.load(url) }
-        return page
-    }
-
-    /// Keeps the visible tabs and the most recently used ones awake; the rest sleep,
-    /// except those playing sound or using the camera, the microphone or the screen (a
-    /// call, music). A sleeping page keeps its history, scroll position and forms.
-    func enforceSleepPolicy() {
-        let awake = everyTab
-            .filter(\.isAwake)
-            .sorted { $0.lastSelected > $1.lastSelected }
-        var keep = Set(awake.prefix(maxAwakeTabs).map(\.id))
-        for visible in visibleTabs { keep.insert(visible.id) }
-        // What the other windows show stays awake too.
-        for window in windows where window !== loaded {
-            for visible in withWindow(window, { visibleTabs }) { keep.insert(visible.id) }
-        }
-        for tab in awake where !keep.contains(tab.id) {
-            guard let page = tab.page, page.isAudible != true, page.isCapturingMedia != true else { continue }
-            if let sleep = page.sleep {
-                // A page the engine cannot put to sleep (in picture in picture) stays awake.
-                _ = sleep()
-            } else {
-                tab.page = nil
-            }
-        }
-    }
-
-    /// Mutes the tab's page, or gives it its sound back.
-    public func toggleMute(_ tab: Tab) {
-        guard let page = tab.page else { return }
-        page.setMuted?(!(page.isMuted ?? false))
-        changes.send(.tab(tab.id))
-    }
-
-    private func tab(owning page: ChordWebPage) -> Tab? {
-        everyTab.first { $0.page === page }
-    }
-
-    // MARK: - Session
-
-    func scheduleSave() {
-        pendingSave?.cancel()
-        let work = DispatchWorkItem { [weak self] in self?.saveNow() }
-        pendingSave = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
-    }
-
-    public func saveNow() {
-        pendingSave?.cancel()
-        pendingSave = nil
-        store?.save(SessionSnapshot(spaces: spaces.map(\.snapshot), activeSpaceID: activeSpaceID,
-                                    profileFavorites: favoritesByProfile.mapValues { $0.map(\.snapshot) },
-                                    profileAddressBarOnTop: addressBarOnTopByProfile.isEmpty ? nil : addressBarOnTopByProfile))
-    }
-
-    /// Adds Spaces and favorites made elsewhere (the Arc import). A Space with the same
-    /// name as an existing one replaces it in place, so that importing again updates
-    /// rather than duplicates. A first launch with nothing open loses its default Spaces.
-    func add(spaces imported: [Space], favorites importedFavorites: [String: [Tab]]) {
-        guard !imported.isEmpty || !importedFavorites.isEmpty else { return }
-        let used = Set(spaces.map(\.profileID))
-        if isPristine, !imported.isEmpty {
-            spaces = imported
-        } else {
-            for space in imported {
-                if let index = spaces.firstIndex(where: { $0.name == space.name }) {
-                    for tab in spaces[index].allTabs { tab.page = nil }
-                    spaces[index] = space
-                } else {
-                    spaces.append(space)
-                }
-            }
-        }
-        for (profile, tabs) in importedFavorites {
-            for tab in favoritesByProfile[profile] ?? [] { tab.page = nil }
-            favoritesByProfile[profile] = tabs
-        }
-        dropUnusedProfiles(previouslyUsed: used)
-        if !spaces.contains(where: { $0.id == activeSpaceID }) { activeSpaceID = imported.first?.id ?? spaces[0].id }
-        changes.send(.spaces)
-        changes.send(.activeSpace)
-        saveNow()
-    }
-}
-
-extension BrowserState: ChordWebPageDelegate {
-    public func pageDidUpdate(_ page: ChordWebPage) {
-        PageHostView.pageDidUpdate(page)
-        guard let tab = tab(owning: page) else { return }
-        if let url = page.url { tab.url = url }
-        if let title = page.title, !title.isEmpty {
-            tab.title = title
-            // The pinned page's own title, once it has loaded, rather than its host.
-            if tab.pinnedURL != nil, tab.url == tab.pinnedURL { tab.pinnedTitle = title }
-        }
-        // The live page knows its real icon: keep it for when the tab sleeps.
-        if let icon = page.faviconData ?? nil, let url = tab.url {
-            FaviconStore.shared.useIcon(icon, for: url)
-        }
-        changes.send(.tab(tab.id))
-        scheduleSave()
-    }
-
-    public func page(_ page: ChordWebPage, didFindMatches count: Int, activeMatch: Int, isFinal: Bool) {
-        changes.send(.findResult(FindResult(page: page, count: count, activeMatch: activeMatch)))
-    }
-
-    public func page(_ page: ChordWebPage, wantsNewTabWith url: URL) {
-        openTab(url: url, in: space(opening: page))
-    }
-
-    /// The Space of the tab showing `page`, for the tabs it opens.
-    private func space(opening page: ChordWebPage) -> Space? {
-        tab(owning: page).flatMap { owningSpace(of: $0) }
-    }
-
-    /// ⇧-click opens a Peek, ⌘-click a background tab. Like Arc, a link that leaves the
-    /// site of a favorite or pinned tab opens in a Peek, so the tab stays where it was.
-    public func page(_ page: ChordWebPage, shouldFollowLinkTo url: URL, modifiers: NSEvent.ModifierFlags) -> Bool {
-        if modifiers.contains(.shift) {
-            changes.send(.peek(url))
-            return false
-        }
-        if modifiers.contains(.command) {
-            openTab(url: url, select: false, in: space(opening: page))
-            return false
-        }
-        if let tab = tab(owning: page), tab.section != .today,
-           let from = tab.url?.host, let to = url.host, Self.site(of: from) != Self.site(of: to) {
-            changes.send(.peek(url))
-            return false
-        }
-        return true
-    }
-
-    public func page(_ page: ChordWebPage, didStartDownload id: String, destination: URL) {
-        downloads.start(id: id, destination: destination)
-        changes.send(.downloadStarted)
-        // A new tab opened only for this file has nothing to show: close it, like Arc.
-        if let tab = tab(owning: page), tab.section == .today, !page.canGoBack, (page.title ?? "").isEmpty {
-            downloadingPages[id] = page
-            close(tab)
-        }
-    }
-
-    public func page(_ page: ChordWebPage, download id: String, didProgress fraction: Double) {
-        downloads.progress(id: id, fraction: fraction)
-    }
-
-    public func page(_ page: ChordWebPage, download id: String, didFinishAt fileURL: URL?) {
-        downloads.finish(id: id, fileURL: fileURL)
-        downloadingPages[id] = nil
-    }
-
-    /// Stops a running download.
-    public func cancelDownload(_ id: String) {
-        engine.cancelDownload?(id)
-    }
-
-    /// The last two labels of a host, close enough to a registrable domain here.
-    static func site(of host: String) -> String {
-        host.split(separator: ".").suffix(2).joined(separator: ".")
-    }
-}
-
-extension BrowserState: ChordWebEngineDelegate {
-    /// A page the engine opened by itself goes to the top of today's tabs, in the Space
-    /// of the page that opened it.
-    public func engine(_ engine: ChordWebEngine, didOpen page: ChordWebPage, opener: ChordWebPage?, inBackground: Bool) {
-        guard tab(owning: page) == nil else { return }
-        let space = opener.flatMap { self.space(opening: $0) } ?? self.space(for: engine)
-        openTab(url: page.url ?? URL(string: "about:blank")!, select: !inBackground, adopting: page, in: space)
-    }
-
-    public func engine(_ engine: ChordWebEngine, didClose page: ChordWebPage) {
-        if let tab = tab(owning: page) { close(tab) }
-    }
-
-    public func engine(_ engine: ChordWebEngine, wantsToShow page: ChordWebPage) {
-        if let tab = tab(owning: page) { select(tab) }
-    }
-
-    public func engineExtensionsDidChange(_ engine: ChordWebEngine) {
-        changes.send(.extensions)
-    }
-
-    public func engine(_ engine: ChordWebEngine, page: ChordWebPage, requests request: ChordPermissionRequest) {
-        changes.send(.permission(PermissionAsk(page: page, request: request)))
-    }
 }

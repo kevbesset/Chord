@@ -169,6 +169,11 @@ final class FaviconTileView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
+    // The row or button around the tile names the site: VoiceOver skips the tile and its
+    // initial (an ignored view would hand its children to its parent).
+    override func isAccessibilityElement() -> Bool { false }
+    override func accessibilityChildren() -> [Any]? { [] }
+
     func configure(url: URL?, fallback: String) {
         if let builtIn = url?.builtInPageSymbol {
             currentKey = nil

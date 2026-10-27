@@ -12,6 +12,9 @@ import AppKit
     func makePage() -> ChordWebPage
     /// Stops a download started by one of the engine's pages.
     @objc optional func cancelDownload(_ id: String)
+    /// Saves a download the engine warned about (`page(_:download:needsApproval:)`):
+    /// the user chose to keep it.
+    @objc optional func keepDownload(_ id: String)
     /// Receives the pages the engine opens by itself. Set once by ChordUI.
     @objc optional func setDelegate(_ delegate: ChordWebEngineDelegate?)
     /// An engine on a private profile, for private browsing windows: no history,
@@ -43,6 +46,17 @@ import AppKit
     /// "formValues", "extensions", "siteStorage" (1 when
     /// some comes next launch) and "keyDenied" (1 when macOS did not give Arc's key).
     @objc optional func importFromArc(_ arcProfile: String, completion: @escaping ([String: Int]) -> Void)
+    /// The same from another browser built on Chromium (Google Chrome, Brave, Edge…):
+    /// `name` keeps track of what was imported already, `keychainService` and
+    /// `keychainAccount` name the keychain item of the browser's key ("Chrome Safe
+    /// Storage", "Chrome"). Same counts as `importFromArc(_:completion:)`.
+    @objc(importFromBrowser:keychainService:keychainAccount:profile:completion:)
+    optional func importFromBrowser(_ name: String, keychainService: String, keychainAccount: String, profile: String,
+                                    completion: @escaping ([String: Int]) -> Void)
+    /// Pages visited in another browser (Safari), added to the profile's history, which
+    /// the command bar suggests from. Each: "url" (URL), "title", "visits" (Int) and
+    /// "lastVisit" (Date).
+    @objc(addHistory:) optional func addHistory(_ pages: [[String: Any]])
     /// Whether the page belongs to this engine's profile.
     @objc optional func ownsPage(_ page: ChordWebPage) -> Bool
 }
@@ -185,6 +199,15 @@ import AppKit
     @objc optional func setMuted(_ muted: Bool)
     /// The page uses the camera or the microphone, or records the screen.
     @objc optional var isCapturingMedia: Bool { get }
+    /// An element of the page is in full screen (a video): the window shows the page
+    /// alone.
+    @objc optional var isFullscreen: Bool { get }
+    /// The page plays sound or video, or ChordUI paused it with
+    /// `toggleMediaPlayback()`: the sidebar's media controls show it.
+    @objc optional var hasMedia: Bool { get }
+    @objc optional var isPlayingMedia: Bool { get }
+    /// Pauses the page's media, or plays it again once paused this way.
+    @objc optional func toggleMediaPlayback()
 
     /// Puts the page to sleep: its process goes, its history, scroll position and form
     /// state stay, and it loads again where it was on `wake()`. False when it could not
@@ -214,4 +237,8 @@ import AppKit
     @objc optional func page(_ page: ChordWebPage, download id: String, didProgress fraction: Double)
     /// `fileURL` is nil when the download failed or was cancelled.
     @objc optional func page(_ page: ChordWebPage, download id: String, didFinishAt fileURL: URL?)
+    /// The engine holds the download back until the user keeps it
+    /// (`ChordWebEngine.keepDownload(_:)`) or cancels it: `warning` is "insecure" (an
+    /// http address) or "dangerous" (a file type that can harm the Mac).
+    @objc(page:download:needsApproval:) optional func page(_ page: ChordWebPage, download id: String, needsApproval warning: String)
 }

@@ -70,6 +70,9 @@ final class CommandRowView: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel(item.title)
+        // One element: the title, then the address or the shortcut as help.
+        setAccessibilityHelp([item.subtitle, item.shortcut].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+        setAccessibilityChildren([])
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

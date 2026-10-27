@@ -140,7 +140,7 @@ Chord is open source. That is the answer to Arc's problem: the code belongs to t
 
 - [x] Choose the license: GPL-3.0
 - [x] Write the CLA, before the first outside contribution ([`CLA.md`](../CLA.md), signed in each first pull request)
-- [ ] Check the name "Chord": domain, GitHub organization, trademarks (INPI, EUIPO)
+- [ ] Check the name "Chord": domain, GitHub organization, trademarks (INPI, EUIPO). First pass done, EUIPO and INPI left: [`NAME.md`](NAME.md)
 
 ## What we don't do, for now
 

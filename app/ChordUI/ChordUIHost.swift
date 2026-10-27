@@ -45,6 +45,10 @@ public final class ChordUIHost: NSObject {
         CrashReports.checkForCrash(appName: appName, over: controller.window)
         pendingURLs.forEach { controller.openLittleWindow(url: $0) }
         pendingURLs = []
+        if let report = PerfReplay.reportURL {
+            Perf.recorded = [:]
+            controller.runPerfReplay(report: report)
+        }
         DispatchQueue.main.async { launch.end() }
     }
 

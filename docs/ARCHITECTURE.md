@@ -58,6 +58,12 @@ the interface, `engine/scripts/run.sh` recompiles ChordUI alone and relaunches C
 | `Menu/` | Main menu and keyboard shortcuts |
 | `Support/` | Theme, performance measurements, settings, shared components |
 
+The two central types are split by area into extensions, one file each:
+`BrowserWindowController` (`+CommandBar`, `+Prompts`, `+Windows`, `+Actions`,
+`+Sidebar`, `+Archive`, `+Fullscreen`, `+Import`, `+Welcome`, `+PerfReplay`) and
+`BrowserState` (`+Tabs`, `+Spaces`, `+Archive`, `+Pages`). Their stored properties stay
+in the main file.
+
 ## Languages
 
 ChordUI's interface is in English, French and Spanish. Every visible string is a

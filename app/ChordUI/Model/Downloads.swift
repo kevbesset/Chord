@@ -6,7 +6,12 @@ import Combine
 /// that the panel is useful from the first launch.
 public final class Downloads {
     public struct Item: Equatable {
-        public enum State: Equatable { case running(Double), done, failed }
+        public enum State: Equatable {
+            case running(Double), done, failed
+            /// Held back until the user keeps it: "insecure" (an http address) or
+            /// "dangerous" (a file type that can harm the Mac).
+            case needsApproval(String)
+        }
         /// The engine's id for downloads of this session, nil for files found on disk.
         public let id: String?
         public let url: URL
@@ -24,7 +29,12 @@ public final class Downloads {
     }
 
     public var hasRunning: Bool {
-        session.contains { if case .running = $0.state { return true } else { return false } }
+        session.contains {
+            switch $0.state {
+            case .running, .needsApproval: return true
+            case .done, .failed: return false
+            }
+        }
     }
 
     /// This session's downloads first, then the folder's newest files, `limit` in all.
@@ -57,7 +67,22 @@ public final class Downloads {
 
     func progress(id: String, fraction: Double) {
         guard let index = session.firstIndex(where: { $0.id == id }) else { return }
+        if case .needsApproval = session[index].state { return }
         session[index].state = .running(max(0, min(1, fraction)))
+        changes.send()
+    }
+
+    func needsApproval(id: String, warning: String) {
+        guard let index = session.firstIndex(where: { $0.id == id }) else { return }
+        session[index].state = .needsApproval(warning)
+        changes.send()
+    }
+
+    /// The user kept a download held back: it carries on.
+    func approve(id: String) {
+        guard let index = session.firstIndex(where: { $0.id == id }),
+              case .needsApproval = session[index].state else { return }
+        session[index].state = .running(0)
         changes.send()
     }
 

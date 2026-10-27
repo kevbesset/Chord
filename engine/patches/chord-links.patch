@@ -1,0 +1,49 @@
+Chord: ⇧-clicked links and links leaving a pinned tab's site go to ChordUI (a Peek).
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -804,6 +804,10 @@
+ 
+ #if BUILDFLAG(ENABLE_REQUEST_HEADER_INTEGRITY)
+ #include "chrome/common/request_header_integrity/request_header_integrity_url_loader_throttle.h"  // nogncheck crbug.com/40147906
++#endif
++
++#if BUILDFLAG(IS_MAC)
++#include "chord/browser/chord_hooks.h"  // nogncheck
+ #endif
+ 
+ #include "base/win/windows_h_disallowed.h"
+@@ -5575,6 +5579,9 @@
+ void ChromeContentBrowserClient::CreateThrottlesForNavigation(
+     content::NavigationThrottleRegistry& registry) {
+   CreateAndAddChromeThrottlesForNavigation(registry);
++#if BUILDFLAG(IS_MAC)
++  chord::AddNavigationThrottles(registry);
++#endif
+ }
+ 
+ void ChromeContentBrowserClient::CreateThrottlesForCommitWithoutUrlLoader(
+--- a/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
++++ b/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
+@@ -118,6 +118,7 @@
+ #include "ui/display/display.h"
+ #include "ui/display/screen.h"
+ #include "ui/display/types/display_constants.h"
++#include "chord/browser/chord_hooks.h"  // nogncheck
+ #endif  // BUILDFLAG(IS_MAC)
+ 
+ // Kill switch for merge safety for a fix for https://crbug.com/489205993
+@@ -546,7 +547,14 @@
+     DCHECK(window);
+     return window->OpenURLFromTab(source, params,
+                                   std::move(navigation_handle_callback));
++  }
++
++#if BUILDFLAG(IS_MAC)
++  // Chord: a ⇧-clicked link opens in a Peek rather than a new window.
++  if (chord::HandleOpenURL(source, params)) {
++    return nullptr;
+   }
++#endif
+ 
+   // If the source is already split, navigate the other pane instead of
+   // creating a new tab. Return |source| so that WebContentsImpl::OpenURL()

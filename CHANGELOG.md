@@ -6,10 +6,46 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Added
+
+- A welcome on first launch, on one glass panel: import from Arc or another browser,
+  make Chord the default browser, and the shortcuts to know.
+- Import from Google Chrome, Brave, Microsoft Edge, Vivaldi, Chromium and Safari
+  (File › Import from Another Browser…, or Settings › General): each profile becomes a
+  Space with its bookmarks bar as pinned tabs, and its logins, passwords, history and
+  extensions come into that Space's profile. Safari gives its bookmarks and history
+  once Chord has Full Disk Access.
+- The archive, like Arc's: tabs closed with ⌘W, and today's tabs left unused for 12
+  hours, go to the archive (⌥⌘A, or the box at the bottom of the sidebar), searchable,
+  where a click opens them again. Settings › General › Archive today's tabs: 12 hours,
+  24 hours, 7 days, 30 days or never. Archived tabs also show in the command bar.
+- Media controls in the sidebar, like Arc's mini player: a tab playing sound or video
+  out of sight shows above the Spaces, with play / pause and mute, and a click goes
+  back to it.
+- Each Space can have an emoji, shown in place of its dot (the Space's menu › Icon, or
+  Settings › Spaces).
+- A cheat sheet of the main shortcuts at the bottom of the command bar, as remapped in
+  the settings.
+- ⇧-click on a link opens it in a Peek, and a link leaving the site of a pinned tab or
+  a favorite opens in a Peek too, so the tab stays on its page.
+- Downloads appear in Chord's downloads panel as they run, saved to Downloads without
+  asking where; a file the browser warns about waits there for "Keep".
+- A video in full screen fills the window alone: no sidebar, toolbar or margins.
+
+### Changed
+
+- ⌘W in Chromium's own windows (developer tools in their own window, a site's popup)
+  closes them: Chord's menu bar is the only one.
+- VoiceOver reads the sidebar, the command bar and the welcome better: one element per
+  row or tile, the current Space told apart, the result picked with the arrows read
+  aloud, no more site initials read on their own.
+
 ### Fixed
 
 - Pages show their true colors: they no longer blend with the window's glass, which
   washed them out (grey blacks, faded tints).
+- Turning edgeless mode on or off no longer leaves the bottom of the page empty until
+  a reload.
 
 ## 0.2.0 — 2026-10-27
 

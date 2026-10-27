@@ -6,8 +6,8 @@ import SwiftUI
 final class SettingsWindowController: NSWindowController {
     private let model: SettingsModel
 
-    init(state: BrowserState, settings: ChordSettings, onImportArc: @escaping () -> Void) {
-        model = SettingsModel(state: state, settings: settings, onImportArc: onImportArc)
+    init(state: BrowserState, settings: ChordSettings, onImportArc: @escaping () -> Void, onImportBrowser: @escaping () -> Void) {
+        model = SettingsModel(state: state, settings: settings, onImportArc: onImportArc, onImportBrowser: onImportBrowser)
         let hosting = NSHostingController(rootView: SettingsView(model: model))
         let window = NSWindow(contentViewController: hosting)
         window.title = String(localized: "Settings", bundle: .chordUI)
@@ -34,16 +34,18 @@ final class SettingsModel: ObservableObject {
     let state: BrowserState
     let settings: ChordSettings
     let onImportArc: () -> Void
+    let onImportBrowser: () -> Void
     @Published private(set) var revision = 0
     /// The shortcut being recorded, if any.
     @Published private(set) var recordingID: String?
     fileprivate var keyMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
 
-    init(state: BrowserState, settings: ChordSettings, onImportArc: @escaping () -> Void) {
+    init(state: BrowserState, settings: ChordSettings, onImportArc: @escaping () -> Void, onImportBrowser: @escaping () -> Void) {
         self.state = state
         self.settings = settings
         self.onImportArc = onImportArc
+        self.onImportBrowser = onImportBrowser
         settings.changes.sink { [weak self] _ in self?.revision += 1 }.store(in: &cancellables)
         state.changes.filter { $0 == .spaces || $0 == .activeSpace }
             .sink { [weak self] _ in self?.revision += 1 }
@@ -124,6 +126,12 @@ private struct GeneralPane: View {
                     Text(String(localized: "Custom", bundle: .chordUI)).tag(model.settings.searchTemplate)
                 }
             }
+            Picker(selection: model.binding(\.archiveAfter)) {
+                ForEach(ChordSettings.ArchiveDelay.allCases, id: \.self) { delay in Text(delay.title).tag(delay) }
+            } label: {
+                Text(String(localized: "Archive today's tabs", bundle: .chordUI))
+                Text(String(localized: "Tabs left unused this long go to the archive (⌥⌘A), like Arc. Pinned tabs and favorites stay.", bundle: .chordUI))
+            }
             Toggle(isOn: model.binding(\.autoPictureInPicture)) {
                 Text(String(localized: "Automatic picture in picture", bundle: .chordUI))
                 Text(String(localized: "A playing video carries on in a floating window when you switch tabs or Spaces, and goes back to its page when you return.", bundle: .chordUI))
@@ -138,6 +146,16 @@ private struct GeneralPane: View {
                     Spacer()
                     Button(String(localized: "Import…", bundle: .chordUI)) { model.onImportArc() }
                         .disabled(!ArcImport.isAvailable)
+                }
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "Import from another browser", bundle: .chordUI))
+                        Text(String(localized: "Google Chrome, Brave, Edge, Vivaldi or Safari: bookmarks, logins, passwords and history.", bundle: .chordUI))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button(String(localized: "Import…", bundle: .chordUI)) { model.onImportBrowser() }
+                        .disabled(BrowserImport.installed.isEmpty)
                 }
             }
             Section {
@@ -260,6 +278,16 @@ private struct SpaceRow: View {
                         .accessibilityAddTraits(.isButton)
                 }
             }
+            Menu(space.icon ?? "∅") {
+                ForEach(Space.suggestedIcons, id: \.self) { icon in
+                    Button(icon) { model.state.setIcon(space, icon: icon) }
+                }
+                Divider()
+                Button(String(localized: "No Icon", bundle: .chordUI)) { model.state.setIcon(space, icon: nil) }
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .accessibilityLabel(String(localized: "Space Icon", bundle: .chordUI))
             TextField(String(localized: "Name", bundle: .chordUI), text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { model.state.rename(space, to: name) }

@@ -31,6 +31,8 @@ protocol SidebarDelegate: AnyObject {
     func sidebarAddSpace()
     func sidebarRename(_ space: Space)
     func sidebarSetColor(_ space: Space, hex: String)
+    func sidebarSetIcon(_ space: Space, icon: String?)
+    func sidebarChooseIcon(_ space: Space)
     func sidebarDelete(_ space: Space)
     /// A swipe moved the sidebar this far toward `space` (0 to 1), or back to nothing.
     func sidebarSwipeProgress(toward space: Space?, fraction: CGFloat)
@@ -40,6 +42,8 @@ protocol SidebarDelegate: AnyObject {
     func sidebarSwipeEnded(on space: Space?)
     func sidebarResize(to width: CGFloat, finished: Bool)
     func sidebarShowDownloads()
+    func sidebarShowArchive()
+    func sidebarToggleMediaPlayback(_ tab: Tab)
     func sidebarMouseEntered()
     func sidebarMouseExited()
 }
@@ -84,6 +88,9 @@ final class SidebarView: NSView {
     /// The pinned extensions, in the address.
     func setExtensions(_ items: [PageExtension]) { addressPill.setExtensions(items) }
     private let resizeHandle = SidebarResizeHandle()
+    private let mediaControls = MediaControlsView()
+    private var mediaHeight: NSLayoutConstraint!
+    private var mediaGap: NSLayoutConstraint!
     // The first row shares the title bar with the traffic lights: a touch larger than
     // the other icons, so that they hold their own next to them.
     private lazy var backButton = IconButton(symbol: "arrow.left", label: String(localized: "Back (⌘[)", bundle: .chordUI), target: self, action: #selector(backClicked), size: Theme.titleRowHeight, pointSize: 15)
@@ -91,10 +98,13 @@ final class SidebarView: NSView {
     private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: String(localized: "Reload (⌘R)", bundle: .chordUI), target: self, action: #selector(reloadClicked), size: Theme.titleRowHeight, pointSize: 15)
     private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: String(localized: "Sidebar (⌘S)", bundle: .chordUI), target: self, action: #selector(collapseClicked), size: Theme.titleRowHeight, pointSize: 15)
     private lazy var downloadsButton = IconButton(symbol: "tray.and.arrow.down", label: String(localized: "Downloads (⇧⌘J)", bundle: .chordUI), target: self, action: #selector(downloadsClicked), size: 28, pointSize: 14)
+    private lazy var archiveButton = IconButton(symbol: "archivebox", label: String(localized: "Archived Tabs", bundle: .chordUI), target: self, action: #selector(archiveClicked), size: 28, pointSize: 13)
     private lazy var addSpaceButton = IconButton(symbol: "plus", label: String(localized: "New Space", bundle: .chordUI), target: self, action: #selector(addSpaceClicked), size: 28, pointSize: 13)
 
     /// Where the downloads panel opens from.
     var downloadsAnchor: NSView { downloadsButton }
+    /// Where the archive's panel opens from.
+    var archiveAnchor: NSView { archiveButton }
 
     private var pagerTopToPill: NSLayoutConstraint!
     private var pagerTopToRow: NSLayoutConstraint!
@@ -129,6 +139,18 @@ final class SidebarView: NSView {
                              selectedID: state.selectedTab?.id, splitIDs: splitIDs)
         spaceSwitcher.update(spaces: state.spaces, active: space)
         updateNavigation(tab: state.selectedTab)
+        updateMedia(state: state)
+    }
+
+    /// The media controls above the Spaces, for a tab playing out of sight.
+    func updateMedia(state: BrowserState) {
+        let tab = state.mediaTab
+        mediaControls.update(tab: tab)
+        let shown = tab != nil
+        guard mediaControls.isHidden == shown else { return }
+        mediaControls.isHidden = !shown
+        mediaHeight.constant = shown ? MediaControlsView.height : 0
+        mediaGap.constant = shown ? -6 : 0
     }
 
     func updateNavigation(tab: Tab?) {
@@ -203,12 +225,19 @@ final class SidebarView: NSView {
 
         let bottomRow = NSStackView()
         bottomRow.orientation = .horizontal
-        // Like Arc: downloads on the left, the Spaces centred, a new Space on the right.
+        // Like Arc: downloads and the archive on the left, the Spaces centred, a new Space
+        // on the right.
         bottomRow.addView(downloadsButton, in: .leading)
+        bottomRow.addView(archiveButton, in: .leading)
         bottomRow.addView(spaceSwitcher, in: .center)
         bottomRow.addView(addSpaceButton, in: .trailing)
 
-        for view in [floatingBackground, topRow, addressPill, pager, bottomRow, resizeHandle] as [NSView] {
+        mediaControls.isHidden = true
+        mediaControls.onSelect = { [weak self] tab in self?.delegate?.sidebarSelect(tab) }
+        mediaControls.onTogglePlayback = { [weak self] tab in self?.delegate?.sidebarToggleMediaPlayback(tab) }
+        mediaControls.onToggleMute = { [weak self] tab in self?.delegate?.sidebarToggleMute(tab) }
+
+        for view in [floatingBackground, topRow, addressPill, pager, mediaControls, bottomRow, resizeHandle] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -218,6 +247,8 @@ final class SidebarView: NSView {
         pagerTopToRow = pager.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 10 - SpacePageView.topInset)
         topRowCenter = topRow.centerYAnchor.constraint(equalTo: topAnchor, constant: 14)
         topRowLeading = topRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.trafficLightsWidth)
+        mediaHeight = mediaControls.heightAnchor.constraint(equalToConstant: 0)
+        mediaGap = mediaControls.bottomAnchor.constraint(equalTo: bottomRow.topAnchor, constant: 0)
 
         NSLayoutConstraint.activate([
             floatingBackground.topAnchor.constraint(equalTo: topAnchor, constant: 4),
@@ -246,7 +277,10 @@ final class SidebarView: NSView {
             pagerTopToPill,
             pager.leadingAnchor.constraint(equalTo: leadingAnchor),
             pager.trailingAnchor.constraint(equalTo: trailingAnchor),
-            pager.bottomAnchor.constraint(equalTo: bottomRow.topAnchor, constant: -6),
+            pager.bottomAnchor.constraint(equalTo: mediaControls.topAnchor, constant: -6),
+            mediaControls.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            mediaControls.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            mediaHeight, mediaGap,
 
             bottomRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             bottomRow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
@@ -427,6 +461,7 @@ final class SidebarView: NSView {
     @objc private func reloadClicked() { delegate?.sidebarReload() }
     @objc private func collapseClicked() { delegate?.sidebarToggle() }
     @objc private func downloadsClicked() { delegate?.sidebarShowDownloads() }
+    @objc private func archiveClicked() { delegate?.sidebarShowArchive() }
     @objc private func addSpaceClicked() { delegate?.sidebarAddSpace() }
 }
 
