@@ -57,6 +57,8 @@ app/                Native interface (Swift, AppKit)
 engine/             Chromium: pinned version, //chord, patches, brand, scripts
 docs/               Product vision, architecture, performance budgets, decisions
 design/             Reference mockups and brand (logo, icon)
+site/               Presentation page (en/fr/es), published on GitHub Pages;
+                    ?mock in its address shows controls to try each platform
 CLAUDE.md           Project context for Claude Code
 ```
 

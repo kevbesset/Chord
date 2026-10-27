@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord — The browser that closes the arc</title>
+<meta name="description" content="Arc's sidebar, Spaces and command bar, rebuilt natively for the Mac on Chromium. Open source.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Crect width='1024' height='1024' rx='229' fill='%231F2452'/%3E%3Cg transform='translate(512 512) scale(2.6)' fill='none' stroke-linecap='round' stroke-width='30'%3E%3Cpath d='M70.7,-70.7 A100,100 0 1 0 70.7,70.7' stroke='%23fff'/%3E%3Cpath d='M70.7,70.7 L70.7,-70.7' stroke='%238FA0FF'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root {
+  --space: #5B6CFF;
+  --accent: var(--space);
+  --bg: #F6F6F8;
+  --bg-2: #FFFFFF;
+  --surface: rgba(255,255,255,0.72);
+  --surface-solid: #FFFFFF;
+  --text: #1C1C1E;
+  --text-2: #6E6E73;
+  --text-3: #8E8E93;
+  --line: rgba(0,0,0,0.07);
+  --line-strong: rgba(0,0,0,0.12);
+  --kbd-bg: rgba(0,0,0,0.05);
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --btn-text: #FFFFFF;
+  --accent-ink: color-mix(in srgb, var(--accent) 82%, #000);
+  /* Product shot (the window follows the page theme, like the app) */
+  --win-glass: color-mix(in srgb, var(--accent) 7%, #F4F4F6);
+  --win-card: #FFFFFF;
+  --win-row: #FFFFFF;
+  --win-tile: rgba(255,255,255,0.62);
+  --win-text: #1C1C1E;
+  --win-text-2: #3A3A3C;
+  --win-text-3: #8E8E93;
+  --win-skel: #EEEEF1;
+  --win-skel-2: #F5F5F7;
+  --cmd-bg: rgba(250,250,252,0.86);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: color-mix(in srgb, var(--space) 60%, #fff);
+    --bg: #0E0E11;
+    --bg-2: #141417;
+    --surface: rgba(255,255,255,0.05);
+    --surface-solid: #1C1C20;
+    --text: #F2F2F7;
+    --text-2: #A1A1A6;
+    --text-3: #7C7C82;
+    --line: rgba(255,255,255,0.08);
+    --line-strong: rgba(255,255,255,0.14);
+    --kbd-bg: rgba(255,255,255,0.08);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.3);
+    --btn-text: #0E0E11;
+    --accent-ink: color-mix(in srgb, var(--accent) 80%, #fff);
+    --win-glass: color-mix(in srgb, var(--accent) 9%, #1E1E22);
+    --win-card: #232327;
+    --win-row: rgba(255,255,255,0.10);
+    --win-tile: rgba(255,255,255,0.07);
+    --win-text: #F2F2F7;
+    --win-text-2: #C7C7CC;
+    --win-text-3: #8E8E93;
+    --win-skel: #2E2E33;
+    --win-skel-2: #29292D;
+    --cmd-bg: rgba(40,40,44,0.88);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: color-mix(in srgb, var(--space) 60%, #fff);
+  --bg: #0E0E11;
+  --bg-2: #141417;
+  --surface: rgba(255,255,255,0.05);
+  --surface-solid: #1C1C20;
+  --text: #F2F2F7;
+  --text-2: #A1A1A6;
+  --text-3: #7C7C82;
+  --line: rgba(255,255,255,0.08);
+  --line-strong: rgba(255,255,255,0.14);
+  --kbd-bg: rgba(255,255,255,0.08);
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.3);
+  --btn-text: #0E0E11;
+  --accent-ink: color-mix(in srgb, var(--accent) 80%, #fff);
+  --win-glass: color-mix(in srgb, var(--accent) 9%, #1E1E22);
+  --win-card: #232327;
+  --win-row: rgba(255,255,255,0.10);
+  --win-tile: rgba(255,255,255,0.07);
+  --win-text: #F2F2F7;
+  --win-text-2: #C7C7CC;
+  --win-text-3: #8E8E93;
+  --win-skel: #2E2E33;
+  --win-skel-2: #29292D;
+  --cmd-bg: rgba(40,40,44,0.88);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Inter", "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; }
+button, select { font: inherit; color: inherit; }
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 600px) { .wrap { padding: 0 16px; } }
+.display {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, "Inter", "Segoe UI", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin: 0;
+}
+kbd {
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--kbd-bg);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* ---------- Nav ---------- */
+.nav {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid transparent;
+  transition: border-color .2s;
+}
+.nav.scrolled { border-bottom-color: var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+.brand svg { width: 22px; height: 22px; }
+.brand span { font: 600 19px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; letter-spacing: -0.035em; }
+.nav-links { display: flex; gap: 22px; margin-left: 12px; }
+.nav-links a { text-decoration: none; font-size: 14px; color: var(--text-2); transition: color .15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.lang {
+  display: inline-flex; padding: 2px; border-radius: 9px;
+  background: var(--kbd-bg);
+}
+.lang button {
+  border: 0; background: transparent; cursor: pointer;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--text-2); padding: 5px 8px; border-radius: 7px;
+  transition: background .15s, color .15s;
+}
+.lang button[aria-pressed="true"] { background: var(--surface-solid); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.nav-dl {
+  text-decoration: none; font-size: 13px; font-weight: 600;
+  padding: 7px 14px; border-radius: 999px;
+  background: var(--text); color: var(--bg);
+}
+.nav-dl[hidden] { display: none; }
+@media (max-width: 760px) { .nav-links { display: none; } }
+@media (max-width: 420px) { .nav-dl { display: none; } }
+
+/* ---------- Hero ---------- */
+.hero { position: relative; padding: 88px 0 0; text-align: center; overflow-x: clip; }
+.hero::before {
+  content: ""; position: absolute; inset: -20% -10% auto; height: 760px; z-index: -1;
+  background:
+    radial-gradient(40% 50% at 50% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    radial-gradient(30% 40% at 25% 55%, color-mix(in srgb, #F0A35E 16%, transparent), transparent 70%),
+    radial-gradient(30% 40% at 78% 55%, color-mix(in srgb, #3FB68B 12%, transparent), transparent 70%);
+  filter: blur(10px);
+  transition: background .6s;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-2);
+  padding: 5px 12px 5px 6px; border-radius: 999px;
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
+  text-decoration: none;
+}
+.pill b { font-weight: 600; font-size: 11px; letter-spacing: 0.02em; color: var(--btn-text); background: var(--accent); padding: 3px 8px; border-radius: 999px; }
+.hero h1 { font-size: clamp(44px, 7.4vw, 84px); margin: 22px auto 0; max-width: 12ch; }
+.hero .lead { font-size: clamp(17px, 2vw, 20px); color: var(--text-2); max-width: 600px; margin: 20px auto 0; text-wrap: pretty; }
+
+/* ---------- Download CTA ---------- */
+.cta { margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 104px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 50px; padding: 0 24px; border-radius: 999px; border: 0;
+  font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer;
+  background: var(--accent); color: var(--btn-text);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.08), 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: transform .15s, box-shadow .15s, background .3s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 1px 1px rgba(0,0,0,0.08), 0 12px 30px color-mix(in srgb, var(--accent) 45%, transparent); }
+.btn:active { transform: translateY(0) scale(.98); }
+.btn svg { width: 18px; height: 18px; }
+.btn.off {
+  background: var(--surface-solid); color: var(--text-2); cursor: default;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.btn.off:hover, .btn.off:active { transform: none; }
+.cta-meta { font-size: 13px; color: var(--text-3); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; }
+.cta-meta span + span::before { content: "·"; margin-right: 14px; }
+@media (max-width: 600px) { .cta-meta span + span::before { display: none; } }
+.cta-note { font-size: 14px; color: var(--text-2); max-width: 440px; text-wrap: pretty; margin: 0; }
+.cta-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; font-size: 14px; }
+.cta-links a { color: var(--accent-ink); text-decoration: none; font-weight: 500; }
+.cta-links a:hover { text-decoration: underline; }
+
+/* ---------- Product shot: a small working Chord ---------- */
+.shot-zone { margin-top: 56px; position: relative; }
+.shot-frame {
+  position: relative; width: 100%; aspect-ratio: 1200 / 760;
+  border-radius: 18px; overflow: hidden;
+  background:
+    radial-gradient(60% 70% at 18% 20%, color-mix(in srgb, var(--space) 55%, #fff) 0%, transparent 70%),
+    radial-gradient(50% 60% at 85% 85%, #F5B27A 0%, transparent 70%),
+    radial-gradient(50% 60% at 90% 10%, #7FD0B4 0%, transparent 70%),
+    linear-gradient(135deg, #C9CCF5, #F1D6E6);
+  box-shadow: 0 30px 80px -20px rgba(20,20,60,0.35), 0 0 0 1px var(--line);
+}
+:root[data-theme="dark"] .shot-frame { filter: brightness(.8) saturate(.9); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .shot-frame { filter: brightness(.8) saturate(.9); } }
+.shot-scale { position: absolute; left: 0; top: 0; width: 1200px; height: 760px; transform-origin: 0 0; transform: scale(var(--s, 1)); }
+.win {
+  --spring: cubic-bezier(.25, 1.15, .4, 1); --spring-dur: .55s;
+  position: absolute; left: 40px; top: 30px; width: 1120px; height: 700px;
+  border-radius: 12px; overflow: hidden;
+  background: var(--win-glass); color: var(--win-text);
+  font-size: 13px; line-height: 1.35; text-align: left;
+  box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25), 0 24px 60px rgba(0,0,0,0.28);
+  transition: background .35s;
+  user-select: none; -webkit-user-select: none;
+}
+:where(.win button) { font: inherit; color: inherit; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; text-align: left; }
+.win button:focus-visible { outline: 2px solid var(--space); outline-offset: 1px; }
+
+/* Sidebar (floats over the window when collapsed, like Arc) */
+.side {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 236px; z-index: 6;
+  display: flex; flex-direction: column; gap: 12px; padding: 12px 10px 10px;
+  transition: transform var(--spring-dur) var(--spring), box-shadow .25s, background .25s;
+}
+.win.collapsed .side {
+  top: 8px; bottom: 8px; left: 8px; border-radius: 12px;
+  background: color-mix(in srgb, var(--win-glass) 90%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 0 0 .5px rgba(0,0,0,.2), 0 24px 60px rgba(0,0,0,.25);
+  transform: translateX(-260px);
+}
+.win.collapsed.peek .side { transform: none; }
+.edge { position: absolute; left: 0; top: 0; bottom: 0; width: 18px; z-index: 5; display: none; }
+.win.collapsed .edge { display: block; }
+.tl { display: flex; align-items: center; gap: 8px; height: 26px; padding-left: 4px; }
+.tl i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.tl i:nth-child(1) { background: #FF5F57; } .tl i:nth-child(2) { background: #FEBC2E; } .tl i:nth-child(3) { background: #28C840; }
+.tl .nav-ic { margin-left: 10px; display: flex; gap: 12px; color: var(--win-text-3); }
+.tl-btn { margin-left: auto; width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--win-text-3); }
+.tl-btn:hover { background: rgba(128,128,128,.14); color: var(--win-text-2); }
+.addr {
+  display: flex; align-items: center; gap: 8px; height: 34px; width: 100%; padding: 0 12px; border-radius: 9px;
+  background: var(--win-tile); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); font-weight: 500;
+  transition: background .15s, box-shadow .15s;
+}
+.addr:hover { background: var(--win-row); box-shadow: 0 1px 3px rgba(0,0,0,.08), inset 0 0 0 1px rgba(0,0,0,0.04); }
+.addr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track-clip { margin: 0 -10px; overflow: hidden; flex: 1; min-height: 0; touch-action: pan-y; }
+.track { display: flex; height: 100%; }
+.track.anim { transition: transform var(--spring-dur) var(--spring); }
+.panel { flex: 0 0 236px; padding: 0 10px; display: flex; flex-direction: column; gap: 12px; }
+.favs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.favs button { height: 44px; border-radius: 11px; background: var(--win-tile); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; transition: background .15s, box-shadow .15s; }
+.favs button:hover { background: var(--win-row); }
+.favs button.on { background: var(--win-row); box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1.5px var(--space); }
+.fi { width: 16px; height: 16px; border-radius: 4px; color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.favs .fi, .fi.lg { width: 20px; height: 20px; border-radius: 6px; font-size: 10px; }
+.tabs { display: flex; flex-direction: column; gap: 2px; }
+.tab { display: flex; align-items: center; gap: 10px; height: 32px; width: 100%; padding: 0 10px; border-radius: 8px; color: var(--win-text-2); white-space: nowrap; overflow: hidden; transition: background .12s; }
+.tab:hover { background: rgba(128,128,128,0.10); }
+.tab span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.tab.on, .tab.on:hover { background: var(--win-row); color: var(--win-text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03); }
+.sec { font-size: 11px; font-weight: 600; color: var(--win-text-3); letter-spacing: 0.2px; padding: 0 10px 2px; text-transform: uppercase; }
+.hr { height: 1px; background: rgba(128,128,128,0.18); margin: 0 6px; }
+.tab.newtab { color: var(--win-text-3); }
+.side-foot { display: flex; align-items: center; justify-content: center; height: 28px; position: relative; }
+.side-foot > svg { position: absolute; right: 6px; color: var(--win-text-3); }
+.dots { display: flex; align-items: center; gap: 4px; }
+.dots button { width: 15px; height: 15px; display: flex; align-items: center; justify-content: center; }
+.dots button::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--win-text-3); opacity: .45; transition: all .3s; }
+.dots button[aria-pressed="true"]::after { background: var(--c); opacity: 1; width: 8px; height: 8px; }
+
+/* Content: one page, or a split view */
+.card { position: absolute; top: 10px; right: 10px; bottom: 10px; left: 236px; transition: left var(--spring-dur) var(--spring); }
+.win.collapsed .card { left: 10px; }
+.panes { display: flex; height: 100%; }
+.pane {
+  flex: 1 1 0; min-width: 0; position: relative; overflow: hidden; border-radius: 10px;
+  background: var(--win-card); box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.06);
+  transition: flex-grow var(--spring-dur) var(--spring), margin-left var(--spring-dur) var(--spring), opacity .25s, box-shadow .25s;
+}
+.pane-b { flex-grow: 0.0001; opacity: 0; margin-left: 0; }
+.panes.is-split .pane-b { flex-grow: 1; opacity: 1; margin-left: 8px; }
+.panes.is-split .pane.focus { box-shadow: 0 0 0 2px var(--space), 0 2px 10px rgba(0,0,0,0.08); }
+.pane-in { position: absolute; inset: 0; min-width: 400px; }
+.toast {
+  position: absolute; left: 50%; top: 16px; z-index: 8; display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px; font-weight: 500; pointer-events: none;
+  background: var(--win-text); color: var(--win-card);
+  opacity: 0; transform: translate(-50%, -10px);
+  transition: opacity .2s, transform var(--spring-dur) var(--spring);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Pages */
+.page { padding: 28px 36px; display: flex; flex-direction: column; gap: 22px; }
+.page-top { display: flex; align-items: center; gap: 12px; }
+.page-top b { width: 28px; height: 28px; border-radius: 8px; display: block; flex-shrink: 0; }
+.sk { height: 10px; border-radius: 5px; background: var(--win-skel); display: block; flex-shrink: 0; }
+.lines { display: flex; flex-direction: column; gap: 10px; }
+.pg-h { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--win-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-pill { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; color: #fff; }
+.page-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.stat { border-radius: 12px; padding: 16px; background: var(--win-skel-2); display: flex; flex-direction: column; gap: 10px; }
+.stat strong { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: var(--win-text); white-space: nowrap; }
+.chart { height: 200px; border-radius: 12px; background: var(--win-skel-2); display: flex; align-items: flex-end; gap: 10px; padding: 18px; }
+.chart i { flex: 1; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--c) 30%, var(--win-skel)); display: block; }
+.chart i.hi { background: var(--c); }
+.diff { border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--win-skel); }
+.diff div { height: 22px; display: flex; align-items: center; gap: 12px; padding: 0 12px; }
+.diff .add { background: rgba(46,160,67,.14); } .diff .del { background: rgba(248,81,73,.12); }
+.diff .sk { height: 7px; }
+.diff .n { width: 18px; height: 7px; opacity: .6; }
+.docs { display: grid; grid-template-columns: 140px 1fr; gap: 32px; padding: 28px 36px; }
+.code { border-radius: 10px; background: #1C1C24; padding: 16px; display: flex; flex-direction: column; gap: 9px; }
+.code .sk { height: 7px; background: #3A3A4A; }
+.code .sk:nth-child(3n) { background: color-mix(in srgb, var(--c) 55%, #3A3A4A); }
+.shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.prod { border-radius: 12px; background: var(--win-skel-2); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.prod b { height: 140px; border-radius: 8px; display: block; }
+.prod strong { font-size: 15px; font-weight: 600; color: var(--win-text); }
+.prod i { height: 28px; border-radius: 999px; display: block; }
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
+.col { background: var(--win-skel-2); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.kcard { background: var(--win-card); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.kcard i { width: 18px; height: 18px; border-radius: 50%; display: block; margin-top: 2px; }
+.canvas { position: absolute; inset: 0; background: var(--win-skel-2) radial-gradient(circle, rgba(128,128,128,.28) 1px, transparent 1.6px) 0 0 / 18px 18px; }
+.frame { position: absolute; background: var(--win-card); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04); padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+.frame b { height: 64px; border-radius: 6px; display: block; }
+.mrow { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--win-skel); }
+.av { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
+.mrow .lines { flex: 1; gap: 8px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--win-skel); border-radius: 10px; overflow: hidden; }
+.cal div { background: var(--win-card); height: 88px; padding: 8px; display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: var(--win-text-3); }
+.cal .today { color: #fff; background: var(--c); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; margin: -2px 0 0 -4px; }
+.ev { height: 16px; border-radius: 4px; display: block; }
+.result { display: flex; flex-direction: column; gap: 7px; max-width: 560px; }
+
+/* Command bar */
+.scrim { position: absolute; inset: 0; z-index: 9; background: rgba(0,0,0,.07); opacity: 0; pointer-events: none; transition: opacity .18s; }
+.win.cmd-open .scrim { opacity: 1; pointer-events: auto; }
+.cmd {
+  position: absolute; left: 50%; top: 104px; width: 600px; z-index: 10;
+  border-radius: 16px; background: var(--cmd-bg);
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 0 0 0.5px rgba(0,0,0,0.18), 0 30px 70px rgba(0,0,0,0.25);
+  overflow: hidden;
+  opacity: 0; pointer-events: none; transform: translate(-50%, -8px) scale(.97);
+  transition: opacity .14s, transform var(--spring-dur) var(--spring);
+}
+.win.cmd-open .cmd { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
+.cmd-in { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 18px; color: var(--win-text-3); border-bottom: 1px solid rgba(128,128,128,0.16); }
+.cmd-in input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 400 18px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; color: var(--win-text); caret-color: var(--space); padding: 0; }
+.cmd-in input::placeholder { color: var(--win-text-3); }
+.cmd-body { padding: 8px; }
+.cmd-sec { font-size: 11px; font-weight: 600; color: var(--win-text-3); padding: 8px 10px 4px; text-transform: uppercase; letter-spacing: 0.2px; }
+.cmd-gap { height: 6px; }
+.cmd-row { display: flex; align-items: center; gap: 12px; width: 100%; height: 40px; padding: 0 10px; border-radius: 9px; color: var(--win-text); white-space: nowrap; }
+.cmd-row > span:not(.fi):not(.cmd-ic) { overflow: hidden; text-overflow: ellipsis; }
+.cmd-row.sel { background: var(--space); color: #fff; }
+.cmd-row small { color: var(--win-text-3); font-size: 12px; }
+.cmd-row em { margin-left: auto; font-style: normal; font-size: 12px; color: var(--win-text-3); padding-left: 12px; }
+.cmd-row.sel small, .cmd-row.sel em { color: rgba(255,255,255,0.8); }
+.cmd-ic { width: 22px; height: 22px; border-radius: 6px; background: rgba(128,128,128,0.14); display: inline-flex; align-items: center; justify-content: center; color: var(--win-text-2); flex-shrink: 0; }
+.cmd-row.sel .cmd-ic { background: rgba(255,255,255,.2); color: #fff; }
+.cmd-foot { padding: 10px 18px; font-size: 11px; color: var(--win-text-3); border-top: 1px solid rgba(128,128,128,0.16); white-space: pre; }
+
+.spaces { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 22px; }
+.spaces div { display: flex; gap: 8px; }
+.spaces button {
+  width: 22px; height: 22px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+  background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+  transition: transform .15s, box-shadow .15s;
+}
+.spaces button:hover { transform: scale(1.12); }
+.spaces button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--c); }
+.spaces p { margin: 0; font-size: 13px; color: var(--text-3); text-wrap: balance; }
+
+/* ---------- Sections ---------- */
+section.block { padding: 120px 0 0; }
+.kicker { font-size: 14px; font-weight: 600; color: var(--accent-ink); margin: 0 0 12px; }
+.h2 { font-size: clamp(32px, 4.6vw, 52px); max-width: 18ch; }
+.sub { font-size: 18px; color: var(--text-2); max-width: 620px; margin: 18px 0 0; text-wrap: pretty; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 48px; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } section.block { padding-top: 88px; } }
+.f {
+  border-radius: 18px; padding: 24px; background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.f-ic { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 12%, transparent); margin-bottom: 6px; }
+.f-ic svg { width: 19px; height: 19px; }
+.f h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.f p { margin: 0; font-size: 15px; color: var(--text-2); text-wrap: pretty; }
+.f .keys { margin-top: auto; padding-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; gap: 32px; } }
+.list { display: flex; flex-direction: column; gap: 0; margin-top: 4px; }
+.li { display: flex; gap: 16px; padding: 20px 0; border-top: 1px solid var(--line); }
+.li:last-child { border-bottom: 1px solid var(--line); }
+.li .f-ic { margin: 0; flex-shrink: 0; }
+.li h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.li p { margin: 0; font-size: 15px; color: var(--text-2); }
+
+.budgets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 48px; }
+@media (max-width: 760px) { .budgets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.b { padding: 22px 4px 0; border-top: 2px solid var(--text); }
+.b strong { display: block; font: 600 clamp(34px, 4.4vw, 48px)/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.b strong small { font-size: .5em; letter-spacing: -0.01em; margin-left: 2px; color: var(--text-2); }
+.b span { display: block; font-size: 14px; color: var(--text-2); margin-top: 10px; }
+
+.open {
+  margin-top: 120px; border-radius: 28px; padding: 72px 56px;
+  background: #15172E; color: #F2F2F7; position: relative; overflow: hidden;
+}
+.open::after {
+  content: ""; position: absolute; right: -120px; top: -120px; width: 520px; height: 520px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent), transparent 65%);
+  pointer-events: none;
+}
+.open .kicker { color: #A9B4FF; }
+.open .sub { color: #B4B6C8; }
+.open-mark { position: absolute; right: 56px; bottom: 48px; width: 180px; height: 180px; opacity: .9; }
+.open ul { list-style: none; padding: 0; margin: 36px 0 0; display: flex; flex-wrap: wrap; gap: 10px; position: relative; z-index: 1; }
+.open li { font-size: 14px; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+.open .ghost { margin-top: 32px; display: inline-flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; position: relative; z-index: 1; }
+.open .ghost:hover { text-decoration: underline; }
+@media (max-width: 760px) { .open { padding: 48px 24px; border-radius: 22px; } .open-mark { width: 110px; height: 110px; right: 20px; bottom: 20px; opacity: .35; } }
+
+.final { text-align: center; padding: 140px 0 40px; }
+.final .h2 { margin: 0 auto; }
+.final .icon { width: 96px; height: 96px; margin: 0 auto 28px; display: block; filter: drop-shadow(0 12px 24px rgba(31,36,82,0.3)); }
+.firstrun {
+  margin: 40px auto 0; max-width: 560px; text-align: left; font-size: 14px; color: var(--text-2);
+  border-radius: 14px; padding: 16px 18px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
+  display: flex; gap: 12px;
+}
+.firstrun svg { flex-shrink: 0; color: var(--text-3); margin-top: 2px; }
+.firstrun b { color: var(--text); font-weight: 600; }
+.firstrun[hidden] { display: none; }
+
+footer { margin-top: 80px; border-top: 1px solid var(--line); padding: 28px 0 48px; font-size: 13px; color: var(--text-3); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
+footer a { text-decoration: none; color: var(--text-2); }
+footer a:hover { color: var(--text); }
+footer .lang { margin-left: auto; }
+
+/* ---------- Mockup controls (not part of the page) ---------- */
+.mock {
+  position: fixed; right: 16px; bottom: 16px; z-index: 50;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; border-radius: 14px; font-size: 12px;
+  background: rgba(28,28,30,0.88); color: #F2F2F7;
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  max-width: calc(100vw - 32px);
+}
+.mock b { font-weight: 600; color: #A9B4FF; letter-spacing: 0.02em; }
+.mock select { background: rgba(255,255,255,0.1); border: 0; border-radius: 7px; padding: 4px 6px; color: #fff; }
+.mock option { color: #000; }
+.mock button { border: 0; background: transparent; color: #8E8E93; cursor: pointer; padding: 2px 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="-120 -120 240 240">
+    <path d="M70.7,-70.7 A100,100 0 1 0 70.7,70.7" stroke="currentColor" stroke-width="30" fill="none" stroke-linecap="round"/>
+    <path d="M70.7,70.7 L70.7,-70.7" stroke="var(--accent)" stroke-width="30" fill="none" stroke-linecap="round" style="transition: stroke .5s"/>
+  </symbol>
+  <symbol id="i-dl" viewBox="0 0 20 20"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 16h12" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M10 6v4l2.5 2" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
+  <symbol id="i-side" viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M7.5 3.5v13" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-cmd" viewBox="0 0 20 20"><rect x="2.5" y="5" width="15" height="10" rx="3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M6 10h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-peek" viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="3" stroke="currentColor" stroke-width="1.6" fill="none"/><rect x="7" y="7" width="8" height="7" rx="1.8" fill="currentColor" opacity=".35"/></symbol>
+  <symbol id="i-split" viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="6.5" height="13" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/><rect x="11" y="3.5" width="6.5" height="13" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/></symbol>
+  <symbol id="i-little" viewBox="0 0 20 20"><rect x="7" y="7" width="10.5" height="9" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4.5 13V5.5a2 2 0 012-2H13" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-import" viewBox="0 0 20 20"><path d="M10 2.5v9m0 0l-3.5-3.5M10 11.5l3.5-3.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 12v2.5a2 2 0 002 2h9a2 2 0 002-2V12" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 20 20"><rect x="7" y="7" width="9.5" height="9.5" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M13 4.5V4a1.5 1.5 0 00-1.5-1.5H5A1.5 1.5 0 003.5 4v6.5A1.5 1.5 0 005 12h.5" stroke="currentColor" stroke-width="1.6" fill="none"/></symbol>
+  <symbol id="i-next" viewBox="0 0 20 20"><path d="M4 10h11m-4-4.5L15.5 10 11 14.5" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 20 20"><path d="M8 3.5a1.75 1.75 0 013.5 0V5H15v3.5h-1.5a1.75 1.75 0 000 3.5H15v3.5h-3.5V14a1.75 1.75 0 00-3.5 0v1.5H4.5V12H6a1.75 1.75 0 000-3.5H4.5V5H8z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/></symbol>
+  <symbol id="i-tools" viewBox="0 0 20 20"><path d="M7 6l-4 4 4 4M13 6l4 4-4 4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 20 20"><path d="M10 2.5l6 2.5v4.5c0 4-2.6 6.6-6 8-3.4-1.4-6-4-6-8V5z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></symbol>
+  <symbol id="i-swift" viewBox="0 0 20 20"><path d="M3 10.5c2.5 2 5.5 3.3 8.5 2.8-2.6-1.7-5-4-6.7-6.6 2.2 1.9 4.4 3.3 6.4 4.3C9.8 9 8.3 6.8 7.3 4.6c3.2 2.6 6 4.7 7.6 5.2.4-1.7-.2-3.6-1.3-5 2.6 1.6 4 4.3 3.4 7 1 1.1 1.4 2.2 1.2 3-.4-.7-1.3-1-2.1-.7-2.7 2-7.6 1.7-13.1-3.6z" fill="currentColor"/></symbol>
+</svg>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Chord">
+      <svg aria-hidden="true"><use href="#mark"/></svg><span>Chord</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features" data-i18n="nav.features"></a>
+      <a href="#developers" data-i18n="nav.developers"></a>
+      <a href="#open" data-i18n="nav.open"></a>
+      <a href="https://github.com/kevbesset/Chord">GitHub</a>
+    </nav>
+    <div class="nav-end">
+      <div class="lang" role="group" data-i18n-aria="lang.label"></div>
+      <a class="nav-dl" id="nav-dl" href="#download" data-i18n="nav.download"></a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <a class="pill" href="https://github.com/kevbesset/Chord/releases/latest"><b data-i18n="hero.badge"></b><span data-i18n="hero.pill"></span></a>
+      <h1 class="display" data-i18n="hero.title"></h1>
+      <p class="lead" data-i18n="hero.lead"></p>
+      <div class="cta" data-cta></div>
+
+      <div class="shot-zone">
+        <div class="shot-frame" id="shot">
+          <div class="shot-scale">
+            <div class="win" id="win" role="group">
+              <div class="edge" id="edge"></div>
+              <div class="side" id="side">
+                <div class="tl"><i></i><i></i><i></i>
+                  <span class="nav-ic">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                  </span>
+                  <button type="button" class="tl-btn" id="side-toggle"><svg width="16" height="16" viewBox="0 0 20 20"><use href="#i-side"/></svg></button>
+                </div>
+                <button type="button" class="addr" id="addr">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--win-text-3);flex-shrink:0"><path d="M2.5 8h11M8 2.5c-2 2-2 9 0 11M8 2.5c2 2 2 9 0 11"/><circle cx="8" cy="8" r="5.5"/></svg>
+                  <span id="addr-text"></span>
+                </button>
+                <div class="track-clip"><div class="track" id="track"></div></div>
+                <div class="side-foot"><div class="dots" id="side-dots"></div>
+                  <svg width="15" height="15" viewBox="0 0 20 20"><use href="#i-dl"/></svg>
+                </div>
+              </div>
+              <div class="card">
+                <div class="panes" id="panes"><div class="pane pane-a"></div><div class="pane pane-b"></div></div>
+                <div class="toast" id="toast"></div>
+              </div>
+              <div class="scrim" id="scrim"></div>
+              <div class="cmd" id="cmd">
+                <div class="cmd-in">
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+                  <input id="cmd-input" type="text" spellcheck="false" autocomplete="off" tabindex="-1">
+                </div>
+                <div class="cmd-body" id="cmd-body"></div>
+                <div class="cmd-foot" id="cmd-foot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spaces">
+          <div id="space-dots"></div>
+          <p data-i18n="hero.try"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <p class="kicker" data-i18n="feat.kicker"></p>
+      <h2 class="display h2" data-i18n="feat.title"></h2>
+      <p class="sub" data-i18n="feat.sub"></p>
+      <div class="grid">
+        <article class="f"><div class="f-ic"><svg><use href="#i-side"/></svg></div><h3 data-i18n="feat.side.t"></h3><p data-i18n="feat.side.d"></p><div class="keys"><kbd>⌘S</kbd><kbd>⌃1…⌃9</kbd></div></article>
+        <article class="f"><div class="f-ic"><svg><use href="#i-cmd"/></svg></div><h3 data-i18n="feat.cmd.t"></h3><p data-i18n="feat.cmd.d"></p><div class="keys"><kbd>⌘T</kbd><kbd>⌘L</kbd></div></article>
+        <article class="f"><div class="f-ic"><svg><use href="#i-peek"/></svg></div><h3 data-i18n="feat.peek.t"></h3><p data-i18n="feat.peek.d"></p><div class="keys"><kbd data-i18n="feat.peek.k"></kbd></div></article>
+        <article class="f"><div class="f-ic"><svg><use href="#i-split"/></svg></div><h3 data-i18n="feat.split.t"></h3><p data-i18n="feat.split.d"></p><div class="keys"><kbd>⌃⇧=</kbd></div></article>
+        <article class="f"><div class="f-ic"><svg><use href="#i-little"/></svg></div><h3 data-i18n="feat.little.t"></h3><p data-i18n="feat.little.d"></p><div class="keys"><kbd>⌥⌘N</kbd></div></article>
+        <article class="f"><div class="f-ic"><svg><use href="#i-import"/></svg></div><h3 data-i18n="feat.import.t"></h3><p data-i18n="feat.import.d"></p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="developers">
+    <div class="wrap split">
+      <div>
+        <p class="kicker" data-i18n="dev.kicker"></p>
+        <h2 class="display h2" data-i18n="dev.title"></h2>
+        <p class="sub" data-i18n="dev.sub"></p>
+      </div>
+      <div class="list">
+        <div class="li"><div class="f-ic"><svg><use href="#i-puzzle"/></svg></div><div><h3 data-i18n="dev.ext.t"></h3><p data-i18n="dev.ext.d"></p></div></div>
+        <div class="li"><div class="f-ic"><svg><use href="#i-tools"/></svg></div><div><h3 data-i18n="dev.tools.t"></h3><p data-i18n="dev.tools.d"></p></div></div>
+        <div class="li"><div class="f-ic"><svg><use href="#i-swift"/></svg></div><div><h3 data-i18n="dev.native.t"></h3><p data-i18n="dev.native.d"></p></div></div>
+        <div class="li"><div class="f-ic"><svg><use href="#i-shield"/></svg></div><div><h3 data-i18n="dev.private.t"></h3><p data-i18n="dev.private.d"></p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="speed">
+    <div class="wrap">
+      <p class="kicker" data-i18n="speed.kicker"></p>
+      <h2 class="display h2" data-i18n="speed.title"></h2>
+      <p class="sub" data-i18n="speed.sub"></p>
+      <div class="budgets">
+        <div class="b"><strong>&lt;50<small>ms</small></strong><span data-i18n="speed.cmd"></span></div>
+        <div class="b"><strong>&lt;100<small>ms</small></strong><span data-i18n="speed.space"></span></div>
+        <div class="b"><strong>&lt;1<small>s</small></strong><span data-i18n="speed.start"></span></div>
+        <div class="b"><strong>120<small>fps</small></strong><span data-i18n="speed.fps"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap" id="open">
+    <div class="open">
+      <svg class="open-mark" aria-hidden="true" style="color:#F2F2F7"><use href="#mark"/></svg>
+      <p class="kicker" data-i18n="open.kicker"></p>
+      <h2 class="display h2" data-i18n="open.title"></h2>
+      <p class="sub" data-i18n="open.sub"></p>
+      <ul>
+        <li data-i18n="open.p1"></li>
+        <li data-i18n="open.p2"></li>
+        <li data-i18n="open.p3"></li>
+        <li data-i18n="open.p4"></li>
+      </ul>
+      <a class="ghost" href="https://github.com/kevbesset/Chord"><svg width="16" height="16"><use href="#i-gh"/></svg><span data-i18n="open.cta"></span> →</a>
+    </div>
+  </div>
+
+  <section class="final" id="download">
+    <div class="wrap">
+      <svg class="icon" viewBox="0 0 1024 1024" aria-hidden="true">
+        <rect width="1024" height="1024" rx="229" fill="#1F2452"/>
+        <g transform="translate(512 512) scale(2.6)" fill="none" stroke-linecap="round">
+          <path d="M70.7,-70.7 A100,100 0 1 0 70.7,70.7" stroke="#FFFFFF" stroke-width="30"/>
+          <path d="M70.7,70.7 L70.7,-70.7" stroke="#8FA0FF" stroke-width="30"/>
+        </g>
+      </svg>
+      <h2 class="display h2" data-i18n="final.title"></h2>
+      <p class="sub" style="margin-left:auto;margin-right:auto" data-i18n="final.sub"></p>
+      <div class="cta" data-cta></div>
+      <div class="firstrun" id="firstrun">
+        <svg width="18" height="18" viewBox="0 0 20 20"><use href="#i-shield"/></svg>
+        <div data-i18n="final.firstrun"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Chord · GPL-3.0</span>
+    <a href="https://github.com/kevbesset/Chord">GitHub</a>
+    <a href="https://github.com/kevbesset/Chord/releases" data-i18n="foot.releases"></a>
+    <a href="https://github.com/kevbesset/Chord/blob/main/CHANGELOG.md" data-i18n="foot.changelog"></a>
+    <div class="lang" role="group" data-i18n-aria="lang.label"></div>
+  </div>
+</footer>
+
+<div class="mock" id="mock">
+  <b>MOCKUP</b>
+  <label>OS <select id="mock-os"></select></label>
+  <label>Theme <select id="mock-theme"><option value="">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <button type="button" id="mock-close" aria-label="Hide">✕</button>
+</div>
+
+<script>
+// The controls to try every platform and theme show only with ?mock in the address.
+const MOCKUP = new URLSearchParams(location.search).has('mock');
+
+const REPO = 'kevbesset/Chord';
+const RELEASE = {
+  version: '0.1.0',
+  url: 'https://github.com/kevbesset/Chord/releases/download/v0.1.0/Chord-0.1.0.dmg',
+};
+const SPACE_COLORS = ['#5B6CFF', '#2E7D4F', '#B4530A', '#6E56CF', '#0E7490'];
+const LANGS = { en: 'EN', fr: 'FR', es: 'ES' };
+
+const I18N = {
+  en: {
+    'meta.title': 'Chord — The browser that closes the arc',
+    'meta.description': "Arc's sidebar, Spaces and command bar, rebuilt natively for the Mac on Chromium. Open source.",
+    'lang.label': 'Language',
+    'nav.features': 'Features',
+    'nav.developers': 'For developers',
+    'nav.open': 'Open source',
+    'nav.download': 'Download',
+    'hero.badge': 'Preview',
+    'hero.pill': 'Version {v} is out',
+    'hero.title': 'The browser that closes the arc.',
+    'hero.lead': "Arc's sidebar, Spaces and command bar, rebuilt natively for the Mac on Chromium. Open source, so it can never disappear.",
+    'hero.try': 'Try it: click the tabs and the address, or swipe between Spaces with two fingers.',
+    'shot.pinned': 'Pinned',
+    'shot.today': 'Today',
+    'shot.newTab': 'New Tab',
+    'shot.search': 'Search or enter URL',
+    'shot.openTabs': 'Open Tabs',
+    'shot.actions': 'Actions',
+    'shot.switch': 'Switch to Tab ↩',
+    'shot.split': 'Split View',
+    'shot.copy': 'Copy URL',
+    'demo.label': 'Interactive demo of Chord',
+    'shot.exitSplit': 'Exit Split View',
+    'shot.hideSidebar': 'Hide Sidebar',
+    'shot.showSidebar': 'Show Sidebar',
+    'shot.nextSpace': 'Next Space',
+    'shot.copied': 'URL copied',
+    'shot.searchFor': 'Search “{q}”',
+    'shot.space': 'Space {n}',
+    'shot.cmdFoot': '↑ ↓ navigate      ↩ open      esc close',
+    'cta.download': 'Download for Mac',
+    'cta.version': 'Version {v}',
+    'cta.silicon': 'Apple silicon',
+    'cta.macos': 'macOS 14 or later',
+    'cta.free': 'Free',
+    'cta.checkChip': 'Requires a Mac with Apple silicon (M1 or later).',
+    'cta.github': 'View on GitHub',
+    'cta.notes': 'Release notes',
+    'cta.intel.btn': 'Not yet available for Intel Macs',
+    'cta.intel.note': 'Chord runs on Macs with Apple silicon (M1 or later) for now. Intel Macs may come later.',
+    'cta.windows.btn': 'Not yet available for Windows',
+    'cta.linux.btn': 'Not yet available for Linux',
+    'cta.other.btn': 'Not yet available on this system',
+    'cta.desktop.note': 'Chord is a Mac browser for now. Follow the project on GitHub to know when that changes.',
+    'cta.mobile.btn': 'Chord is a Mac browser',
+    'cta.mobile.note': 'Open this page on a Mac with Apple silicon to download it.',
+    'cta.follow': 'Follow on GitHub',
+    'cta.anyway': 'Download for an Apple silicon Mac',
+    'feat.kicker': 'Feels like home',
+    'feat.title': 'Everything you loved in Arc, where you left it.',
+    'feat.sub': 'Same model, same shortcuts. Coming from Arc, there is nothing to relearn.',
+    'feat.side.t': 'Sidebar and Spaces',
+    'feat.side.d': 'Favorites, pinned tabs with folders, today’s tabs. Each Space is its own profile, with its cookies and extensions. Swipe with two fingers to switch.',
+    'feat.cmd.t': 'Command bar',
+    'feat.cmd.d': 'Tabs, actions and search in one place, from the keyboard. The fastest thing in the browser.',
+    'feat.peek.t': 'Peek',
+    'feat.peek.d': 'Preview a link in a floating window without leaving the page. Open it as a tab, or side by side.',
+    'feat.peek.k': '⇧ click',
+    'feat.split.t': 'Split view',
+    'feat.split.d': 'Two to four pages side by side, each with its own address.',
+    'feat.little.t': 'Little window',
+    'feat.little.d': 'Links from other apps open in a small floating window. Keep it, or send it to your Space.',
+    'feat.import.t': 'Import from Arc',
+    'feat.import.d': 'Spaces, favorites, pinned tabs, passwords, history and logins, brought over in one click at first launch.',
+    'dev.kicker': 'For developers',
+    'dev.title': 'Built for the people who build the web.',
+    'dev.sub': 'localhost, staging, production, docs, dashboards, pull requests. Chord keeps them all in reach, on the engine you already test against.',
+    'dev.ext.t': 'Chrome extensions',
+    'dev.ext.d': 'From the Chrome Web Store, pinnable in the address bar.',
+    'dev.tools.t': 'Docked DevTools',
+    'dev.tools.d': 'Chrome’s DevTools on the right, left, bottom or in their own window. ⌥⌘I.',
+    'dev.native.t': 'Native to the Mac',
+    'dev.native.d': 'The interface is written in Swift and AppKit, with real macOS glass. No Electron.',
+    'dev.private.t': 'Chromium, ungoogled',
+    'dev.private.d': 'Chromium’s engine without Google’s services. No account required.',
+    'speed.kicker': 'Smoothness, measured',
+    'speed.title': 'Every interaction has a budget.',
+    'speed.sub': 'Smoothness isn’t a promise, it’s a rule: each interaction has a latency budget, and a feature that goes over it doesn’t ship.',
+    'speed.cmd': 'to open the command bar',
+    'speed.space': 'to switch Spaces',
+    'speed.start': 'cold start to a usable window',
+    'speed.fps': 'scrolling and animations on ProMotion',
+    'open.kicker': 'Open source',
+    'open.title': 'A browser that can’t be frozen.',
+    'open.sub': 'Arc stopped because a company decided so. Chord’s code is free: whatever happens to the project, it outlives it, and anyone can carry it on.',
+    'open.p1': 'GPL-3.0',
+    'open.p2': 'Free',
+    'open.p3': 'No account',
+    'open.p4': 'No AI in your way',
+    'open.cta': 'Read the code on GitHub',
+    'final.title': 'Your sidebar is waiting.',
+    'final.sub': 'Install Chord, import Arc, and pick up right where you left off.',
+    'final.firstrun': '<b>First launch.</b> Chord isn’t notarized by Apple yet, so macOS asks for confirmation the first time: System Settings › Privacy & Security › <b>Open Anyway</b>. Chord then updates itself.',
+    'foot.releases': 'Releases',
+    'foot.changelog': 'Changelog',
+  },
+  fr: {
+    'meta.title': 'Chord — Le navigateur qui referme l’arc',
+    'meta.description': 'La barre latérale, les Spaces et la barre de commande d’Arc, reconstruits nativement pour le Mac sur Chromium. Open source.',
+    'lang.label': 'Langue',
+    'nav.features': 'Fonctionnalités',
+    'nav.developers': 'Pour les développeurs',
+    'nav.open': 'Open source',
+    'nav.download': 'Télécharger',
+    'hero.badge': 'Aperçu',
+    'hero.pill': 'La version {v} est sortie',
+    'hero.title': 'Le navigateur qui referme l’arc.',
+    'hero.lead': 'La barre latérale, les Spaces et la barre de commande d’Arc, reconstruits nativement pour le Mac sur Chromium. Open source, pour ne jamais disparaître.',
+    'hero.try': 'Essayez : cliquez sur les onglets et l’adresse, ou glissez à deux doigts entre les Spaces.',
+    'shot.pinned': 'Épinglés',
+    'shot.today': 'Aujourd’hui',
+    'shot.newTab': 'Nouvel onglet',
+    'shot.search': 'Rechercher ou saisir une adresse',
+    'shot.openTabs': 'Onglets ouverts',
+    'shot.actions': 'Actions',
+    'shot.switch': 'Aller à l’onglet ↩',
+    'shot.split': 'Split view',
+    'shot.copy': 'Copier l\u2019URL',
+    'demo.label': 'Démo interactive de Chord',
+    'shot.exitSplit': 'Quitter la split view',
+    'shot.hideSidebar': 'Masquer la barre latérale',
+    'shot.showSidebar': 'Afficher la barre latérale',
+    'shot.nextSpace': 'Space suivant',
+    'shot.copied': 'URL copiée',
+    'shot.searchFor': 'Rechercher « {q} »',
+    'shot.space': 'Space {n}',
+    'shot.cmdFoot': '↑ ↓ naviguer      ↩ ouvrir      esc fermer',
+    'cta.download': 'Télécharger pour Mac',
+    'cta.version': 'Version {v}',
+    'cta.silicon': 'Apple silicon',
+    'cta.macos': 'macOS 14 ou ultérieur',
+    'cta.free': 'Gratuit',
+    'cta.checkChip': 'Nécessite un Mac avec puce Apple silicon (M1 ou ultérieure).',
+    'cta.github': 'Voir sur GitHub',
+    'cta.notes': 'Notes de version',
+    'cta.intel.btn': 'Pas encore disponible pour les Mac Intel',
+    'cta.intel.note': 'Pour l’instant, Chord fonctionne sur les Mac avec puce Apple silicon (M1 ou ultérieure). Les Mac Intel viendront peut-être plus tard.',
+    'cta.windows.btn': 'Pas encore disponible pour Windows',
+    'cta.linux.btn': 'Pas encore disponible pour Linux',
+    'cta.other.btn': 'Pas encore disponible sur ce système',
+    'cta.desktop.note': 'Chord est pour l’instant un navigateur pour Mac. Suivez le projet sur GitHub pour savoir quand cela changera.',
+    'cta.mobile.btn': 'Chord est un navigateur pour Mac',
+    'cta.mobile.note': 'Ouvrez cette page sur un Mac avec puce Apple silicon pour le télécharger.',
+    'cta.follow': 'Suivre sur GitHub',
+    'cta.anyway': 'Télécharger pour un Mac Apple silicon',
+    'feat.kicker': 'Comme à la maison',
+    'feat.title': 'Tout ce que vous aimiez dans Arc, là où vous l’aviez laissé.',
+    'feat.sub': 'Même modèle, mêmes raccourcis. En venant d’Arc, il n’y a rien à réapprendre.',
+    'feat.side.t': 'Barre latérale et Spaces',
+    'feat.side.d': 'Favoris, onglets épinglés avec dossiers, onglets du jour. Chaque Space est un profil à part, avec ses cookies et ses extensions. Glissez à deux doigts pour passer de l’un à l’autre.',
+    'feat.cmd.t': 'Barre de commande',
+    'feat.cmd.d': 'Onglets, actions et recherche au même endroit, au clavier. L’élément le plus rapide du navigateur.',
+    'feat.peek.t': 'Peek',
+    'feat.peek.d': 'Prévisualisez un lien dans une fenêtre flottante sans quitter la page. Ouvrez-le en onglet, ou côte à côte.',
+    'feat.peek.k': '⇧ clic',
+    'feat.split.t': 'Split view',
+    'feat.split.d': 'Deux à quatre pages côte à côte, chacune avec sa propre adresse.',
+    'feat.little.t': 'Petite fenêtre',
+    'feat.little.d': 'Les liens venus d’autres apps s’ouvrent dans une petite fenêtre flottante. Gardez-la, ou envoyez-la dans votre Space.',
+    'feat.import.t': 'Import depuis Arc',
+    'feat.import.d': 'Spaces, favoris, onglets épinglés, mots de passe, historique et sessions, récupérés en un clic au premier lancement.',
+    'dev.kicker': 'Pour les développeurs',
+    'dev.title': 'Pensé pour celles et ceux qui construisent le web.',
+    'dev.sub': 'localhost, staging, production, docs, dashboards, pull requests. Chord garde tout à portée de main, sur le moteur que vous testez déjà.',
+    'dev.ext.t': 'Extensions Chrome',
+    'dev.ext.d': 'Depuis le Chrome Web Store, épinglables dans le champ d’adresse.',
+    'dev.tools.t': 'DevTools ancrés',
+    'dev.tools.d': 'Les DevTools de Chrome à droite, à gauche, en bas ou dans leur propre fenêtre. ⌥⌘I.',
+    'dev.native.t': 'Natif sur Mac',
+    'dev.native.d': 'L’interface est écrite en Swift et AppKit, avec le vrai verre de macOS. Pas d’Electron.',
+    'dev.private.t': 'Chromium, sans Google',
+    'dev.private.d': 'Le moteur de Chromium, sans les services de Google. Aucun compte requis.',
+    'speed.kicker': 'La fluidité, mesurée',
+    'speed.title': 'Chaque interaction a son budget.',
+    'speed.sub': 'La fluidité n’est pas une promesse, c’est une règle : chaque interaction a un budget de latence, et une fonctionnalité qui le dépasse ne sort pas.',
+    'speed.cmd': 'pour ouvrir la barre de commande',
+    'speed.space': 'pour changer de Space',
+    'speed.start': 'au démarrage, jusqu’à une fenêtre utilisable',
+    'speed.fps': 'défilement et animations en ProMotion',
+    'open.kicker': 'Open source',
+    'open.title': 'Un navigateur qu’on ne peut pas geler.',
+    'open.sub': 'Arc s’est arrêté parce qu’une entreprise l’a décidé. Le code de Chord est libre : quoi qu’il arrive au projet, il lui survit, et n’importe qui peut le reprendre.',
+    'open.p1': 'GPL-3.0',
+    'open.p2': 'Gratuit',
+    'open.p3': 'Sans compte',
+    'open.p4': 'Pas d’IA envahissante',
+    'open.cta': 'Lire le code sur GitHub',
+    'final.title': 'Votre barre latérale vous attend.',
+    'final.sub': 'Installez Chord, importez Arc, et reprenez là où vous en étiez.',
+    'final.firstrun': '<b>Premier lancement.</b> Chord n’est pas encore notarisé par Apple : la première fois, macOS demande une confirmation dans Réglages Système › Confidentialité et sécurité › <b>Ouvrir quand même</b>. Chord se met ensuite à jour tout seul.',
+    'foot.releases': 'Versions',
+    'foot.changelog': 'Nouveautés',
+  },
+  es: {
+    'meta.title': 'Chord — El navegador que cierra el arco',
+    'meta.description': 'La barra lateral, los Spaces y la barra de comandos de Arc, reconstruidos de forma nativa para el Mac sobre Chromium. De código abierto.',
+    'lang.label': 'Idioma',
+    'nav.features': 'Funciones',
+    'nav.developers': 'Para desarrolladores',
+    'nav.open': 'Código abierto',
+    'nav.download': 'Descargar',
+    'hero.badge': 'Vista previa',
+    'hero.pill': 'Ya está aquí la versión {v}',
+    'hero.title': 'El navegador que cierra el arco.',
+    'hero.lead': 'La barra lateral, los Spaces y la barra de comandos de Arc, reconstruidos de forma nativa para el Mac sobre Chromium. De código abierto, para que nunca desaparezca.',
+    'hero.try': 'Pruébalo: haz clic en las pestañas y en la dirección, o desliza con dos dedos entre Spaces.',
+    'shot.pinned': 'Fijadas',
+    'shot.today': 'Hoy',
+    'shot.newTab': 'Nueva pestaña',
+    'shot.search': 'Busca o escribe una dirección',
+    'shot.openTabs': 'Pestañas abiertas',
+    'shot.actions': 'Acciones',
+    'shot.switch': 'Ir a la pestaña ↩',
+    'shot.split': 'Vista dividida',
+    'shot.copy': 'Copiar URL',
+    'demo.label': 'Demo interactiva de Chord',
+    'shot.exitSplit': 'Salir de la vista dividida',
+    'shot.hideSidebar': 'Ocultar barra lateral',
+    'shot.showSidebar': 'Mostrar barra lateral',
+    'shot.nextSpace': 'Space siguiente',
+    'shot.copied': 'URL copiada',
+    'shot.searchFor': 'Buscar «{q}»',
+    'shot.space': 'Space {n}',
+    'shot.cmdFoot': '↑ ↓ navegar      ↩ abrir      esc cerrar',
+    'cta.download': 'Descargar para Mac',
+    'cta.version': 'Versión {v}',
+    'cta.silicon': 'Apple silicon',
+    'cta.macos': 'macOS 14 o posterior',
+    'cta.free': 'Gratis',
+    'cta.checkChip': 'Requiere un Mac con Apple silicon (M1 o posterior).',
+    'cta.github': 'Ver en GitHub',
+    'cta.notes': 'Notas de la versión',
+    'cta.intel.btn': 'Aún no disponible para Mac con Intel',
+    'cta.intel.note': 'Por ahora, Chord funciona en Mac con Apple silicon (M1 o posterior). Los Mac con Intel quizá lleguen más adelante.',
+    'cta.windows.btn': 'Aún no disponible para Windows',
+    'cta.linux.btn': 'Aún no disponible para Linux',
+    'cta.other.btn': 'Aún no disponible en este sistema',
+    'cta.desktop.note': 'Por ahora, Chord es un navegador para Mac. Sigue el proyecto en GitHub para saber cuándo cambia.',
+    'cta.mobile.btn': 'Chord es un navegador para Mac',
+    'cta.mobile.note': 'Abre esta página en un Mac con Apple silicon para descargarlo.',
+    'cta.follow': 'Seguir en GitHub',
+    'cta.anyway': 'Descargar para un Mac con Apple silicon',
+    'feat.kicker': 'Como en casa',
+    'feat.title': 'Todo lo que te gustaba de Arc, donde lo dejaste.',
+    'feat.sub': 'El mismo modelo, los mismos atajos. Si vienes de Arc, no hay nada que volver a aprender.',
+    'feat.side.t': 'Barra lateral y Spaces',
+    'feat.side.d': 'Favoritos, pestañas fijadas con carpetas, pestañas del día. Cada Space es su propio perfil, con sus cookies y extensiones. Desliza con dos dedos para cambiar.',
+    'feat.cmd.t': 'Barra de comandos',
+    'feat.cmd.d': 'Pestañas, acciones y búsqueda en un solo lugar, desde el teclado. Lo más rápido del navegador.',
+    'feat.peek.t': 'Peek',
+    'feat.peek.d': 'Previsualiza un enlace en una ventana flotante sin salir de la página. Ábrelo en una pestaña o lado a lado.',
+    'feat.peek.k': '⇧ clic',
+    'feat.split.t': 'Vista dividida',
+    'feat.split.d': 'De dos a cuatro páginas lado a lado, cada una con su propia dirección.',
+    'feat.little.t': 'Ventana pequeña',
+    'feat.little.d': 'Los enlaces de otras apps se abren en una pequeña ventana flotante. Quédatela o envíala a tu Space.',
+    'feat.import.t': 'Importar desde Arc',
+    'feat.import.d': 'Spaces, favoritos, pestañas fijadas, contraseñas, historial y sesiones, traídos con un clic en el primer arranque.',
+    'dev.kicker': 'Para desarrolladores',
+    'dev.title': 'Hecho para quienes construyen la web.',
+    'dev.sub': 'localhost, staging, producción, documentación, paneles, pull requests. Chord lo tiene todo a mano, sobre el motor con el que ya pruebas.',
+    'dev.ext.t': 'Extensiones de Chrome',
+    'dev.ext.d': 'Desde la Chrome Web Store, fijables en la barra de direcciones.',
+    'dev.tools.t': 'DevTools acopladas',
+    'dev.tools.d': 'Las DevTools de Chrome a la derecha, a la izquierda, abajo o en su propia ventana. ⌥⌘I.',
+    'dev.native.t': 'Nativo del Mac',
+    'dev.native.d': 'La interfaz está escrita en Swift y AppKit, con el cristal real de macOS. Sin Electron.',
+    'dev.private.t': 'Chromium, sin Google',
+    'dev.private.d': 'El motor de Chromium, sin los servicios de Google. No hace falta cuenta.',
+    'speed.kicker': 'Fluidez, medida',
+    'speed.title': 'Cada interacción tiene su presupuesto.',
+    'speed.sub': 'La fluidez no es una promesa, es una regla: cada interacción tiene un presupuesto de latencia, y una función que lo supera no se publica.',
+    'speed.cmd': 'para abrir la barra de comandos',
+    'speed.space': 'para cambiar de Space',
+    'speed.start': 'de arranque hasta una ventana usable',
+    'speed.fps': 'desplazamiento y animaciones en ProMotion',
+    'open.kicker': 'Código abierto',
+    'open.title': 'Un navegador que nadie puede congelar.',
+    'open.sub': 'Arc se detuvo porque una empresa lo decidió. El código de Chord es libre: pase lo que pase con el proyecto, le sobrevive y cualquiera puede continuarlo.',
+    'open.p1': 'GPL-3.0',
+    'open.p2': 'Gratis',
+    'open.p3': 'Sin cuenta',
+    'open.p4': 'Sin IA que estorbe',
+    'open.cta': 'Leer el código en GitHub',
+    'final.title': 'Tu barra lateral te espera.',
+    'final.sub': 'Instala Chord, importa Arc y sigue justo donde lo dejaste.',
+    'final.firstrun': '<b>Primer arranque.</b> Chord aún no está notarizado por Apple, así que la primera vez macOS pide confirmación: Ajustes del Sistema › Privacidad y seguridad › <b>Abrir igualmente</b>. Después, Chord se actualiza solo.',
+    'foot.releases': 'Versiones',
+    'foot.changelog': 'Novedades',
+  },
+};
+
+// ---------- Language ----------
+function pickLang() {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q && I18N[q]) return q;
+  try { const s = localStorage.getItem('chord.lang'); if (s && I18N[s]) return s; } catch (e) {}
+  for (const l of navigator.languages || [navigator.language]) {
+    const base = (l || '').slice(0, 2).toLowerCase();
+    if (I18N[base]) return base;
+  }
+  return 'en';
+}
+let lang = pickLang();
+const t = (k, vars = {}) => (I18N[lang][k] ?? I18N.en[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => vars[n] ?? '');
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('meta.title');
+  document.querySelector('meta[name=description]').content = t('meta.description');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t(el.dataset.i18n, { v: RELEASE.version });
+    if (v.includes('<')) el.innerHTML = v; else el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+  document.querySelectorAll('.lang').forEach(group => {
+    group.innerHTML = '';
+    for (const [code, label] of Object.entries(LANGS)) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = label; b.lang = code;
+      b.setAttribute('aria-pressed', code === lang);
+      b.onclick = () => setLang(code);
+      group.appendChild(b);
+    }
+  });
+  renderCTA();
+  renderDemo();
+}
+function setLang(code) {
+  lang = code;
+  try { localStorage.setItem('chord.lang', code); } catch (e) {}
+  const u = new URL(location.href); u.searchParams.set('lang', code); history.replaceState(null, '', u);
+  applyLang();
+}
+
+// ---------- Platform ----------
+// 'mac-arm' | 'mac-intel' | 'mac' (chip unknown) | 'windows' | 'linux' | 'mobile' | 'other'
+let detected = 'mac';
+let platform = 'mac';
+
+async function detectPlatform() {
+  const ua = navigator.userAgent;
+  const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  if (/iPhone|iPod|Android/i.test(ua)) return 'mobile';
+  if (/Mac/i.test(plat) || /Macintosh/.test(ua)) {
+    if (navigator.maxTouchPoints > 1) return 'mobile'; // iPadOS reports itself as a Mac
+    return macChip();
+  }
+  if (/Win/i.test(plat) || /Windows/.test(ua)) return 'windows';
+  if (/Linux|X11|CrOS/i.test(plat + ua)) return 'linux';
+  return 'other';
+}
+
+// Every Mac browser says "Intel Mac OS X" in its user agent, so the chip comes from
+// Client Hints (Chromium browsers) or the GPU name (Firefox, older Safari).
+async function macChip() {
+  try {
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      const { architecture } = await navigator.userAgentData.getHighEntropyValues(['architecture']);
+      if (architecture === 'arm') return 'mac-arm';
+      if (architecture === 'x86') return 'mac-intel';
+    }
+  } catch (e) {}
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+    const gpu = gl ? String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)) : '';
+    if (/Apple M\d/i.test(gpu)) return 'mac-arm';
+    if (/Intel|AMD|Radeon|NVIDIA|GeForce/i.test(gpu)) return 'mac-intel';
+  } catch (e) {}
+  return 'mac'; // Safari says "Apple GPU" on every Mac: offer the download with the chip requirement
+}
+
+// ---------- Download call to action ----------
+const icon = id => `<svg aria-hidden="true" viewBox="0 0 20 20"><use href="#${id}"/></svg>`;
+const ghIcon = `<svg aria-hidden="true" width="14" height="14" style="vertical-align:-2px;margin-right:6px"><use href="#i-gh"/></svg>`;
+const notesURL = () => `https://github.com/${REPO}/releases/tag/v${RELEASE.version}`;
+
+function ctaHTML() {
+  const ghLink = `<a href="https://github.com/${REPO}">${ghIcon}${t('cta.follow')}</a>`;
+  if (platform === 'mac-arm' || platform === 'mac') {
+    const meta = [t('cta.version', { v: RELEASE.version }), t('cta.silicon'), t('cta.macos'), t('cta.free')];
+    return `
+      <a class="btn" href="${RELEASE.url}">${icon('i-dl')}${t('cta.download')}</a>
+      <div class="cta-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
+      ${platform === 'mac' ? `<p class="cta-note">${t('cta.checkChip')}</p>` : ''}`;
+  }
+  const off = {
+    'mac-intel': ['cta.intel.btn', 'cta.intel.note'],
+    windows: ['cta.windows.btn', 'cta.desktop.note'],
+    linux: ['cta.linux.btn', 'cta.desktop.note'],
+    mobile: ['cta.mobile.btn', 'cta.mobile.note'],
+    other: ['cta.other.btn', 'cta.desktop.note'],
+  }[platform];
+  return `
+    <span class="btn off" role="status">${icon('i-clock')}${t(off[0])}</span>
+    <p class="cta-note">${t(off[1])}</p>
+    <div class="cta-links">${ghLink}<a href="${RELEASE.url}">${t('cta.anyway')}</a></div>`;
+}
+
+function renderCTA() {
+  document.querySelectorAll('[data-cta]').forEach(el => { el.innerHTML = ctaHTML(); });
+  const canDownload = platform === 'mac-arm' || platform === 'mac';
+  document.getElementById('nav-dl').hidden = !canDownload;
+  document.getElementById('firstrun').hidden = !canDownload;
+}
+
+// The latest release, when GitHub answers; the version above otherwise.
+fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+  .then(r => (r.ok ? r.json() : null))
+  .then(rel => {
+    const dmg = rel && (rel.assets || []).find(a => /\.dmg$/i.test(a.name));
+    if (!dmg) return;
+    RELEASE.version = rel.tag_name.replace(/^v/, '');
+    RELEASE.url = dmg.browser_download_url;
+    applyLang();
+  })
+  .catch(() => {});
+
+// ---------- Product shot: a small working Chord ----------
+// Each Space has its color, favorites, pinned and today's tabs. `k` picks the page drawn.
+const SPACES = [
+  { color: '#5B6CFF',
+    favs: [
+      { t: 'Mail', h: 'mail.proton.me', k: 'mail', l: 'M', c: '#4A7BF7' },
+      { t: 'Calendar', h: 'calendar.proton.me', k: 'cal', l: '23', c: '#E5484D' },
+      { t: 'Tickets', h: 'linear.app', k: 'board', l: 'T', c: '#6E56CF' },
+      { t: 'Design', h: 'figma.com', k: 'canvas', l: 'D', c: '#1C1C1E' },
+    ],
+    pinned: [
+      { t: 'Chord · Perf dashboard', h: 'localhost:3000', k: 'dash', l: 'C', stats: ['38 ms', '120 fps', '0.8 s'] },
+      { t: 'PR #42 · Sidebar collapse', h: 'github.com', k: 'pr', l: 'G', c: '#24292F' },
+      { t: 'Swift Concurrency', h: 'developer.apple.com', k: 'docs', l: 'S', c: '#F05138' },
+    ],
+    today: [
+      { t: 'staging · Checkout', h: 'staging.shop.dev', k: 'shop', l: 'S', c: '#0E7490' },
+      { t: 'MDN · color-mix()', h: 'developer.mozilla.org', k: 'docs', l: 'M', c: '#1C1C1E' },
+      { t: 'Linear · Sprint 14', h: 'linear.app', k: 'board', l: 'L', c: '#5E6AD2' },
+      { t: 'Figma · Onboarding', h: 'figma.com', k: 'canvas', l: 'F', c: '#B4530A' },
+    ] },
+  { color: '#2E7D4F',
+    favs: [
+      { t: 'Chat', h: 'chat.acme.io', k: 'mail', l: 'C', c: '#4A154B' },
+      { t: 'Wiki', h: 'wiki.acme.io', k: 'docs', l: 'W', c: '#1C1C1E' },
+      { t: 'Meetings', h: 'meet.acme.io', k: 'cal', l: 'M', c: '#00897B' },
+      { t: 'Analytics', h: 'stats.acme.io', k: 'dash', l: 'A', c: '#F59E0B' },
+    ],
+    pinned: [
+      { t: 'Acme · Admin', h: 'admin.acme.io', k: 'dash', l: 'A', stats: ['1 284', '98.2 %', '3.4k'] },
+      { t: 'Storybook · Buttons', h: 'storybook.acme.io', k: 'canvas', l: 'S', c: '#FF4785' },
+      { t: 'Sentry · Issues', h: 'sentry.io', k: 'board', l: 'S', c: '#362D59' },
+    ],
+    today: [
+      { t: 'Deployments', h: 'vercel.com', k: 'board', l: 'V', c: '#1C1C1E' },
+      { t: 'Stripe · Test mode', h: 'dashboard.stripe.com', k: 'dash', l: 'S', c: '#635BFF', stats: ['€ 12.4k', '312', '2.1 %'] },
+      { t: 'Tailwind CSS · Grid', h: 'tailwindcss.com', k: 'docs', l: 'T', c: '#06B6D4' },
+    ] },
+  { color: '#B4530A',
+    favs: [
+      { t: 'Videos', h: 'youtube.com', k: 'canvas', l: 'Y', c: '#FF0000' },
+      { t: 'Music', h: 'music.apple.com', k: 'mail', l: '♪', c: '#FA2D48' },
+      { t: 'Maps', h: 'maps.apple.com', k: 'canvas', l: 'M', c: '#34A853' },
+      { t: 'Photos', h: 'photos.app', k: 'canvas', l: 'P', c: '#F4B400' },
+    ],
+    pinned: [
+      { t: 'Recipe · Ramen', h: 'cooking.example', k: 'docs', l: 'R' },
+      { t: 'Hacker News', h: 'news.ycombinator.com', k: 'mail', l: 'Y', c: '#FF6600' },
+    ],
+    today: [
+      { t: 'Lisbon · Trip', h: 'trips.example', k: 'cal', l: 'L', c: '#0E7490' },
+      { t: 'New desk lamp', h: 'shop.example', k: 'shop', l: 'D', c: '#7C5A3A' },
+    ] },
+  { color: '#6E56CF',
+    favs: [
+      { t: 'Boards', h: 'are.na', k: 'canvas', l: 'A', c: '#1C1C1E' },
+      { t: 'Shots', h: 'dribbble.com', k: 'canvas', l: 'D', c: '#EA4C89' },
+      { t: 'Highlights', h: 'readwise.io', k: 'docs', l: 'R', c: '#1C1C1E' },
+      { t: 'Later', h: 'getpocket.com', k: 'mail', l: 'P', c: '#EF4056' },
+    ],
+    pinned: [
+      { t: 'Refactoring UI', h: 'refactoringui.com', k: 'docs', l: 'R' },
+      { t: 'Type scale', h: 'typescale.com', k: 'canvas', l: 'T', c: '#1C1C1E' },
+    ],
+    today: [
+      { t: 'Ten principles of design', h: 'design.example', k: 'docs', l: 'D', c: '#B4530A' },
+      { t: 'Moodboard · Chord site', h: 'figma.com', k: 'canvas', l: 'F', c: '#EA4C89' },
+    ] },
+];
+SPACES.forEach((s, si) => ['favs', 'pinned', 'today'].forEach(group => s[group].forEach((tab, i) => {
+  tab.id = `${si}-${group}-${i}`;
+  tab.c = tab.c || s.color;
+})));
+
+const shot = document.getElementById('shot');
+const win = document.getElementById('win');
+const track = document.getElementById('track');
+const panes = document.getElementById('panes');
+const paneEls = [...panes.children];
+const cmdInput = document.getElementById('cmd-input');
+const cmdBody = document.getElementById('cmd-body');
+const sideDots = document.getElementById('side-dots');
+const pageDots = document.getElementById('space-dots');
+const STEP = 236; // width of a Space in the sidebar
+let scale = 1;
+let uid = 0;
+new ResizeObserver(([e]) => { scale = e.contentRect.width / 1200; shot.style.setProperty('--s', scale); }).observe(shot);
+
+// The app's interruptible springs, as a CSS linear() easing (stiffness 300, damping 26).
+if (CSS.supports('transition-timing-function', 'linear(0, 1)')) {
+  let x = 0, v = 0, frames = 0;
+  const pts = [0];
+  while (frames < 180) {
+    for (let k = 0; k < 4; k++) { v += (300 * (1 - x) - 26 * v) / 240; x += v / 240; }
+    pts.push(+x.toFixed(4));
+    frames++;
+    if (Math.abs(1 - x) < 0.002 && Math.abs(v) < 0.02) break;
+  }
+  pts[pts.length - 1] = 1;
+  win.style.setProperty('--spring', `linear(${pts.join(', ')})`);
+  win.style.setProperty('--spring-dur', `${(frames / 60).toFixed(2)}s`);
+}
+
+const state = {
+  space: 0,
+  a: SPACES.map(s => s.pinned[0].id),   // tab in the main pane, per Space
+  b: SPACES.map(() => null),             // second pane of a split view
+  focus: SPACES.map(() => 'a'),
+  collapsed: false,
+};
+const allTabs = s => [...SPACES[s].favs, ...SPACES[s].pinned, ...SPACES[s].today];
+const findTab = id => SPACES.flatMap((_, s) => allTabs(s)).find(x => x.id === id);
+const focusedTab = () => findTab(state[state.focus[state.space]][state.space]);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fi = (tab, lg) => `<span class="fi${lg ? ' lg' : ''}" style="background:${tab.c}">${esc(tab.l)}</span>`;
+const svgUse = (id, size = 14) => `<svg width="${size}" height="${size}" viewBox="0 0 20 20"><use href="#${id}"/></svg>`;
+
+// ----- Pages -----
+function pageHTML(tab, space) {
+  let seed = [...tab.id].reduce((a, ch) => a + ch.charCodeAt(0) * 7, 11);
+  const r = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const pct = (min, max) => Math.round(min + r() * (max - min));
+  const sk = (min, max, h, color) => `<span class="sk" style="width:${pct(min, max)}%${h ? `;height:${h}px` : ''}${color ? `;background:${color}` : ''}"></span>`;
+  const lines = (n, min = 60, max = 95) => `<div class="lines">${Array.from({ length: n }, () => sk(min, max)).join('')}</div>`;
+  const c = tab.c;
+  const title = esc(tab.t.split(' · ').pop());
+  const palette = ['#F5B27A', '#7FD0B4', '#A9B4FF', '#F1A6C4', '#9FD2F5', '#E9D27A'];
+  switch (tab.k) {
+    case 'dash': {
+      const stats = tab.stats || ['1 284', '98 %', '3.4k'];
+      const bars = Array.from({ length: 12 }, (_, i) => `<i class="${i === 6 ? 'hi' : ''}" style="height:${pct(30, 90)}%"></i>`).join('');
+      return `<div class="page"><div class="page-top"><b style="background:${c}"></b><span class="pg-h">${title}</span><span style="flex:1"></span>${sk(8, 8)}${sk(8, 8)}</div>
+        <div class="page-grid">${stats.map(v => `<div class="stat">${sk(40, 65)}<strong>${v}</strong></div>`).join('')}</div>
+        <div class="chart" style="--c:${c}">${bars}</div>${lines(3)}</div>`;
+    }
+    case 'pr': {
+      const rows = Array.from({ length: 16 }, () => {
+        const x = r();
+        return `<div class="${x < 0.3 ? 'add' : x < 0.45 ? 'del' : ''}"><span class="sk n"></span>${sk(20, 70)}</div>`;
+      }).join('');
+      return `<div class="page"><div class="page-top"><span class="pg-h">${title} <span style="color:var(--win-text-3);font-weight:400">#42</span></span></div>
+        <div class="page-top"><span class="pg-pill" style="background:#2DA44E"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="12.5" r="1.5"/><path d="M4.5 5v6M11.5 11V7.5a2 2 0 00-2-2H7"/></svg></span>${sk(30, 40)}</div>
+        <div class="diff">${rows}</div></div>`;
+    }
+    case 'docs':
+      return `<div class="docs" style="--c:${c}">${lines(10, 45, 90)}<div class="lines" style="gap:18px"><span class="pg-h">${title}</span>${lines(3)}<div class="code">${Array.from({ length: 6 }, () => sk(25, 80)).join('')}</div>${lines(4)}</div></div>`;
+    case 'shop':
+      return `<div class="page"><div class="page-top"><b style="background:${c}"></b>${sk(15, 20, 14)}<span style="flex:1"></span>${sk(6, 6)}${sk(6, 6)}${sk(6, 6)}</div>
+        <div class="shop">${[0, 1, 2].map(i => `<div class="prod"><b style="background:linear-gradient(135deg, ${palette[(i * 2) % 6]}, ${palette[(i * 2 + 1) % 6]})"></b>${sk(50, 80)}<strong>€${pct(19, 149)}</strong><i style="background:${c}"></i></div>`).join('')}</div>${lines(2)}</div>`;
+    case 'board':
+      return `<div class="page"><div class="page-top"><span class="pg-h">${title}</span></div>
+        <div class="board">${[4, 3, 2].map(n => `<div class="col">${sk(30, 45)}${Array.from({ length: n }, () => `<div class="kcard">${sk(70, 95)}${sk(40, 70)}<i style="background:${palette[pct(0, 5)]}"></i></div>`).join('')}</div>`).join('')}</div></div>`;
+    case 'canvas': {
+      const frames = [[40, 50, 250, 210], [320, 110, 220, 300], [570, 40, 230, 180], [90, 300, 200, 160]];
+      return `<div class="canvas">${frames.map(([x, y, w, h], i) => `<div class="frame" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"><b style="background:${i ? palette[(i + pct(0, 3)) % 6] : c}"></b>${sk(60, 90)}${sk(40, 70)}</div>`).join('')}</div>`;
+    }
+    case 'mail':
+      return `<div class="page" style="gap:0"><div class="page-top" style="margin-bottom:14px"><span class="pg-h">${title}</span></div>
+        ${Array.from({ length: 8 }, () => `<div class="mrow"><span class="av" style="background:${palette[pct(0, 5)]}"></span><div class="lines">${sk(20, 35, 9)}${sk(50, 90, 8)}</div></div>`).join('')}</div>`;
+    case 'cal': {
+      const month = new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(new Date());
+      const today = new Date().getDate();
+      const cells = Array.from({ length: 35 }, (_, i) => {
+        const d = i + 1;
+        const events = d <= 31 && r() < 0.4 ? `<span class="ev" style="background:color-mix(in srgb, ${palette[pct(0, 5)]} 70%, transparent)"></span>` : '';
+        return `<div>${d <= 31 ? (d === today ? `<span class="today">${d}</span>` : d) : ''}${events}</div>`;
+      }).join('');
+      return `<div class="page" style="--c:${c}"><div class="page-top"><span class="pg-h" style="text-transform:capitalize">${esc(month)}</span></div><div class="cal">${cells}</div></div>`;
+    }
+    case 'search':
+      return `<div class="page"><div class="page-top"><span class="pg-h">${esc(tab.q)}</span></div>
+        ${Array.from({ length: 5 }, () => `<div class="result">${sk(25, 35, 7, 'color-mix(in srgb, #2E7D4F 40%, var(--win-skel))')}${sk(45, 65, 12, `color-mix(in srgb, ${space} 50%, var(--win-skel))`)}${sk(80, 95)}${sk(55, 80)}</div>`).join('')}</div>`;
+  }
+  return '';
+}
+
+// ----- Rendering -----
+const tabRow = tab => `<button type="button" class="tab" data-tab="${tab.id}">${fi(tab)}<span>${esc(tab.t)}</span></button>`;
+
+function renderPanels() {
+  track.innerHTML = SPACES.map(s => `
+    <div class="panel">
+      <div class="favs">${s.favs.map(tab => `<button type="button" data-tab="${tab.id}" aria-label="${esc(tab.t)}">${fi(tab)}</button>`).join('')}</div>
+      <div class="tabs"><div class="sec">${t('shot.pinned')}</div>${s.pinned.map(tabRow).join('')}</div>
+      <div class="hr"></div>
+      <div class="tabs"><div class="sec">${t('shot.today')}</div>
+        <button type="button" class="tab newtab" data-new><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg><span>${t('shot.newTab')}</span></button>
+        ${s.today.map(tabRow).join('')}</div>
+    </div>`).join('');
+  markSelection();
+}
+
+function markSelection() {
+  track.querySelectorAll('[data-tab]').forEach(el => {
+    const s = parseInt(el.dataset.tab, 10);
+    el.classList.toggle('on', el.dataset.tab === state.a[s] || el.dataset.tab === state.b[s]);
+  });
+}
+
+function renderPanes(animate = true) {
+  const s = state.space;
+  panes.classList.toggle('is-split', !!state.b[s]);
+  ['a', 'b'].forEach((k, i) => {
+    const el = paneEls[i];
+    const id = state[k][s];
+    el.classList.toggle('focus', state.focus[s] === k);
+    if (!id || el.dataset.id === id) return; // the old page stays while the split closes
+    el.dataset.id = id;
+    el.innerHTML = `<div class="pane-in">${pageHTML(findTab(id), SPACES[s].color)}</div>`;
+    if (animate) el.firstChild.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+  });
+  document.getElementById('addr-text').textContent = focusedTab().h;
+}
+
+function renderDots() {
+  [sideDots, pageDots].forEach(group => {
+    group.innerHTML = SPACES.map((sp, i) =>
+      `<button type="button" style="--c:${sp.color}" aria-label="${t('shot.space', { n: i + 1 })}" aria-pressed="${i === state.space}"></button>`).join('');
+  });
+}
+
+function renderDemo() {
+  win.setAttribute('aria-label', t('demo.label'));
+  cmdInput.placeholder = t('shot.search');
+  document.getElementById('cmd-foot').textContent = t('shot.cmdFoot');
+  document.getElementById('side-toggle').setAttribute('aria-label', t(state.collapsed ? 'shot.showSidebar' : 'shot.hideSidebar'));
+  renderPanels();
+  renderDots();
+  paneEls.forEach(el => delete el.dataset.id); // dates follow the language
+  renderPanes(false);
+  if (win.classList.contains('cmd-open')) renderCmd();
+}
+
+// ----- Actions -----
+function selectTab(id) {
+  const s = state.space;
+  if (state.b[s] && state.focus[s] === 'b') state.b[s] = id; else state.a[s] = id;
+  if (state.a[s] === state.b[s]) { state.b[s] = null; state.focus[s] = 'a'; }
+  markSelection();
+  renderPanes();
+}
+
+function toggleSplit() {
+  const s = state.space;
+  if (state.b[s]) {
+    state.b[s] = null;
+    state.focus[s] = 'a';
+  } else {
+    const list = [...SPACES[s].pinned, ...SPACES[s].today];
+    const i = list.findIndex(x => x.id === state.a[s]);
+    state.b[s] = list[(i + 1) % list.length].id;
+    state.focus[s] = 'b';
+  }
+  markSelection();
+  renderPanes();
+}
+
+function toggleSidebar() {
+  state.collapsed = !state.collapsed;
+  win.classList.toggle('collapsed', state.collapsed);
+  win.classList.remove('peek');
+  document.getElementById('side-toggle').setAttribute('aria-label', t(state.collapsed ? 'shot.showSidebar' : 'shot.hideSidebar'));
+}
+
+let toastTimer;
+function copyURL() {
+  const toast = document.getElementById('toast');
+  toast.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>${t('shot.copied')}`;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+function newSearchTab(q) {
+  const s = state.space;
+  const tab = { id: `${s}-q-${uid++}`, t: q, h: 'duckduckgo.com', k: 'search', l: q[0].toUpperCase(), c: '#8E8E93', q };
+  SPACES[s].today.unshift(tab);
+  renderPanels();
+  selectTab(tab.id);
+}
+
+function setTrack(x, animate) {
+  track.classList.toggle('anim', animate);
+  track.style.transform = `translateX(${x}px)`;
+}
+
+function switchSpace(i) {
+  i = Math.max(0, Math.min(SPACES.length - 1, i));
+  state.space = i;
+  setTrack(-i * STEP, true);
+  document.documentElement.style.setProperty('--space', SPACES[i].color);
+  [sideDots, pageDots].forEach(group => [...group.children].forEach((d, k) => d.setAttribute('aria-pressed', k === i)));
+  if (win.classList.contains('cmd-open')) renderCmd();
+  renderPanes();
+}
+
+// ----- Command bar -----
+let items = [];
+let selIndex = 0;
+
+function cmdItems(q) {
+  const s = state.space;
+  const ql = q.trim().toLowerCase();
+  const shown = [state.a[s], state.b[s]];
+  const tabs = allTabs(s)
+    .filter(x => (ql ? `${x.t} ${x.h}`.toLowerCase().includes(ql) : !shown.includes(x.id) && !SPACES[s].favs.includes(x)))
+    .sort((x, y) => !x.t.toLowerCase().includes(ql) - !y.t.toLowerCase().includes(ql)) // titles before addresses
+    .slice(0, ql ? 3 : 2)
+    .map(x => ({ group: 'tabs', tab: x, run: () => selectTab(x.id) }));
+  const actions = [
+    { label: t(state.b[s] ? 'shot.exitSplit' : 'shot.split'), keys: '⌃⇧=', alias: 'split view', icon: 'i-split', run: toggleSplit },
+    { label: t(state.collapsed ? 'shot.showSidebar' : 'shot.hideSidebar'), keys: '⌘S', alias: 'sidebar', icon: 'i-side', run: toggleSidebar },
+    { label: t('shot.copy'), keys: '⇧⌘C', alias: 'copy url', icon: 'i-copy', run: copyURL },
+    { label: t('shot.nextSpace'), keys: '⌥⌘→', alias: 'next space', icon: 'i-next', run: () => switchSpace((s + 1) % SPACES.length) },
+  ].filter(a => !ql || `${a.label} ${a.alias}`.toLowerCase().includes(ql)).map(a => ({ group: 'actions', ...a }));
+  const search = ql ? [{ group: 'search', label: t('shot.searchFor', { q: q.trim() }), run: () => newSearchTab(q.trim()) }] : [];
+  return [...tabs, ...actions, ...search];
+}
+
+function renderCmd() {
+  items = cmdItems(cmdInput.value);
+  selIndex = Math.min(selIndex, Math.max(items.length - 1, 0));
+  let html = '';
+  let group = '';
+  items.forEach((it, i) => {
+    if (it.group !== group) {
+      group = it.group;
+      html += group === 'search' ? '<div class="cmd-gap"></div>' : `<div class="cmd-sec">${t(group === 'tabs' ? 'shot.openTabs' : 'shot.actions')}</div>`;
+    }
+    const sel = i === selIndex;
+    html += it.tab
+      ? `<button type="button" class="cmd-row${sel ? ' sel' : ''}" data-i="${i}">${fi(it.tab, true)}<span>${esc(it.tab.t)}</span><small>${esc(it.tab.h)}</small>${sel ? `<em>${t('shot.switch')}</em>` : ''}</button>`
+      : `<button type="button" class="cmd-row${sel ? ' sel' : ''}" data-i="${i}"><span class="cmd-ic">${it.icon ? svgUse(it.icon) : '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>'}</span><span>${esc(it.label)}</span>${it.keys ? `<em>${it.keys}</em>` : ''}</button>`;
+  });
+  cmdBody.innerHTML = html;
+}
+
+function openCmd(focus = true) {
+  selIndex = 0;
+  cmdInput.value = '';
+  renderCmd();
+  win.classList.add('cmd-open');
+  if (focus) cmdInput.focus({ preventScroll: true });
+}
+
+function closeCmd() {
+  win.classList.remove('cmd-open');
+  cmdInput.blur();
+}
+
+function runItem(i) {
+  const it = items[i];
+  closeCmd();
+  if (it) it.run();
+}
+
+cmdInput.addEventListener('input', () => { selIndex = 0; renderCmd(); });
+cmdInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    selIndex = (selIndex + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    renderCmd();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    runItem(selIndex);
+  } else if (e.key === 'Escape') {
+    closeCmd();
+  }
+});
+cmdBody.addEventListener('mousemove', e => {
+  const row = e.target.closest('[data-i]');
+  if (row && +row.dataset.i !== selIndex) { selIndex = +row.dataset.i; renderCmd(); }
+});
+cmdBody.addEventListener('click', e => {
+  const row = e.target.closest('[data-i]');
+  if (row) runItem(+row.dataset.i);
+});
+document.getElementById('scrim').addEventListener('click', closeCmd);
+document.getElementById('addr').addEventListener('click', () => openCmd());
+
+// ----- Sidebar, panes, Spaces -----
+track.addEventListener('click', e => {
+  const el = e.target.closest('[data-tab],[data-new]');
+  if (!el) return;
+  if (el.hasAttribute('data-new')) openCmd(); else selectTab(el.dataset.tab);
+});
+paneEls.forEach((el, i) => el.addEventListener('mousedown', () => {
+  const s = state.space;
+  if (!state.b[s]) return;
+  state.focus[s] = i ? 'b' : 'a';
+  renderPanes(false);
+}));
+document.getElementById('side-toggle').addEventListener('click', toggleSidebar);
+document.getElementById('edge').addEventListener('mouseenter', () => win.classList.add('peek'));
+document.getElementById('side').addEventListener('mouseleave', () => win.classList.remove('peek'));
+[sideDots, pageDots].forEach(group => group.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  userTook();
+  switchSpace([...group.children].indexOf(b));
+}));
+
+// Two-finger swipe: the sidebar follows the fingers, the tint blends into the next Space.
+let drag = 0;
+let endTimer;
+let quietUntil = 0;
+function followDrag() {
+  const s = state.space;
+  const edge = (s === 0 && drag > 0) || (s === SPACES.length - 1 && drag < 0);
+  setTrack(-s * STEP + (edge ? drag * 0.3 : Math.max(-STEP, Math.min(STEP, drag))), false);
+  const next = SPACES[s + (drag < 0 ? 1 : -1)];
+  if (!edge && next) {
+    const p = Math.round(Math.min(1, Math.abs(drag) / STEP) * 100);
+    document.documentElement.style.setProperty('--space', `color-mix(in srgb, ${next.color} ${p}%, ${SPACES[s].color})`);
+  }
+}
+function endDrag() {
+  const s = state.space;
+  const target = drag < -STEP * 0.25 ? s + 1 : drag > STEP * 0.25 ? s - 1 : s;
+  drag = 0;
+  quietUntil = performance.now() + 180; // let the trackpad's momentum die out
+  switchSpace(target);
+}
+win.addEventListener('wheel', e => {
+  if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || win.classList.contains('cmd-open')) return;
+  e.preventDefault();
+  userTook();
+  if (performance.now() < quietUntil) { quietUntil = performance.now() + 180; return; }
+  drag -= e.deltaX / scale;
+  followDrag();
+  clearTimeout(endTimer);
+  endTimer = setTimeout(endDrag, 110);
+}, { passive: false });
+let touchX = null;
+track.parentElement.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') touchX = e.clientX; });
+addEventListener('pointermove', e => { if (touchX !== null) { drag = (e.clientX - touchX) / scale; followDrag(); } });
+['pointerup', 'pointercancel'].forEach(type => addEventListener(type, () => { if (touchX !== null) { touchX = null; endDrag(); } }));
+addEventListener('keydown', e => { if (e.key === 'Escape') closeCmd(); });
+
+// ----- Demo: plays on its own until the visitor takes over -----
+let demoToken = 0;
+let userActive = false;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait = (ms, tok) => new Promise((ok, stop) => setTimeout(() => (tok === demoToken ? ok() : stop()), ms));
+function userTook() { userActive = true; demoToken++; }
+win.addEventListener('pointerdown', userTook, true);
+
+async function typeText(text, tok) {
+  for (const ch of text) {
+    await wait(80 + Math.random() * 80, tok);
+    cmdInput.value += ch;
+    selIndex = 0;
+    renderCmd();
+  }
+}
+async function command(text, tok) {
+  openCmd(false);
+  await wait(450, tok);
+  await typeText(text, tok);
+  await wait(650, tok);
+  runItem(selIndex);
+}
+function resetDemo() {
+  closeCmd();
+  if (state.collapsed) toggleSidebar();
+  SPACES.forEach((s, i) => { state.a[i] = s.pinned[0].id; state.b[i] = null; state.focus[i] = 'a'; });
+  markSelection();
+  switchSpace(0);
+}
+async function runDemo() {
+  const tok = ++demoToken;
+  try {
+    resetDemo();
+    for (;;) {
+      await wait(900, tok);
+      await command('pr', tok);
+      await wait(1900, tok);
+      switchSpace(1); await wait(1700, tok);
+      switchSpace(2); await wait(1500, tok);
+      switchSpace(0); await wait(1300, tok);
+      await command('split', tok);
+      await wait(2300, tok);
+      toggleSidebar(); await wait(1700, tok);
+      toggleSidebar(); await wait(1200, tok);
+      await command('split', tok);
+      await wait(900, tok);
+      selectTab(SPACES[0].pinned[0].id);
+      await wait(2200, tok);
+    }
+  } catch (e) { /* the visitor took over, or the shot left the screen */ }
+}
+new IntersectionObserver(([e]) => {
+  if (userActive || reducedMotion) return;
+  if (e.isIntersecting) runDemo(); else demoToken++;
+}, { threshold: 0.4 }).observe(shot);
+
+const nav = document.getElementById('nav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+// ---------- Mockup controls ----------
+const mock = document.getElementById('mock');
+const mockOS = document.getElementById('mock-os');
+const OS_LABELS = { auto: 'Auto', 'mac-arm': 'Mac · Apple silicon', mac: 'Mac · chip unknown', 'mac-intel': 'Mac · Intel', windows: 'Windows', linux: 'Linux', mobile: 'iPhone / iPad / Android', other: 'Other' };
+if (!MOCKUP) mock.remove();
+else {
+  document.getElementById('mock-close').onclick = () => mock.remove();
+  document.getElementById('mock-theme').onchange = e => {
+    if (e.target.value) document.documentElement.dataset.theme = e.target.value;
+    else delete document.documentElement.dataset.theme;
+  };
+  mockOS.onchange = e => { platform = e.target.value === 'auto' ? detected : e.target.value; renderCTA(); };
+}
+
+applyLang();
+detectPlatform().then(p => {
+  detected = p;
+  const forced = new URLSearchParams(location.search).get('os');
+  platform = forced && OS_LABELS[forced] ? forced : p;
+  if (MOCKUP) {
+    mockOS.innerHTML = Object.entries(OS_LABELS).map(([k, v]) =>
+      `<option value="${k}">${k === 'auto' ? `Auto (${OS_LABELS[p]})` : v}</option>`).join('');
+    mockOS.value = forced && OS_LABELS[forced] ? forced : 'auto';
+  }
+  renderCTA();
+});
+</script>
+</body>
+</html>
