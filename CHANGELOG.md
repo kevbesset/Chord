@@ -6,6 +6,11 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-27
+
+Arc's archive, Peek and downloads wired to Chromium, imports from other browsers, a
+welcome on first launch, and media controls in the sidebar.
+
 ### Added
 
 - A welcome on first launch, on one glass panel: import from Arc or another browser,
