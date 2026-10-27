@@ -74,6 +74,7 @@ struct SettingsView: View {
 
 private struct GeneralPane: View {
     @ObservedObject var model: SettingsModel
+    @State private var confirmingReset = false
 
     static let engines: [(String, String)] = [
         ("DuckDuckGo", "https://duckduckgo.com/?q=%s"),
@@ -110,8 +111,28 @@ private struct GeneralPane: View {
                         .disabled(!ArcImport.isAvailable)
                 }
             }
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "Reset Chord", bundle: .chordUI))
+                        Text(String(localized: "Deletes everything Chord keeps on this Mac and starts it again as new.", bundle: .chordUI))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button(String(localized: "Reset…", bundle: .chordUI), role: .destructive) { confirmingReset = true }
+                        .disabled(model.state.engine.resetAllDataAndRelaunch == nil)
+                }
+            }
         }
         .formStyle(.grouped)
+        .confirmationDialog(String(localized: "Reset Chord?", bundle: .chordUI), isPresented: $confirmingReset) {
+            Button(String(localized: "Reset and Restart", bundle: .chordUI), role: .destructive) {
+                model.state.engine.resetAllDataAndRelaunch?()
+            }
+            Button(String(localized: "Cancel", bundle: .chordUI), role: .cancel) {}
+        } message: {
+            Text(String(localized: "Spaces, tabs, favorites, logins, passwords, history, extensions and settings are deleted, and Chord restarts as on its first launch. Your downloaded files stay. This cannot be undone.", bundle: .chordUI))
+        }
     }
 }
 

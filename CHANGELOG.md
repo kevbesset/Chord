@@ -12,6 +12,8 @@ What changes in Chord, version by version. Each change adds a line under
   the language chosen for Chord in System Settings › General › Language & Region).
 - Shortcut search in the settings understands French and Spanish key names ("maj",
   "espace", "mayús", "izquierda"…).
+- Settings › General › Reset Chord: deletes everything Chord keeps on the Mac (Spaces,
+  logins, history, extensions, settings, caches) and restarts it as on its first launch.
 
 ### Changed
 

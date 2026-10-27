@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "base/apple/foundation_util.h"
 #include "base/command_line.h"
 #include "base/files/file_enumerator.h"
 #include "base/files/file_util.h"
@@ -20,7 +21,9 @@
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
+#include "base/strings/sys_string_conversions.h"
 #include "chrome/common/chrome_paths.h"
+#include "chrome/common/chrome_paths_internal.h"
 #include "chrome/common/chrome_switches.h"
 #include "components/os_crypt/common/keychain_password_mac.h"
 #include "crypto/aes_cbc.h"
@@ -36,6 +39,9 @@ namespace {
 // In the data folder: "mock" while its cookies and passwords use the mock keychain's
 // key, "keychain" once they use Chord's real one.
 constexpr char kKeyMarker[] = "Chord Key";
+
+// In the data folder while a reset waits for the next launch.
+constexpr char kResetMarker[] = "Chord Reset";
 
 // The password Chromium's mock keychain hands out (crypto/apple/fake_keychain_v2.mm).
 constexpr char kMockPassword[] = "mock_password";
@@ -277,6 +283,61 @@ void UpdateDataEncryption(const base::FilePath& user_data_dir,
   }
   base::WriteFile(marker, "keychain");
   LOG(WARNING) << "Chord: cookies and passwords now use the keychain key";
+}
+
+void ScheduleDataReset(const base::FilePath& user_data_dir) {
+  base::WriteFile(user_data_dir.Append(kResetMarker), "");
+}
+
+void ResetDataIfScheduled() {
+  base::FilePath user_data_dir;
+  if (!base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir)) {
+    return;
+  }
+  base::FilePath marker = user_data_dir.Append(kResetMarker);
+  if (!base::PathExists(marker)) {
+    return;
+  }
+  base::FileEnumerator entries(
+      user_data_dir, /*recursive=*/false,
+      base::FileEnumerator::FILES | base::FileEnumerator::DIRECTORIES |
+          base::FileEnumerator::SHOW_SYM_LINKS);
+  for (base::FilePath entry = entries.Next(); !entry.empty();
+       entry = entries.Next()) {
+    std::string name = entry.BaseName().value();
+    // This launch's lock and crash reporter, already at work; the marker goes last.
+    if (base::StartsWith(name, "Singleton") || name == "Crashpad" ||
+        entry == marker) {
+      continue;
+    }
+    if (!base::DeletePathRecursively(entry)) {
+      LOG(ERROR) << "Chord: could not delete " << entry;
+    }
+  }
+  // ~/Library/Caches/Chord. A folder given with --user-data-dir is its own cache.
+  base::FilePath cache;
+  chrome::GetUserCacheDirectory(user_data_dir, &cache);
+  if (cache != user_data_dir) {
+    base::DeletePathRecursively(cache);
+  }
+  // ChordUI's settings and caches (icons, updates) are shared by every data folder:
+  // only Chord's own folder takes them along (tests use --user-data-dir).
+  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kUserDataDir)) {
+    NSString* bundle_id = NSBundle.mainBundle.bundleIdentifier;
+    NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
+    // The language chosen for Chord in System Settings is the system's, not Chord's.
+    id languages = [defaults persistentDomainForName:bundle_id][@"AppleLanguages"];
+    [defaults removePersistentDomainForName:bundle_id];
+    if (languages) {
+      [defaults setObject:languages forKey:@"AppleLanguages"];
+    }
+    base::DeletePathRecursively(base::apple::GetUserLibraryPath()
+                                    .Append("Caches")
+                                    .Append(base::SysNSStringToUTF8(bundle_id)));
+  }
+  base::DeleteFile(marker);
+  LOG(WARNING) << "Chord: every piece of data was reset";
 }
 
 }  // namespace chord

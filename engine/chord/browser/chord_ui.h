@@ -108,6 +108,7 @@
 - (id<ChordWebEngine>)engineForProfile:(NSString*)profileID;
 - (void)deleteProfile:(NSString*)profileID;
 - (void)deleteProfilesExcept:(NSArray<NSString*>*)profileIDs;
+- (void)resetAllDataAndRelaunch;
 - (BOOL)ownsPage:(id<ChordWebPage>)page;
 - (void)importFromArc:(NSString*)arcProfile
            completion:

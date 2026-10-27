@@ -27,6 +27,9 @@ import AppKit
     @objc optional func deleteProfile(_ profileID: String)
     /// Deletes ChordUI's other profiles that are not among `profileIDs`.
     @objc(deleteProfilesExcept:) optional func deleteProfiles(except profileIDs: [String])
+    /// Deletes everything the browser keeps (every profile, ChordUI's session, settings
+    /// and caches) and restarts it as new. The deletion happens as it starts again.
+    @objc optional func resetAllDataAndRelaunch()
     /// Pages from this engine's profile history and bookmarks for what is typed in the
     /// command bar, best first: "url", "title", and "isTopHit" ("1" when it completes the
     /// text, like the omnibox's inline completion). `completion` may come several times

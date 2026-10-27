@@ -27,6 +27,15 @@ void MoveDataIntoChordFolder();
 void UpdateDataEncryption(const base::FilePath& user_data_dir,
                           bool mock_keychain);
 
+// Settings › Reset Chord: everything in the data folder goes at the next launch.
+void ScheduleDataReset(const base::FilePath& user_data_dir);
+
+// First thing at launch, when a reset is scheduled, before MoveDataIntoChordFolder:
+// the data folder is emptied, with Chromium's caches. For Chord's own folder (no
+// --user-data-dir), ChordUI's settings and caches go too, as a new install. The
+// keychain key stays: the new data is encrypted with it.
+void ResetDataIfScheduled();
+
 }  // namespace chord
 
 #endif  // CHORD_BROWSER_CHORD_DATA_MIGRATION_H_

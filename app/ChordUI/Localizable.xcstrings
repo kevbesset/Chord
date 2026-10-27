@@ -1237,6 +1237,22 @@
         }
       }
     },
+    "Deletes everything Chord keeps on this Mac and starts it again as new.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina todo lo que Chord guarda en este Mac y lo vuelve a abrir como nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprime tout ce que Chord garde sur ce Mac et le relance comme neuf."
+          }
+        }
+      }
+    },
     "Developer Tools": {
       "localizations": {
         "es": {
@@ -3227,6 +3243,38 @@
         }
       }
     },
+    "Reset Chord": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer Chord"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser Chord"
+          }
+        }
+      }
+    },
+    "Reset Chord?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Restablecer Chord?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser Chord ?"
+          }
+        }
+      }
+    },
     "Reset all shortcuts?": {
       "localizations": {
         "es": {
@@ -3239,6 +3287,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Réinitialiser tous les raccourcis ?"
+          }
+        }
+      }
+    },
+    "Reset and Restart": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer y reiniciar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser et relancer"
+          }
+        }
+      }
+    },
+    "Reset…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser…"
           }
         }
       }
@@ -3687,6 +3767,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spaces, favoris et onglets épinglés, tels quels."
+          }
+        }
+      }
+    },
+    "Spaces, tabs, favorites, logins, passwords, history, extensions and settings are deleted, and Chord restarts as on its first launch. Your downloaded files stay. This cannot be undone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se eliminan los Spaces, pestañas, favoritos, sesiones, contraseñas, historial, extensiones y ajustes, y Chord se reinicia como en su primer uso. Tus archivos descargados se conservan. No se puede deshacer."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les Spaces, onglets, favoris, connexions, mots de passe, historique, extensions et réglages sont supprimés, et Chord redémarre comme au premier lancement. Vos fichiers téléchargés restent. Cette action est irréversible."
           }
         }
       }

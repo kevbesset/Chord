@@ -230,6 +230,7 @@ bool IsEnabled() {
 
 std::unique_ptr<ChromeBrowserMainExtraParts> CreateBrowserMainExtraParts() {
   RecordFatalErrors();
+  ResetDataIfScheduled();
   MoveDataIntoChordFolder();
   // A build signed ad hoc is signed anew at each build, so macOS would ask for the
   // keychain item that encrypts cookies every time, and every page load waits for

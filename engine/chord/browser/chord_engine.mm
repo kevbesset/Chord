@@ -3,6 +3,7 @@
 #import "chord/browser/chord_engine.h"
 
 #include "chord/browser/chord_arc_import.h"
+#include "chord/browser/chord_data_migration.h"
 #include "chord/browser/chord_extensions.h"
 #include "chord/browser/chord_hooks.h"
 #include "chord/browser/chord_suggester.h"
@@ -31,6 +32,7 @@
 #include "chrome/browser/devtools/devtools_ui_bindings.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
 #include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
 #include "chrome/browser/profiles/keep_alive/profile_keep_alive_types.h"
@@ -991,6 +993,13 @@ void DeleteProfileAt(const base::FilePath& path) {
   [_profileEngines removeObjectForKey:profileID];
   [engine forgetProfile];
   DeleteProfileAt(ProfilePath(profileID));
+}
+
+// Settings › Reset Chord: Chord restarts, and its data goes before anything opens.
+- (void)resetAllDataAndRelaunch {
+  chord::ScheduleDataReset(
+      g_browser_process->profile_manager()->user_data_dir());
+  chrome::AttemptRestart();
 }
 
 // At launch: the profiles of ChordUI that no Space uses (deleted while Chord was
