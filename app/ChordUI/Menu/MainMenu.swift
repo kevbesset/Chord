@@ -81,8 +81,6 @@ public enum MainMenu {
             item(String(localized: "Zoom Out", bundle: .chordUI), #selector(C.zoomOut(_:)), "-"),
             item(String(localized: "Actual Size", bundle: .chordUI), #selector(C.actualSize(_:)), "0"),
             .separator(),
-            item(String(localized: "Translate Page", bundle: .chordUI), #selector(C.toggleTranslation(_:))),
-            .separator(),
             item(String(localized: "Developer Tools", bundle: .chordUI), #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
             item(String(localized: "View Source", bundle: .chordUI), #selector(C.viewSource(_:)), "u", [.command, .option]),
             item(String(localized: "Picture in Picture", bundle: .chordUI), #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),

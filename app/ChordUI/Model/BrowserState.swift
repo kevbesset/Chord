@@ -309,7 +309,8 @@ public final class BrowserState: NSObject {
     @discardableResult
     public func openTab(url: URL, select: Bool = true, adopting page: ChordWebPage? = nil, in space: Space? = nil) -> Tab {
         let space = space ?? activeSpace
-        let tab = Tab(url: page?.url ?? url, title: page?.title ?? url.host ?? "")
+        // Opening a tab counts as using it: it does not go to sleep before the older ones.
+        let tab = Tab(url: page?.url ?? url, title: page?.title ?? url.host ?? "", lastSelected: Date())
         // A page of another profile's session loads again in the Space's own.
         if let page, engine(for: space).ownsPage?(page) ?? true {
             page.delegate = self
@@ -810,7 +811,11 @@ public final class BrowserState: NSObject {
     @discardableResult
     func page(for tab: Tab) -> ChordWebPage {
         if let page = tab.page {
-            if page.isAsleep == true { page.wake?() }
+            if page.isAsleep == true {
+                page.wake?()
+                // Asleep with nothing to load again: back to the tab's address.
+                if page.url == nil, let url = tab.url { page.load(url) }
+            }
             return page
         }
         let page = engine(forProfile: profileID(of: tab)).makePage()

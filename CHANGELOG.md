@@ -25,12 +25,6 @@ What changes in Chord, version by version. Each change adds a line under
   that ask for the email first and the password on the next page.
 - Fields offer again what you typed in them before (emails, names), like Chrome and
   Arc; importing from Arc brings over what you typed in Arc's forms.
-- Pages in a language you do not read are offered a translation into your Mac's
-  language, done on your Mac by Apple's translation (macOS 26 or later): nothing is
-  sent to Google or anyone. It goes paragraph by paragraph, the page's text on screen
-  first and the rest as you scroll, links kept in their sentence. View › Translate
-  Page, and Show Original to go back; the site settings card has a "Translate into…"
-  switch too.
 - A speaker shows on tabs and favorites playing sound; click it, or use Mute Tab in the
   Tabs menu or the tab's menu, to mute the tab.
 
@@ -51,6 +45,10 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- Chord could crash when a site's question was open and the sidebar or the address bar
+  moved just as its page left the window.
+- A link opened in a new tab in the background (middle click, "Open Link in New Tab")
+  stayed blank once its tab was selected.
 - Some site icons stayed blank or wrong: an icon drawn with an emoji (a Figma file's),
   or one the page changes after loading. Chord now takes the icon Chromium renders, and
   a tab keeps its page's own icon (two Figma files, two icons).

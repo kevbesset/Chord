@@ -34,8 +34,6 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private let toast = ToastView()
     /// The page searched with ⌘F while the find bar is up.
     private weak var findPage: ChordWebPage?
-    /// Apple's on-device translation of the pages of this window.
-    private lazy var translation = PageTranslator()
     /// True while a swipe hands its Space to the state, which needs no slide of its own.
     private var isEndingSwipe = false
     private lazy var peek = makePeek()
@@ -445,7 +443,6 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             if let selected = state.selectedTab, selected.id == id {
                 sidebar.updateNavigation(tab: selected)
                 window?.title = selected.displayTitle
-                offerTranslation(for: selected)
             }
         case .downloadStarted:
             // Like Arc, a new download shows itself.
@@ -497,9 +494,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         updatePictureInPicture(showing: tabs.compactMap(\.page))
         // The site controls belong to the page they were opened on.
         if siteControls.isVisible, siteControlsTabID != selected?.id { siteControls.dismiss() }
-        // So do the find bar and the offer to translate.
+        // So does the find bar.
         if !pageArea.findBar.isHidden, findPage !== selected?.page { closeFindBar(focusPage: false) }
-        if let offer = permissionPrompt.request as? TranslationOffer, permissionPrompt.page !== selected?.page { offer.withdraw() }
     }
 
     private func elsewhereView(at index: Int) -> PageElsewhereView {
@@ -719,6 +715,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         DispatchQueue.main.asyncAfter(deadline: .now() + Theme.motionDuration) { [weak self] in
             guard let self, self.permissionPrompt.isVisible, let page = self.permissionPrompt.page else { return }
             let anchor = self.permissionAnchor(for: page)
+            // The page may have left this window while the layout moved.
+            guard anchor.view.window === self.window else { return }
             self.permissionPrompt.reanchor(to: anchor.view, rect: anchor.rect)
         }
     }
@@ -1140,41 +1138,6 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         if let tab = state.selectedTab { state.toggleMute(tab) }
     }
 
-    /// Translates the selected page into the Mac's language with Apple's on-device
-    /// translation, or shows its original text again.
-    @objc public func toggleTranslation(_ sender: Any?) {
-        guard let tab = state.selectedTab, let page = tab.page else { return }
-        if let offer = permissionPrompt.request as? TranslationOffer, permissionPrompt.page === page { offer.withdraw() }
-        if translation.isTranslated(page) {
-            translation.showOriginal(page)
-        } else {
-            translation.translate(page, in: window) { [weak self] message in
-                if let message { self?.showTranslationFailure(message) }
-            }
-        }
-    }
-
-    private func showTranslationFailure(_ message: String) {
-        toast.show(message, symbol: "exclamationmark.bubble", in: rootView, over: pageArea, accent: state.activeSpace.accent)
-    }
-
-    /// Once the selected page has loaded, a page in another language is offered a
-    /// translation, like a site's question.
-    private func offerTranslation(for tab: Tab) {
-        // An offer for a page that has gone elsewhere since goes.
-        if let offer = permissionPrompt.request as? TranslationOffer, permissionPrompt.page === tab.page, offer.url != tab.page?.url {
-            offer.withdraw()
-        }
-        guard tab === state.selectedTab, let page = tab.page, !page.isLoading, window?.isKeyWindow == true,
-              !permissionPrompt.isVisible, page.view.window === window else { return }
-        translation.offerIfForeign(page, settings: settings, ask: { [weak self, weak page] request in
-            guard let self, let page, page === self.state.selectedTab?.page, !self.permissionPrompt.isVisible else { return }
-            self.presentPermission(PermissionAsk(page: page, request: request))
-        }, failed: { [weak self] message in
-            self?.showTranslationFailure(message)
-        })
-    }
-
     /// One of Chromium's internal pages (chord://settings…), in a new tab.
     private func openInternalPage(_ path: String) {
         guard let url = URL(string: "chrome://\(path)") else { return }
@@ -1189,16 +1152,6 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         siteControls.isGlass = settings.commandBarGlass
         siteControls.onCopy = { [weak self] in self?.copy(url) }
         siteControls.onOpen = { [weak self] url in self?.state.openTab(url: url) }
-        siteControls.translation = nil
-        if PageTranslator.canTranslate(page) {
-            let translator = translation
-            let isOn: () -> Bool = { [weak page] in
-                guard let page else { return false }
-                return translator.isTranslated(page)
-            }
-            let toggle: () -> Void = { [weak self] in self?.toggleTranslation(nil) }
-            siteControls.translation = (target: PageTranslator.targetName, isOn: isOn, toggle: toggle)
-        }
         siteControls.onDismiss = { [weak self] in
             self?.focusPage()
             self?.resumePermissionPrompt()
@@ -1380,10 +1333,6 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             let page = state.selectedTab?.page
             menuItem.title = page?.isMuted == true ? String(localized: "Unmute Tab", bundle: .chordUI) : String(localized: "Mute Tab", bundle: .chordUI)
             return page?.setMuted != nil
-        case #selector(toggleTranslation(_:)):
-            guard let page = state.selectedTab?.page else { return false }
-            menuItem.title = translation.isTranslated(page) ? String(localized: "Show Original", bundle: .chordUI) : String(localized: "Translate Page", bundle: .chordUI)
-            return PageTranslator.isAvailable && page.evaluateJavaScript != nil
         case #selector(closeTab(_:)):
             return state.selectedTab != nil || commandBar.isVisible || peek.isVisible
         default:

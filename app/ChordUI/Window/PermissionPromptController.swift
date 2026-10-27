@@ -2,9 +2,10 @@ import AppKit
 
 /// A site's question (camera, notifications…), like Arc's: a popover from the site
 /// controls button with a round badge, the question, "Block" and "Allow", and a
-/// quieter "Not Now". The browser's own questions (save a password, translate the
-/// page) come the same way, in their own words. The page stays usable while it is up. It stays until answered, or until the engine takes
-/// it back (another tab selected, the tab closed), and asks again later.
+/// quieter "Not Now". The browser's own questions (save a password) come the same
+/// way, in their own words. The page stays usable while it is up. It stays until
+/// answered, or until the engine takes it back (another tab selected, the tab
+/// closed), and asks again later.
 final class PermissionPromptController: NSObject, NSPopoverDelegate {
     /// Called once the question is gone, answered or not.
     var onClose: (() -> Void)?
@@ -67,6 +68,9 @@ final class PermissionPromptController: NSObject, NSPopoverDelegate {
     }
 
     private func show(from anchor: NSView, rect: NSRect?) {
+        // NSPopover raises on an anchor outside any window (a page gone from the
+        // window by the time a delayed reanchor runs): the question stays where it is.
+        guard anchor.window != nil else { return }
         popover.show(relativeTo: rect ?? anchor.bounds, of: anchor, preferredEdge: anchor.isFlipped ? .maxY : .minY)
     }
 

@@ -92,13 +92,6 @@ public final class ChordSettings {
         return URL(string: searchTemplate.replacingOccurrences(of: "%s", with: encoded))
     }
 
-    /// Languages whose pages Chord no longer offers to translate ("Never Translate
-    /// Japanese"), by language code.
-    public var neverTranslate: Set<String> {
-        get { Set(defaults.stringArray(forKey: "neverTranslate") ?? []) }
-        set { defaults.set(newValue.sorted(), forKey: "neverTranslate") }
-    }
-
     private func set(_ value: Any, _ key: String, _ change: Key) {
         defaults.set(value, forKey: key)
         changes.send(change)

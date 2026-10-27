@@ -86,7 +86,7 @@ import AppKit
     /// An SF Symbol for the first thing asked.
     var symbol: String { get }
     /// A question of the browser's own rather than a site's permission (save a
-    /// password, translate the page), worded in full: shown instead of "Allow
+    /// password), worded in full: shown instead of "Allow
     /// <site> to …?".
     @objc optional var question: String? { get }
     /// A quieter line under the question: the account a password is for.
@@ -193,11 +193,6 @@ import AppKit
     /// The page sleeps (put to sleep by ChordUI or by the engine, short of memory).
     @objc optional var isAsleep: Bool { get }
     @objc optional func wake()
-
-    /// Runs `script` on the page's main frame, in a world of its own (the page's scripts
-    /// do not see it, the document is shared, its globals stay between runs), and gives
-    /// back its result: strings, numbers, booleans, arrays and dictionaries, or nil.
-    @objc(evaluateJavaScript:completion:) optional func evaluateJavaScript(_ script: String, completion: @escaping (Any?) -> Void)
 }
 
 @objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {

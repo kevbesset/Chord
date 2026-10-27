@@ -76,7 +76,6 @@
 #include "components/zoom/page_zoom.h"
 #include "components/zoom/zoom_controller.h"
 #include "printing/buildflags/buildflags.h"
-#include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "net/base/apple/url_conversions.h"
 #include "third_party/blink/public/mojom/favicon/favicon_url.mojom.h"
 #include "third_party/skia/include/core/SkBitmap.h"
@@ -181,41 +180,17 @@ void EnterPictureInPicture(content::WebContents* contents) {
       ISOLATED_WORLD_ID_CHROME_INTERNAL);
 }
 
+// A WebContents made hidden (a tab opened in the background, the one a sleeping
+// tab gets) has its view hidden until Chrome's Views show it: in Chord, ChordUI
+// shows it by placing it in a window.
+void UnhideView(content::WebContents* contents) {
+  contents->GetNativeView().GetNativeNSView().hidden = NO;
+}
+
 // Quitting closes every tab: ChordUI must not see that as the user closing them.
 bool IsQuitting() {
   return browser_shutdown::IsTryingToQuit() ||
          browser_shutdown::HasShutdownStarted();
-}
-
-// A script's result as Foundation objects, for ChordUI.
-id ObjectFromValue(const base::Value& value) {
-  switch (value.type()) {
-    case base::Value::Type::BOOLEAN:
-      return @(value.GetBool());
-    case base::Value::Type::INTEGER:
-      return @(value.GetInt());
-    case base::Value::Type::DOUBLE:
-      return @(value.GetDouble());
-    case base::Value::Type::STRING:
-      return base::SysUTF8ToNSString(value.GetString());
-    case base::Value::Type::LIST: {
-      NSMutableArray* array = [NSMutableArray array];
-      for (const base::Value& item : value.GetList()) {
-        [array addObject:ObjectFromValue(item) ?: NSNull.null];
-      }
-      return array;
-    }
-    case base::Value::Type::DICT: {
-      NSMutableDictionary* dictionary = [NSMutableDictionary dictionary];
-      for (const auto [key, item] : value.GetDict()) {
-        dictionary[base::SysUTF8ToNSString(key)] =
-            ObjectFromValue(item) ?: NSNull.null;
-      }
-      return dictionary;
-    }
-    default:
-      return nil;
-  }
 }
 
 }  // namespace
@@ -407,6 +382,7 @@ class PageObserver : public content::WebContentsObserver,
 
 - (instancetype)initWithWebContents:(content::WebContents*)contents {
   if ((self = [super init])) {
+    UnhideView(contents);
     _webContents = contents;
     _observer = std::make_unique<PageObserver>(contents, self);
     Pages()[contents] = self;
@@ -476,9 +452,7 @@ class PageObserver : public content::WebContentsObserver,
   if (_webContents && _webContents->IsAudioMuted()) {
     contents->SetAudioMuted(true);
   }
-  // A WebContents made hidden (the one a sleeping tab gets) has its view hidden until
-  // Chrome's Views show it: in Chord, ChordUI shows it by placing it in a window.
-  contents->GetNativeView().GetNativeNSView().hidden = NO;
+  UnhideView(contents);
   [self detach];
   _webContents = contents;
   _observer = std::make_unique<PageObserver>(contents, self);
@@ -927,8 +901,12 @@ class PageObserver : public content::WebContentsObserver,
   if (_webContents->WasDiscarded()) {
     return YES;
   }
-  // Its video floats in picture in picture, or its developer tools are open.
-  if (IsInPictureInPicture(_webContents) ||
+  // It has not shown a page yet (a tab opened in the background, still loading):
+  // asleep, it would have nothing to load again. Its video floats in picture in
+  // picture, or its developer tools are open.
+  content::NavigationEntry* entry =
+      _webContents->GetController().GetLastCommittedEntry();
+  if (!entry || entry->IsInitialEntry() || IsInPictureInPicture(_webContents) ||
       DevToolsWindow::GetInstanceForInspectedWebContents(_webContents)) {
     return NO;
   }
@@ -950,27 +928,6 @@ class PageObserver : public content::WebContentsObserver,
   content::NavigationController& controller = _webContents->GetController();
   controller.SetNeedsReload();
   controller.LoadIfNecessary();
-}
-
-// In a world of its own, which Chrome's translation (not used in Chord) would have
-// taken: the page's scripts cannot see it, its globals stay between runs.
-- (void)evaluateJavaScript:(NSString*)script
-                completion:(void (^)(id))completion {
-  // A sleeping page has no frame to run in.
-  if (!_webContents || !_webContents->GetPrimaryMainFrame()->IsRenderFrameLive()) {
-    completion(nil);
-    return;
-  }
-  void (^done)(id) = [completion copy];
-  // The completion always comes, with nil when the frame goes before answering.
-  _webContents->GetPrimaryMainFrame()->ExecuteJavaScriptInIsolatedWorld(
-      base::SysNSStringToUTF16(script),
-      mojo::WrapCallbackWithDefaultInvokeIfNotRun(
-          base::BindOnce(^(base::Value result) {
-            done(ObjectFromValue(result));
-          }),
-          base::Value()),
-      ISOLATED_WORLD_ID_TRANSLATE);
 }
 
 // Docked DevTools: their WebContents fills the page's area, the page sits where the

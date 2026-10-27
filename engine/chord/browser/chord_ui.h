@@ -87,7 +87,6 @@
 - (BOOL)sleep;
 @property(nonatomic, readonly) BOOL isAsleep;
 - (void)wake;
-- (void)evaluateJavaScript:(NSString*)script completion:(void (^)(id))completion;
 @end
 
 @protocol ChordPermissionRequest <NSObject>
