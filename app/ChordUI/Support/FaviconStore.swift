@@ -15,8 +15,10 @@ public final class FaviconStore {
     private var waiting: [String: [(NSImage) -> Void]] = [:]
     /// Hosts without an icon, not asked again until the next launch.
     private var failed: Set<String> = []
-    /// The page-declared icon already applied for a host this launch.
-    private var appliedSources: [String: URL] = [:]
+    /// Icons live pages show, by page (Figma gives each file its own emoji), for this
+    /// launch. On disk, the site keeps the last one seen.
+    private var pageIcons: [String: NSImage] = [:]
+    private var pageIconData: [String: Data] = [:]
 
     init() {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -38,10 +40,16 @@ public final class FaviconStore {
         return url.port.map { "\(host):\($0)" } ?? host
     }
 
+    /// One icon per page: the site and the path, without the query (Figma's selection).
+    static func pageKey(for url: URL) -> String? {
+        key(for: url).map { $0 + url.path }
+    }
+
     /// The icon for a page, or nil when it is not known yet. In that case it is fetched,
     /// and `completion` receives it if one is found.
     func icon(for url: URL?, completion: @escaping (NSImage) -> Void) -> NSImage? {
         guard let url, let key = Self.key(for: url) else { return nil }
+        if let pageKey = Self.pageKey(for: url), let image = pageIcons[pageKey] { return image }
         if let image = memory[key] { return image }
         if let data = try? Data(contentsOf: file(for: key)), let image = NSImage(data: data) {
             memory[key] = image
@@ -61,19 +69,13 @@ public final class FaviconStore {
         return nil
     }
 
-    /// Uses the icon a live page declares. Downloaded once per host and launch.
-    func useIcon(at iconURL: URL, for pageURL: URL, then done: @escaping () -> Void) {
-        guard let key = Self.key(for: pageURL), appliedSources[key] != iconURL else { return }
-        appliedSources[key] = iconURL
-        let session = session
-        Task {
-            let data = await Self.download(iconURL, session: session)
-            await MainActor.run {
-                guard let data else { return }
-                self.store(data, key: key)
-                done()
-            }
-        }
+    /// Uses the icon a live page shows, already downloaded and rendered by the engine.
+    func useIcon(_ data: Data, for pageURL: URL) {
+        guard let key = Self.key(for: pageURL), let pageKey = Self.pageKey(for: pageURL),
+              pageIconData[pageKey] != data, let image = NSImage(data: data), image.isValid else { return }
+        pageIconData[pageKey] = data
+        pageIcons[pageKey] = image
+        store(data, key: key)
     }
 
     /// Icon data from elsewhere (Arc's cache), for a page. It replaces a guessed icon.

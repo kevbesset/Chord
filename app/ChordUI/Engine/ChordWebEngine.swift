@@ -100,8 +100,9 @@ import AppKit
     var isLoading: Bool { get }
     var canGoBack: Bool { get }
     var canGoForward: Bool { get }
-    /// The page's own icon, as declared by the page (best size for the sidebar), once known.
-    @objc optional var faviconURL: URL? { get }
+    /// The page's own icon (PNG), as declared by the page and rendered by the engine
+    /// (best size for the sidebar), once known. Nil while another page loads.
+    @objc optional var faviconData: Data? { get }
     /// Held weakly by implementations.
     var delegate: ChordWebPageDelegate? { get set }
 

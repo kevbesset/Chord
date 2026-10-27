@@ -29,6 +29,9 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- Some site icons stayed blank or wrong: an icon drawn with an emoji (a Figma file's),
+  or one the page changes after loading. Chord now takes the icon Chromium renders, and
+  a tab keeps its page's own icon (two Figma files, two icons).
 - Searching shortcuts for the space bar ("ctrl space") found nothing.
 - A tab selected in two windows left one of them blank for good. It now shows in the
   window you use, and the other window says it is open elsewhere and takes it back on

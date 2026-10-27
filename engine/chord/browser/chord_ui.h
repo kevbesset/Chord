@@ -54,7 +54,7 @@
 - (void)reload;
 - (void)stopLoading;
 @optional
-@property(nonatomic, readonly, copy) NSURL* faviconURL;
+@property(nonatomic, readonly, copy) NSData* faviconData;
 - (void)reloadIgnoringCache;
 - (void)didBecomeActive;
 - (void)toggleDevTools;

@@ -54,6 +54,7 @@
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/media_session.h"
 #include "content/public/browser/navigation_entry.h"
+#include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/render_frame_host.h"
 #include "chrome/common/chrome_isolated_world_ids.h"
 #include "third_party/blink/public/mojom/frame/media_player_action.mojom.h"
@@ -63,6 +64,9 @@
 #include "content/public/browser/web_contents_observer.h"
 #include "net/base/apple/url_conversions.h"
 #include "third_party/blink/public/mojom/favicon/favicon_url.mojom.h"
+#include "third_party/skia/include/core/SkBitmap.h"
+#include "ui/gfx/codec/png_codec.h"
+#include "ui/gfx/geometry/size.h"
 #include "ui/base/page_transition_types.h"
 #include "url/gurl.h"
 
@@ -263,6 +267,7 @@ HostContentSettingsMap* SettingsFor(content::WebContents* contents, GURL* url) {
 - (void)loadPendingURL;
 - (void)notifyUpdate;
 - (void)updateFavicon:(const std::vector<blink::mojom::FaviconURLPtr>&)candidates;
+- (void)resetFavicon;
 // The tab is gone (closed by Chromium, or replaced): forget its WebContents.
 - (void)detach;
 - (void)replaceWebContents:(content::WebContents*)contents;
@@ -279,6 +284,13 @@ class PageObserver : public content::WebContentsObserver {
   // content::WebContentsObserver:
   void DidStartLoading() override { [page_ notifyUpdate]; }
   void DidStopLoading() override { [page_ notifyUpdate]; }
+  // Before the commit, which ChordUI hears of first through
+  // NavigationEntryCommitted.
+  void ReadyToCommitNavigation(content::NavigationHandle* handle) override {
+    if (handle->IsInPrimaryMainFrame() && !handle->IsSameDocument()) {
+      [page_ resetFavicon];
+    }
+  }
   void DidFinishNavigation(content::NavigationHandle* handle) override {
     [page_ notifyUpdate];
   }
@@ -307,6 +319,7 @@ class PageObserver : public content::WebContentsObserver {
   raw_ptr<content::WebContents> _webContents;
   std::unique_ptr<PageObserver> _observer;
   NSURL* _faviconURL;
+  NSData* _faviconData;
   id<ChordWebPageDelegate> __weak _delegate;
   BOOL _waitingForProfile;
   NSURL* _pendingURL;
@@ -393,7 +406,15 @@ class PageObserver : public content::WebContentsObserver {
   [_delegate pageDidUpdate:self];
 }
 
+// A new document declares its own icon: the previous one must not be taken for it.
+- (void)resetFavicon {
+  _faviconURL = nil;
+  _faviconData = nil;
+}
+
 // Keeps the largest icon the page declares: the sidebar shows them at 16 pt, at 2x.
+// Chromium downloads and decodes it (SVG included, with its text: Figma draws a
+// file's emoji that way), and ChordUI gets the result as PNG.
 - (void)updateFavicon:(const std::vector<blink::mojom::FaviconURLPtr>&)candidates {
   const blink::mojom::FaviconURL* best = nullptr;
   int bestSize = -1;
@@ -411,10 +432,53 @@ class PageObserver : public content::WebContentsObserver {
       bestSize = size;
     }
   }
+  if (!best || !_webContents) {
+    return;
+  }
+  NSURL* iconURL = net::NSURLWithGURL(best->icon_url);
+  if ([iconURL isEqual:_faviconURL] && _faviconData) {
+    return;
+  }
+  _faviconURL = iconURL;
+  __weak ChordPage* weakSelf = self;
+  _webContents->DownloadImage(
+      best->icon_url, /*is_favicon=*/true, gfx::Size(64, 64),
+      /*max_bitmap_size=*/256, /*bypass_cache=*/false,
+      base::BindOnce(^(int, int, const GURL&,
+                       const std::vector<SkBitmap>& bitmaps,
+                       const std::vector<gfx::Size>&) {
+        [weakSelf didDownloadFavicon:iconURL bitmaps:bitmaps];
+      }));
+}
+
+// The smallest bitmap of 64 px and up (crisp at 32 pt on a Retina screen), else the
+// largest. An icon the page has replaced since is dropped.
+- (void)didDownloadFavicon:(NSURL*)iconURL
+                   bitmaps:(const std::vector<SkBitmap>&)bitmaps {
+  if (![iconURL isEqual:_faviconURL]) {
+    return;
+  }
+  const SkBitmap* best = nullptr;
+  for (const SkBitmap& bitmap : bitmaps) {
+    if (bitmap.drawsNothing()) {
+      continue;
+    }
+    bool large = bitmap.width() >= 64;
+    bool bestLarge = best && best->width() >= 64;
+    if (!best || (large && (!bestLarge || bitmap.width() < best->width())) ||
+        (!large && !bestLarge && bitmap.width() > best->width())) {
+      best = &bitmap;
+    }
+  }
   if (!best) {
     return;
   }
-  _faviconURL = net::NSURLWithGURL(best->icon_url);
+  std::optional<std::vector<uint8_t>> png =
+      gfx::PNGCodec::EncodeBGRASkBitmap(*best, /*discard_transparency=*/false);
+  if (!png) {
+    return;
+  }
+  _faviconData = [NSData dataWithBytes:png->data() length:png->size()];
   [self notifyUpdate];
 }
 
@@ -458,8 +522,13 @@ class PageObserver : public content::WebContentsObserver {
   return _webContents && _webContents->GetController().CanGoForward();
 }
 
-- (NSURL*)faviconURL {
-  return _faviconURL;
+- (NSData*)faviconData {
+  // While another page loads, the icon is still the previous one's.
+  if (!_webContents ||
+      _webContents->GetVisibleURL() != _webContents->GetLastCommittedURL()) {
+    return nil;
+  }
+  return _faviconData;
 }
 
 - (id<ChordWebPageDelegate>)delegate {

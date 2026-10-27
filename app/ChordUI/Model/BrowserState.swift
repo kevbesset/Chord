@@ -882,9 +882,8 @@ extension BrowserState: ChordWebPageDelegate {
             if tab.pinnedURL != nil, tab.url == tab.pinnedURL { tab.pinnedTitle = title }
         }
         // The live page knows its real icon: keep it for when the tab sleeps.
-        if let iconURL = page.faviconURL ?? nil, let url = tab.url {
-            let id = tab.id
-            FaviconStore.shared.useIcon(at: iconURL, for: url) { [weak self] in self?.changes.send(.tab(id)) }
+        if let icon = page.faviconData ?? nil, let url = tab.url {
+            FaviconStore.shared.useIcon(icon, for: url)
         }
         changes.send(.tab(tab.id))
         scheduleSave()
