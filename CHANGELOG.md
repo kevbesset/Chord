@@ -23,6 +23,9 @@ What changes in Chord, version by version. Each change adds a line under
 - The address bar's place (on top of the page or in the sidebar, ⇧⌘D) belongs to the
   Space's profile: moving it changes only the Spaces on that profile. The setting in
   Settings › Appearance is the default for profiles that have not chosen.
+- Pinned tabs and favorites remember the page they were pinned on, like Arc: browse
+  away from it, close the tab, and it opens again on that page rather than the last one
+  visited.
 
 ### Fixed
 

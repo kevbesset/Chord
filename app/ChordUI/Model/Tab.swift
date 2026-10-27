@@ -13,22 +13,49 @@ public final class Tab {
     public let id: UUID
     public internal(set) var url: URL?
     public internal(set) var title: String
-    public internal(set) var section: TabSection
+    public internal(set) var section: TabSection {
+        didSet {
+            guard section != oldValue else { return }
+            if section == .today {
+                pinnedURL = nil
+                pinnedTitle = nil
+            } else if oldValue == .today {
+                pinnedURL = url
+                pinnedTitle = title
+            }
+        }
+    }
+    /// For a pinned tab or a favorite, the page it was pinned on, like Arc's: browsing
+    /// moves the tab away from it, closing the tab brings it back there.
+    public internal(set) var pinnedURL: URL?
+    var pinnedTitle: String?
     /// The live page, or nil when the tab is asleep.
     var page: ChordWebPage?
     /// Used to decide which tabs go to sleep first.
     var lastSelected: Date
 
-    init(id: UUID = UUID(), url: URL?, title: String = "", section: TabSection = .today, lastSelected: Date = .distantPast) {
+    init(id: UUID = UUID(), url: URL?, title: String = "", section: TabSection = .today, lastSelected: Date = .distantPast,
+         pinnedURL: URL? = nil, pinnedTitle: String? = nil) {
         self.id = id
         self.url = url
         self.title = title
         self.section = section
         self.lastSelected = lastSelected
+        if section != .today {
+            self.pinnedURL = pinnedURL ?? url
+            self.pinnedTitle = pinnedTitle ?? title
+        }
     }
 
     public var isPinned: Bool { section == .pinned }
     public var isFavorite: Bool { section == .favorites }
+
+    /// Back on the page it was pinned on, for a pinned tab or a favorite that browsed away.
+    func returnToPinnedURL() {
+        guard let pinnedURL else { return }
+        url = pinnedURL
+        if let pinnedTitle { title = pinnedTitle }
+    }
 
     public var displayTitle: String {
         if !title.isEmpty { return title }

@@ -340,8 +340,10 @@ public final class BrowserState: NSObject {
         let wasVisible = visibleTabs.contains { $0 === tab }
         let splitPartners = space.split.filter { $0 != tab.id }
 
-        // Like Arc, favorites and pinned tabs are never removed: they go back to sleep.
+        // Like Arc, favorites and pinned tabs are never removed: they go back to sleep, on
+        // the page they were pinned on.
         tab.page = nil
+        tab.returnToPinnedURL()
         if tab.section == .today {
             space.today.removeAll { $0 === tab }
             closedTabs.append((tab.snapshot, space.id))
@@ -874,7 +876,11 @@ extension BrowserState: ChordWebPageDelegate {
         PageHostView.pageDidUpdate(page)
         guard let tab = tab(owning: page) else { return }
         if let url = page.url { tab.url = url }
-        if let title = page.title, !title.isEmpty { tab.title = title }
+        if let title = page.title, !title.isEmpty {
+            tab.title = title
+            // The pinned page's own title, once it has loaded, rather than its host.
+            if tab.pinnedURL != nil, tab.url == tab.pinnedURL { tab.pinnedTitle = title }
+        }
         // The live page knows its real icon: keep it for when the tab sleeps.
         if let iconURL = page.faviconURL ?? nil, let url = tab.url {
             let id = tab.id

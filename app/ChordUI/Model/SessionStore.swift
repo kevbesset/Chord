@@ -4,6 +4,10 @@ struct TabSnapshot: Codable {
     var id: UUID
     var url: URL?
     var title: String
+    /// For pinned tabs and favorites: the page they were pinned on. Missing in older
+    /// sessions, where it is the tab's own URL.
+    var pinnedURL: URL?
+    var pinnedTitle: String?
 }
 
 struct FolderSnapshot: Codable {
@@ -72,11 +76,12 @@ public final class SessionStore {
 
 extension Tab {
     convenience init(snapshot: TabSnapshot, section: TabSection) {
-        self.init(id: snapshot.id, url: snapshot.url, title: snapshot.title, section: section)
+        self.init(id: snapshot.id, url: snapshot.url, title: snapshot.title, section: section,
+                  pinnedURL: snapshot.pinnedURL, pinnedTitle: snapshot.pinnedTitle)
     }
 
     var snapshot: TabSnapshot {
-        TabSnapshot(id: id, url: url, title: title)
+        TabSnapshot(id: id, url: url, title: title, pinnedURL: pinnedURL, pinnedTitle: pinnedTitle)
     }
 }
 
