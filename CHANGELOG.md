@@ -32,6 +32,8 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Changed
 
+- The home page sits in a landscape of misty blue ridges, with Chord's mark as its sun
+  in light mode and its moon, among stars, in dark mode.
 - Sleeping tabs keep their place: back on a tab put to sleep, its page comes back with
   its history, where it was scrolled and what was typed in its forms. Tabs playing
   sound or on a call (camera, microphone, screen sharing) no longer go to sleep.

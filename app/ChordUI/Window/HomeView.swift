@@ -1,14 +1,14 @@
 import AppKit
 
 /// Chord's home page, shown when the Space has no tab open (or every tab was closed):
-/// the mark, a greeting, a search field that opens the command bar, the Space's
+/// a landscape with Chord's mark as its sun or moon, a greeting, a search field that opens the command bar, the Space's
 /// favorites and pinned tabs to get back to work, and the shortcuts worth knowing.
 final class HomeView: NSView {
     var onSearch: (() -> Void)?
     var onOpen: ((Tab) -> Void)?
 
-    private let glow = CAGradientLayer()
-    private let mark = ChordMarkView()
+    private let landscape = HomeLandscapeView()
+    private let column = NSStackView()
     private let greeting = NSTextField(labelWithString: "")
     private let subtitle = NSTextField(labelWithString: "")
     private let search = HomeSearchView()
@@ -16,15 +16,14 @@ final class HomeView: NSView {
     private let shortcuts = NSStackView()
     private let quickTitle = NSTextField(labelWithString: "")
     private let quickGrid = NSStackView()
-    private var accent = NSColor(hex: Theme.spacePalette[0])
 
     static let maxQuickTiles = 8
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.addSublayer(glow)
-        glow.type = .radial
+        landscape.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(landscape)
 
         greeting.font = .systemFont(ofSize: 28, weight: .semibold)
         greeting.alignment = .center
@@ -47,11 +46,10 @@ final class HomeView: NSView {
         }
         shortcutsTitle.stringValue = String(localized: "SHORTCUTS", bundle: .chordUI)
 
-        let column = NSStackView(views: [mark, greeting, subtitle, search, quickTitle, quickGrid, shortcutsTitle, shortcuts])
+        column.setViews([greeting, subtitle, search, quickTitle, quickGrid, shortcutsTitle, shortcuts], in: .center)
         column.orientation = .vertical
         column.alignment = .centerX
         column.spacing = 10
-        column.setCustomSpacing(22, after: mark)
         column.setCustomSpacing(4, after: greeting)
         column.setCustomSpacing(28, after: subtitle)
         column.setCustomSpacing(40, after: search)
@@ -63,12 +61,14 @@ final class HomeView: NSView {
         let lifted = column.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -30)
         lifted.priority = .defaultHigh
         NSLayoutConstraint.activate([
+            landscape.topAnchor.constraint(equalTo: topAnchor),
+            landscape.bottomAnchor.constraint(equalTo: bottomAnchor),
+            landscape.leadingAnchor.constraint(equalTo: leadingAnchor),
+            landscape.trailingAnchor.constraint(equalTo: trailingAnchor),
             column.centerXAnchor.constraint(equalTo: centerXAnchor),
             lifted,
             column.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 32),
             column.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 24),
-            mark.widthAnchor.constraint(equalToConstant: 52),
-            mark.heightAnchor.constraint(equalToConstant: 52),
             search.widthAnchor.constraint(equalToConstant: 480),
             search.heightAnchor.constraint(equalToConstant: 46),
         ])
@@ -78,35 +78,16 @@ final class HomeView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     override var mouseDownCanMoveWindow: Bool { false }
-    override var wantsUpdateLayer: Bool { true }
-
-    override func updateLayer() {
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        // A soft wash of the Space colour from the top, like light through the glass.
-        glow.colors = [accent.withAlphaComponent(isDarkAppearance ? 0.16 : 0.10).cgColor, accent.withAlphaComponent(0).cgColor]
-        glow.startPoint = CGPoint(x: 0.5, y: 1.15)
-        glow.endPoint = CGPoint(x: 1.1, y: 0.1)
-    }
 
     override func layout() {
         super.layout()
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        glow.frame = bounds
-        CATransaction.commit()
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
+        landscape.hazeRect = column.frame
     }
 
     /// The Space shown: its colour, name, and its favorites then pinned tabs as shortcuts.
     func update(space: Space, favorites: [Tab]) {
-        accent = space.accent
         greeting.stringValue = Self.greeting()
         subtitle.stringValue = String(localized: "Space \(space.name) · no open tabs", bundle: .chordUI)
-        needsDisplay = true
 
         let quick = Array((favorites + space.pinned).prefix(Self.maxQuickTiles))
         quickGrid.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -315,35 +296,5 @@ final class HomeTileView: NSView {
     override func accessibilityPerformPress() -> Bool {
         onClick?()
         return true
-    }
-}
-
-/// The mark, as in the brand guide (design/brand/chord-mark.svg): the arc in the text
-/// colour, the chord in Chord's indigo, whatever the Space.
-final class ChordMarkView: NSView {
-    private let accent = NSColor(hex: Theme.spacePalette[0])
-
-    override var isFlipped: Bool { true }
-
-    override func draw(_ dirtyRect: NSRect) {
-        // The SVG's geometry: radius 100, stroke 30, in a 240 unit box centred on 0.
-        let scale = min(bounds.width, bounds.height) / 240
-        let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: center.x + x * scale, y: center.y + y * scale) }
-
-        let arc = NSBezierPath()
-        arc.appendArc(withCenter: center, radius: 100 * scale, startAngle: -45, endAngle: 45, clockwise: true)
-        arc.lineWidth = 30 * scale
-        arc.lineCapStyle = .round
-        NSColor.labelColor.setStroke()
-        arc.stroke()
-
-        let chord = NSBezierPath()
-        chord.move(to: point(70.7, 70.7))
-        chord.line(to: point(70.7, -70.7))
-        chord.lineWidth = 30 * scale
-        chord.lineCapStyle = .round
-        accent.setStroke()
-        chord.stroke()
     }
 }
