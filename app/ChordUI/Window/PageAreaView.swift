@@ -74,6 +74,15 @@ final class PageAreaView: NSView {
         needsLayout = true
     }
 
+    /// A pane whose page another window took, or that shows where one went: the
+    /// window then looks again at which pages it can show.
+    var isMissingPage: Bool {
+        panes.contains { pane in
+            guard let view = pane.card.hostedView else { return false }
+            return view is PageElsewhereView || view.superview !== pane.card
+        }
+    }
+
     /// The URL or navigation state of a shown tab changed.
     func refresh(tab: Tab) {
         guard let index = tabs.firstIndex(where: { $0 === tab }) else { return }

@@ -58,6 +58,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// The address bar's place as last laid out, to move it only when the Space's
     /// profile wants another one.
     private var shownAddressBarOnTop: Bool?
+    /// One per pane, for the pages another window shows.
+    private var elsewhereViews: [PageElsewhereView] = []
     private var cancellables = Set<AnyCancellable>()
 
     private static let frameName = "ChordMainWindow"
@@ -375,6 +377,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
                 self.state.withWindow(self.selection) { self.handle(key) }
             }
             .store(in: &cancellables)
+        NotificationCenter.default.publisher(for: PageHostView.didMoveNotification)
+            .sink { [weak self] _ in self?.pagesDidMove() }
+            .store(in: &cancellables)
         commandBar.actionsProvider = { [weak self] in self?.commandActions() ?? [] }
         commandBar.onDismiss = { [weak self] in self?.focusPage() }
         permissionPrompt.onClose = { [weak self] in self?.permissionPromptClosed() }
@@ -460,12 +465,19 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private func showSelectedPage(focus: Bool) {
         let tabs = state.visibleTabs
-        let views = tabs.map { PageHostView.host(for: state.page(for: $0)) as NSView }
+        // A page has a single view. The window the user acts in takes it from another
+        // window that selected the same tab, which then says where it went.
+        let isKey = window?.isKeyWindow == true
+        let views = tabs.enumerated().map { index, tab -> NSView in
+            let host = PageHostView.host(for: state.page(for: tab))
+            guard !isKey, let other = host.window, other !== window, other.isVisible else { return host }
+            return elsewhereView(at: index)
+        }
         let selected = state.selectedTab
         if tabs.isEmpty { pageArea.home.update(space: state.activeSpace, favorites: state.favorites) }
         pageArea.show(tabs: tabs, views: views, activeID: selected?.id)
         window?.title = selected?.displayTitle ?? (state.isPrivate ? String(localized: "Private Browsing", bundle: .chordUI) : "Chord")
-        if focus, let view = selected?.page?.view, !commandBar.isVisible, !peek.isVisible {
+        if focus, let view = selected?.page?.view, view.window === window, !commandBar.isVisible, !peek.isVisible {
             window?.makeFirstResponder(view)
         }
         sidebar.updateNavigation(tab: selected)
@@ -475,6 +487,18 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         updatePictureInPicture(showing: tabs.compactMap(\.page))
         // The site controls belong to the page they were opened on.
         if siteControls.isVisible, siteControlsTabID != selected?.id { siteControls.dismiss() }
+    }
+
+    private func elsewhereView(at index: Int) -> PageElsewhereView {
+        while elsewhereViews.count <= index { elsewhereViews.append(PageElsewhereView()) }
+        return elsewhereViews[index]
+    }
+
+    /// A page moved between windows: this window takes back a page of its selection
+    /// that is free again, or says where one went.
+    private func pagesDidMove() {
+        guard pageArea.isMissingPage else { return }
+        state.withWindow(selection) { showSelectedPage(focus: false) }
     }
 
     /// Like Arc: a video playing in a page that leaves the screen carries on in a

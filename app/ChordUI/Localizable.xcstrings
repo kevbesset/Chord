@@ -821,6 +821,22 @@
         }
       }
     },
+    "Click to show it here": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz clic para mostrarla aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cliquez pour l’afficher ici"
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "es": {
@@ -3975,6 +3991,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "C'est le dernier Space de son profil : le profil sera supprimé aussi, avec ses connexions, cookies, historique, extensions et favoris."
+          }
+        }
+      }
+    },
+    "This tab is shown in another window": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta pestaña se muestra en otra ventana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet onglet est affiché dans une autre fenêtre"
           }
         }
       }

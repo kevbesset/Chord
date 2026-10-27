@@ -85,8 +85,9 @@ final class ContentCardView: NSView {
 
     /// Shows a page's view, or the empty state when `view` is nil.
     func show(_ view: NSView?) {
-        guard hostedView !== view else { return }
-        if let old = hostedView, old.superview === self { old.removeFromSuperview() }
+        // The same view again changes nothing, unless another window's card took it.
+        if hostedView === view, view == nil || view?.superview === self { return }
+        if let old = hostedView, old !== view, old.superview === self { old.removeFromSuperview() }
         hostedView = view
         emptyLabel.isHidden = view != nil
         if let view {

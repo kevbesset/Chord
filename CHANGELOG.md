@@ -27,6 +27,9 @@ What changes in Chord, version by version. Each change adds a line under
 ### Fixed
 
 - Searching shortcuts for the space bar ("ctrl space") found nothing.
+- A tab selected in two windows left one of them blank for good. It now shows in the
+  window you use, and the other window says it is open elsewhere and takes it back on
+  a click.
 - A long address no longer wraps onto several lines in the address bar: it stays on one
   line, cut at the end, and scrolls with the cursor while you edit it.
 
