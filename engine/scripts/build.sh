@@ -29,7 +29,7 @@ $RELEASE && OUT="$SRC/out/Release"
 export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 export SDKROOT="${SDKROOT:-/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk}"
 
-[ -f "$SRC/.chord-prepared" ] || { echo "Lancer d'abord engine/scripts/prepare.sh"; exit 1; }
+[ -f "$SRC/.chord-prepared" ] || { echo "Run engine/scripts/prepare.sh first"; exit 1; }
 
 # //chord lives in this repository; Chromium sees it at src/chord.
 ln -sfn "$ENGINE_DIR/chord" "$SRC/chord"
@@ -88,4 +88,4 @@ for framework in ChordUI Sparkle; do
     cp -R "$REPO_DIR/app/build/release/$framework.framework" "$FRAMEWORKS/"
 done
 "$ENGINE_DIR/scripts/sign.sh" "$APP"
-echo "Prêt : $APP"
+echo "Ready: $APP"

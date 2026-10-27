@@ -18,17 +18,17 @@ TAG="v$VERSION"
 DMG="$REPO_DIR/dist/Chord-$VERSION.dmg"
 APPCAST="$REPO_DIR/dist/appcast.xml"
 NOTES=()
-[ "${1:-}" = "--notes" ] && NOTES=(--notes-file "${2:?fichier de notes}") || NOTES=(--generate-notes)
+[ "${1:-}" = "--notes" ] && NOTES=(--notes-file "${2:?notes file}") || NOTES=(--generate-notes)
 
-[ -f "$DMG" ] || { echo "Pas de $DMG : lancer d'abord engine/scripts/package.sh"; exit 1; }
+[ -f "$DMG" ] || { echo "No $DMG: run engine/scripts/package.sh first"; exit 1; }
 if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
-  echo "La version $VERSION est déjà publiée : changer VERSION."
+  echo "Version $VERSION is already published: change VERSION."
   exit 1
 fi
 # The release is tagged on the commit the package was made from, which GitHub must have.
 COMMIT="$(git -C "$REPO_DIR" rev-parse HEAD)"
 git -C "$REPO_DIR" branch -r --contains "$COMMIT" | grep -q . || {
-  echo "Le commit $COMMIT n'est pas encore poussé."
+  echo "Commit $COMMIT is not pushed yet."
   exit 1
 }
 
@@ -60,8 +60,8 @@ cat > "$APPCAST" <<XML
 </rss>
 XML
 
-echo "Chord $VERSION ($BUILD) : $(basename "$DMG"), $(du -h "$DMG" | cut -f1), commit ${COMMIT:0:7}"
-read -r -p "Publier sur github.com/$REPOSITORY ? [o/N] " answer
-[ "$answer" = "o" ] || { echo "Rien de publié."; exit 0; }
+echo "Chord $VERSION ($BUILD): $(basename "$DMG"), $(du -h "$DMG" | cut -f1), commit ${COMMIT:0:7}"
+read -r -p "Publish on github.com/$REPOSITORY? [y/N] " answer
+[ "$answer" = "y" ] || { echo "Nothing published."; exit 0; }
 gh release create "$TAG" "$DMG" "$APPCAST" --repo "$REPOSITORY" --target "$COMMIT" \
   --title "Chord $VERSION" "${NOTES[@]}"

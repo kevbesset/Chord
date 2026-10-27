@@ -78,7 +78,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         // would only add its "reopen windows?" alert after a crash.
         window.isRestorable = false
         window.minSize = NSSize(width: 720, height: 480)
-        window.title = state.isPrivate ? "Navigation privée" : "Chord"
+        window.title = state.isPrivate ? "Private Browsing" : "Chord"
         // No system shadow: macOS draws its dark outline as part of the shadow, a black
         // line all around the glass. Without it the glass meets the desktop cleanly.
         window.hasShadow = false
@@ -437,7 +437,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         let selected = state.selectedTab
         if tabs.isEmpty { pageArea.home.update(space: state.activeSpace, favorites: state.favorites) }
         pageArea.show(tabs: tabs, views: views, activeID: selected?.id)
-        window?.title = selected?.displayTitle ?? (state.isPrivate ? "Navigation privée" : "Chord")
+        window?.title = selected?.displayTitle ?? (state.isPrivate ? "Private Browsing" : "Chord")
         if focus, let view = selected?.page?.view, !commandBar.isVisible, !peek.isVisible {
             window?.makeFirstResponder(view)
         }
@@ -479,7 +479,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard let url else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
-        toast.show("URL copiée", detail: url.displayHost, symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
+        toast.show("URL copied", detail: url.displayHost, symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
     }
 
     private func handle(_ action: PageBarAction) {
@@ -498,16 +498,16 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private func moreMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(closureItem("Copier l'URL") { [weak self] in self?.copyURL(nil) })
-        menu.addItem(closureItem("Ouvrir dans une petite fenêtre") { [weak self] in
+        menu.addItem(closureItem("Copy URL") { [weak self] in self?.copyURL(nil) })
+        menu.addItem(closureItem("Open in Little Window") { [weak self] in
             guard let self, let url = self.state.selectedTab?.url else { return }
             self.openLittleWindow(url: url)
         })
         menu.addItem(.separator())
-        menu.addItem(closureItem("Barre d'adresse dans la barre latérale") { [weak self] in self?.settings.addressBarOnTop = false })
-        menu.addItem(closureItem(settings.edgeless ? "Désactiver le mode edgeless" : "Activer le mode edgeless") { [weak self] in self?.toggleEdgeless(nil) })
+        menu.addItem(closureItem("Address Bar in Sidebar") { [weak self] in self?.settings.addressBarOnTop = false })
+        menu.addItem(closureItem(settings.edgeless ? "Turn Off Edgeless Mode" : "Turn On Edgeless Mode") { [weak self] in self?.toggleEdgeless(nil) })
         menu.addItem(.separator())
-        menu.addItem(closureItem("Réglages…") { [weak self] in self?.showSettings(nil) })
+        menu.addItem(closureItem("Settings…") { [weak self] in self?.showSettings(nil) })
         return menu
     }
 
@@ -532,49 +532,49 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func commandActions() -> [CommandItem] {
         let selected = state.selectedTab
         var actions = [
-            CommandItem(section: "Actions", title: state.isSplit ? "Quitter la split view" : "Ouvrir en split view",
+            CommandItem(section: "Actions", title: state.isSplit ? "Exit Split View" : "Open in Split View",
                         symbol: "rectangle.split.2x1", shortcut: "⌃⇧=", action: .run { [weak self] in self?.toggleSplitView(nil) }),
-            CommandItem(section: "Actions", title: "Ouvrir dans une petite fenêtre", symbol: "macwindow.on.rectangle", shortcut: "⌥⌘N",
+            CommandItem(section: "Actions", title: "Open in Little Window", symbol: "macwindow.on.rectangle", shortcut: "⌥⌘N",
                         action: .run { [weak self] in self?.openLittleWindow(url: self?.state.selectedTab?.url) }),
-            CommandItem(section: "Actions", title: "Nouvel onglet dans le Space \(state.activeSpace.name)", symbol: "plus", shortcut: "⌘T",
+            CommandItem(section: "Actions", title: "New Tab in Space \(state.activeSpace.name)", symbol: "plus", shortcut: "⌘T",
                         action: .run { [weak self] in self?.newTab(nil) }),
-            CommandItem(section: "Actions", title: sidebarMode == .docked ? "Masquer la barre latérale" : "Afficher la barre latérale",
+            CommandItem(section: "Actions", title: sidebarMode == .docked ? "Hide Sidebar" : "Show Sidebar",
                         symbol: "sidebar.left", shortcut: "⌘S", action: .run { [weak self] in self?.toggleSidebarVisibility(nil) }),
-            CommandItem(section: "Actions", title: "Copier l'URL", symbol: "link", shortcut: "⇧⌘C",
+            CommandItem(section: "Actions", title: "Copy URL", symbol: "link", shortcut: "⇧⌘C",
                         action: .run { [weak self] in self?.copyURL(nil) }),
         ]
         if let selected {
             actions += [
-                CommandItem(section: "Actions", title: selected.isPinned ? "Détacher l'onglet" : "Épingler l'onglet", symbol: "pin",
+                CommandItem(section: "Actions", title: selected.isPinned ? "Unpin Tab" : "Pin Tab", symbol: "pin",
                             shortcut: "⌘D", action: .run { [weak self] in self?.togglePinTab(nil) }),
-                CommandItem(section: "Actions", title: selected.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris", symbol: "star",
+                CommandItem(section: "Actions", title: selected.isFavorite ? "Remove from Favorites" : "Add to Favorites", symbol: "star",
                             action: .run { [weak self] in self?.toggleFavoriteTab(nil) }),
             ]
         }
         actions += [
-            CommandItem(section: "Actions", title: "Rouvrir l'onglet fermé", symbol: "arrow.uturn.backward", shortcut: "⇧⌘T",
+            CommandItem(section: "Actions", title: "Reopen Closed Tab", symbol: "arrow.uturn.backward", shortcut: "⇧⌘T",
                         action: .run { [weak self] in self?.reopenClosedTab(nil) }),
-            CommandItem(section: "Actions", title: "Réglages du navigateur", subtitle: "chord://settings", symbol: "gearshape",
+            CommandItem(section: "Actions", title: "Browser Settings", subtitle: "chord://settings", symbol: "gearshape",
                         action: .run { [weak self] in self?.openInternalPage("settings") }),
             CommandItem(section: "Actions", title: "Extensions", subtitle: "chord://extensions", symbol: "puzzlepiece.extension",
                         action: .run { [weak self] in self?.openInternalPage("extensions") }),
-            CommandItem(section: "Actions", title: "Nouveau dossier", symbol: "folder.badge.plus",
+            CommandItem(section: "Actions", title: "New Folder", symbol: "folder.badge.plus",
                         action: .run { [weak self] in self?.newFolder(nil) }),
-            CommandItem(section: "Actions", title: "Nouveau Space", symbol: "square.stack",
+            CommandItem(section: "Actions", title: "New Space", symbol: "square.stack",
                         action: .run { [weak self] in self?.newSpace(nil) }),
-            CommandItem(section: "Actions", title: "Renommer le Space", symbol: "pencil",
+            CommandItem(section: "Actions", title: "Rename Space", symbol: "pencil",
                         action: .run { [weak self] in self?.renameSpace(nil) }),
-            CommandItem(section: "Actions", title: "Space suivant", symbol: "arrow.right.square", shortcut: "⌥⌘→",
+            CommandItem(section: "Actions", title: "Next Space", symbol: "arrow.right.square", shortcut: "⌥⌘→",
                         action: .run { [weak self] in self?.nextSpace(nil) }),
-            CommandItem(section: "Actions", title: settings.addressBarOnTop ? "Barre d'adresse dans la barre latérale" : "Barre d'adresse en haut",
+            CommandItem(section: "Actions", title: settings.addressBarOnTop ? "Address Bar in Sidebar" : "Address Bar on Top",
                         symbol: "menubar.rectangle", shortcut: "⇧⌘D", action: .run { [weak self] in self?.toggleAddressBarPosition(nil) }),
-            CommandItem(section: "Actions", title: settings.edgeless ? "Désactiver le mode edgeless" : "Activer le mode edgeless",
+            CommandItem(section: "Actions", title: settings.edgeless ? "Turn Off Edgeless Mode" : "Turn On Edgeless Mode",
                         symbol: "rectangle.inset.filled", action: .run { [weak self] in self?.toggleEdgeless(nil) }),
-            CommandItem(section: "Actions", title: "Importer depuis Arc", symbol: "square.and.arrow.down",
+            CommandItem(section: "Actions", title: "Import from Arc", symbol: "square.and.arrow.down",
                         action: .run { [weak self] in self?.importFromArc(nil) }),
-            CommandItem(section: "Actions", title: "Reprendre les connexions d'Arc", symbol: "key",
+            CommandItem(section: "Actions", title: "Import Logins from Arc", symbol: "key",
                         action: .run { [weak self] in self?.importArcLogins(nil) }),
-            CommandItem(section: "Actions", title: "Réglages", symbol: "gearshape", shortcut: "⌘,",
+            CommandItem(section: "Actions", title: "Settings", symbol: "gearshape", shortcut: "⌘,",
                         action: .run { [weak self] in self?.showSettings(nil) }),
         ]
         return actions
@@ -715,10 +715,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func confirmUninstall(_ item: PageExtension) {
         guard let window, let page = state.selectedTab?.page else { return }
         let alert = NSAlert()
-        alert.messageText = "Supprimer « \(item.name) » ?"
-        alert.informativeText = "L'extension et ses données sont supprimées de ce profil."
-        alert.addButton(withTitle: "Supprimer")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = "Remove “\(item.name)”?"
+        alert.informativeText = "The extension and its data are removed from this profile."
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn else { return }
@@ -755,10 +755,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard let window else { return }
         settings.arcImportOffered = true
         let alert = NSAlert()
-        alert.messageText = "Reprendre votre barre latérale Arc ?"
-        alert.informativeText = "Chord a trouvé Arc sur ce Mac. Vos Spaces, vos favoris et vos onglets épinglés peuvent être repris tels quels. Arc n'est pas modifié."
-        alert.addButton(withTitle: "Importer")
-        alert.addButton(withTitle: "Plus tard")
+        alert.messageText = "Bring over your Arc sidebar?"
+        alert.informativeText = "Chord found Arc on this Mac. Your Spaces, favorites and pinned tabs can come over as they are. Arc is left unchanged."
+        alert.addButton(withTitle: "Import")
+        alert.addButton(withTitle: "Later")
         alert.beginSheetModal(for: window) { [weak self] response in
             guard let self else { return }
             if response == .alertFirstButtonReturn {
@@ -774,9 +774,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func promptRename(_ space: Space) {
         guard let window else { return }
         let alert = NSAlert()
-        alert.messageText = "Renommer le Space"
-        alert.addButton(withTitle: "Renommer")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = "Rename Space"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
         let field = NSTextField(string: space.name)
         field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
         alert.accessoryView = field
@@ -790,9 +790,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func promptRename(_ folder: Folder) {
         guard let window else { return }
         let alert = NSAlert()
-        alert.messageText = "Renommer le dossier"
-        alert.addButton(withTitle: "Renommer")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = "Rename Folder"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
         let field = NSTextField(string: folder.name)
         field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
         alert.accessoryView = field
@@ -811,10 +811,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return
         }
         let alert = NSAlert()
-        alert.messageText = "Supprimer le dossier « \(folder.name) » ?"
-        alert.informativeText = count == 1 ? "Son onglet sera fermé." : "Ses \(count) onglets seront fermés. « Dégrouper » garde les onglets."
-        alert.addButton(withTitle: "Supprimer")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = "Delete the folder “\(folder.name)”?"
+        alert.informativeText = count == 1 ? "Its tab will be closed." : "Its \(count) tabs will be closed. “Ungroup” keeps the tabs."
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
@@ -832,15 +832,15 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return
         }
         var details: [String] = []
-        if count > 0 { details.append(count == 1 ? "Son onglet sera fermé." : "Ses \(count) onglets seront fermés.") }
+        if count > 0 { details.append(count == 1 ? "Its tab will be closed." : "Its \(count) tabs will be closed.") }
         if deletesProfile { details.append(BrowserState.profileDeletionWarning) }
         let alert = NSAlert()
         alert.messageText = deletesProfile
-            ? "Supprimer le Space « \(space.name) » et son profil ?"
-            : "Supprimer le Space « \(space.name) » ?"
+            ? "Delete the Space “\(space.name)” and its profile?"
+            : "Delete the Space “\(space.name)”?"
         alert.informativeText = details.joined(separator: " ")
-        alert.addButton(withTitle: "Supprimer")
-        alert.addButton(withTitle: "Annuler")
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
@@ -1040,19 +1040,19 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             let result = try ArcImport.load()
             let count = state.importFromArc(result)
             let favorites = result.favorites.values.reduce(0) { $0 + $1.count }
-            sidebar = "\(result.spaces.count) Spaces, \(result.folderCount) dossiers, \(favorites) favoris, \(count) onglets en tout, avec les icônes d'Arc. Un Space déjà importé est mis à jour plutôt que dupliqué."
+            sidebar = "\(result.spaces.count) Spaces, \(result.folderCount) folders, \(favorites) favorites, \(count) tabs in all, with Arc's icons. A Space imported before is updated rather than duplicated."
         } catch {
             let alert = NSAlert()
             alert.alertStyle = .warning
-            alert.messageText = "Impossible d'importer depuis Arc"
+            alert.messageText = "Couldn't import from Arc"
             alert.informativeText = (error as? ArcImport.Failure) == .notFound
-                ? "La barre latérale d'Arc est introuvable sur ce Mac."
-                : "Le fichier de la barre latérale d'Arc n'a pas pu être lu."
+                ? "Arc's sidebar can't be found on this Mac."
+                : "Arc's sidebar file couldn't be read."
             alert.beginSheetModal(for: window)
             return
         }
         state.importArcData { [weak self] data in
-            self?.showArcImport(title: "Arc importé", sidebar: sidebar, data: data)
+            self?.showArcImport(title: "Arc imported", sidebar: sidebar, data: data)
         }
     }
 
@@ -1060,7 +1060,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// the Spaces that came from them, without touching the sidebar.
     @objc public func importArcLogins(_ sender: Any?) {
         state.importArcData { [weak self] data in
-            self?.showArcImport(title: "Connexions d'Arc reprises", sidebar: nil, data: data)
+            self?.showArcImport(title: "Arc logins imported", sidebar: nil, data: data)
         }
     }
 
@@ -1070,18 +1070,18 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         alert.messageText = title
         var lines: [String] = sidebar.map { [$0] } ?? []
         if data.profiles == 0 {
-            lines.append("Aucun Space ne vient d'un profil Arc : rien d'autre à reprendre.")
+            lines.append("No Space comes from an Arc profile: nothing else to bring over.")
         } else if data.keyDenied {
             alert.alertStyle = .warning
-            lines.append("macOS n'a pas donné accès à la clé d'Arc : les connexions et les mots de passe sont restés dans Arc. \(data.pages) pages d'historique reprises.")
+            lines.append("macOS didn't give access to Arc's key: logins and passwords stayed in Arc. \(data.pages) history pages imported.")
         } else {
-            lines.append("\(data.cookies) cookies de connexion, \(data.passwords) mots de passe et \(data.pages) pages d'historique repris, chacun dans le profil de ses Spaces. Ce qui était déjà dans Chord est gardé.")
+            lines.append("\(data.cookies) login cookies, \(data.passwords) passwords and \(data.pages) history pages imported, each into the profile of its Spaces. What was already in Chord is kept.")
         }
         if data.extensions > 0 {
-            lines.append(data.extensions == 1 ? "1 extension installée depuis le Chrome Web Store." : "\(data.extensions) extensions installées depuis le Chrome Web Store.")
+            lines.append(data.extensions == 1 ? "1 extension installed from the Chrome Web Store." : "\(data.extensions) extensions installed from the Chrome Web Store.")
         }
         if data.siteStorage || data.extensions > 0 {
-            lines.append("Les données des sites et des extensions arrivent au prochain lancement de Chord.")
+            lines.append("Site and extension data arrive at Chord's next launch.")
         }
         alert.informativeText = lines.joined(separator: "\n\n")
         alert.beginSheetModal(for: window)
@@ -1125,17 +1125,17 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case #selector(toggleSidebarVisibility(_:)):
             // The hidden ⌘B item keeps its own name in the shortcut settings.
             if menuItem.tag == 0 {
-                menuItem.title = sidebarMode == .docked ? "Masquer la barre latérale" : "Afficher la barre latérale"
+                menuItem.title = sidebarMode == .docked ? "Hide Sidebar" : "Show Sidebar"
             }
             return true
         case #selector(toggleSplitView(_:)):
-            menuItem.title = state.isSplit ? "Quitter la split view" : "Split view"
+            menuItem.title = state.isSplit ? "Exit Split View" : "Split View"
             return state.selectedTab != nil
         case #selector(togglePinTab(_:)):
-            menuItem.title = state.selectedTab?.isPinned == true ? "Détacher l'onglet" : "Épingler l'onglet"
+            menuItem.title = state.selectedTab?.isPinned == true ? "Unpin Tab" : "Pin Tab"
             return state.selectedTab != nil
         case #selector(toggleFavoriteTab(_:)):
-            menuItem.title = state.selectedTab?.isFavorite == true ? "Retirer des favoris" : "Ajouter aux favoris"
+            menuItem.title = state.selectedTab?.isFavorite == true ? "Remove from Favorites" : "Add to Favorites"
             return state.selectedTab != nil
         case #selector(reopenClosedTab(_:)):
             return state.canReopenClosedTab

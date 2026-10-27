@@ -1,46 +1,46 @@
 # Design
 
-## Maquettes
+## Mockups
 
-`mockups/` contient la source des maquettes de l'interface, une par écran.
-Ce sont des fichiers HTML d'un outil de design : ils ne s'ouvrent pas tels quels
-dans un navigateur (il leur manque leur moteur de rendu), mais ils servent de
-référence exacte pour les couleurs, espacements, rayons, tailles de police et ombres.
+`mockups/` holds the source of the interface mockups, one per screen.
+They are HTML files from a design tool: they don't open as they are in a browser (they
+lack their rendering engine), but they are the exact reference for colors, spacing,
+radii, font sizes and shadows.
 
-La version visuelle et éditable est sur le canvas « Chord — Fenêtre principale »,
-dans la galerie d'artefacts du compte Claude de Kevin.
+The visual, editable version is on the "Chord — Main window" canvas, in the artifact
+gallery of Kevin's Claude account.
 
-| Fichier | Écran |
+| File | Screen |
 | --- | --- |
-| `Main.dc.html` | Fenêtre principale, barre de commande ouverte |
-| `TopBar.dc.html` | Variante : barre d'adresse en haut, intégrée à la page (32 px) |
-| `Collapsed.dc.html` | Barre latérale repliée (⌘S) : seulement le cadre et la page |
-| `CollapsedHover.dc.html` | Repliée, survol du bord gauche : barre latérale flottante |
-| `Edgeless.dc.html` | Mode edgeless (réglage) |
-| `Peek.dc.html` | Peek : aperçu d'un lien par-dessus la page |
+| `Main.dc.html` | Main window, command bar open |
+| `TopBar.dc.html` | Variant: address bar on top, built into the page (32 px) |
+| `Collapsed.dc.html` | Sidebar collapsed (⌘S): only the frame and the page |
+| `CollapsedHover.dc.html` | Collapsed, hovering the left edge: floating sidebar |
+| `Edgeless.dc.html` | Edgeless mode (setting) |
+| `Peek.dc.html` | Peek: a link previewed over the page |
 | `Split.dc.html` | Split view (⇧⌘D) |
-| `Dark.dc.html` | Mode sombre |
-| `Desktop.dc.html` | Sur un fond d'écran : test du verre avec une page colorée |
-| `Little.dc.html` | Petite fenêtre flottante (⌥⌘N) |
-| `LogoConcepts.dc.html` | Les trois pistes de marque étudiées |
-| `AppIcon.dc.html` | Icône d'app à toutes les tailles |
-| `Wordmark.dc.html` | Logo clair, sombre, monochrome, signature |
+| `Dark.dc.html` | Dark mode |
+| `Desktop.dc.html` | On a wallpaper: glass test with a colorful page |
+| `Little.dc.html` | Little floating window (⌥⌘N) |
+| `LogoConcepts.dc.html` | The three brand directions explored |
+| `AppIcon.dc.html` | App icon at every size |
+| `Wordmark.dc.html` | Logo light, dark, monochrome, tagline |
 
-## Marque
+## Brand
 
-`brand/chord-mark.svg` (le symbole) et `brand/chord-app-icon.svg` (l'icône d'app
-en 1024 px) : l'arc et sa corde. L'arc prend la couleur du texte, la corde l'accent
-(`#5B6CFF` par défaut, ou la couleur du Space actif dans l'app).
+`brand/chord-mark.svg` (the symbol) and `brand/chord-app-icon.svg` (the app icon at
+1024 px): the arc and its chord. The arc takes the text color, the chord the accent
+(`#5B6CFF` by default, or the active Space's color in the app).
 
-## Valeurs de référence
+## Reference values
 
-| Élément | Valeur |
+| Element | Value |
 | --- | --- |
-| Largeur de la barre latérale | 256 px |
-| Marge autour de la carte de contenu | 10 px (0 en edgeless) |
-| Rayon de la carte | 10 à 12 px |
-| Teinte du Space sur le verre | 7 % de la couleur du Space |
-| Hauteur d'une ligne d'onglet | 32 px |
-| Barre de commande | 680 px de large, rayon 16, résultats de 44 px |
-| Palette des Spaces | `#5B6CFF` `#2E7D4F` `#B4530A` `#6E56CF` `#0E7490` `#C2410C` |
-| Police | SF Pro (système) |
+| Sidebar width | 256 px |
+| Margin around the content card | 10 px (0 in edgeless) |
+| Card radius | 10 to 12 px |
+| Space tint on the glass | 7% of the Space's color |
+| Tab row height | 32 px |
+| Command bar | 680 px wide, radius 16, 44 px results |
+| Space palette | `#5B6CFF` `#2E7D4F` `#B4530A` `#6E56CF` `#0E7490` `#C2410C` |
+| Font | SF Pro (system) |

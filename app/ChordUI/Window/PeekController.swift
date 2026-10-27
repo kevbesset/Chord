@@ -254,12 +254,12 @@ final class PeekPanelView: NSView {
 final class PeekHeaderView: NSView {
     var onSplit: (() -> Void)?
     var onClose: (() -> Void)?
-    let openButton = AccentPillButton(title: "Ouvrir dans un onglet", shortcut: "⌘ ↩")
+    let openButton = AccentPillButton(title: "Open as Tab", shortcut: "⌘ ↩")
     private let tile = FaviconTileView(size: 16)
     private let titleLabel = NSTextField(labelWithString: "")
     private let urlLabel = NSTextField(labelWithString: "")
-    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split view avec la page courante (⌃⇧=)", target: self, action: #selector(splitClicked), size: 28, pointSize: 13)
-    private lazy var closeButton = IconButton(symbol: "xmark", label: "Fermer (esc)", target: self, action: #selector(closeClicked), size: 28, pointSize: 12)
+    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split View with Current Page (⌃⇧=)", target: self, action: #selector(splitClicked), size: 28, pointSize: 13)
+    private lazy var closeButton = IconButton(symbol: "xmark", label: "Close (esc)", target: self, action: #selector(closeClicked), size: 28, pointSize: 12)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -324,7 +324,7 @@ final class PeekHeaderView: NSView {
     @objc private func closeClicked() { onClose?() }
 }
 
-/// A pill tinted with the Space colour, with a shortcut hint: "Ouvrir dans un onglet ⌘ ↩".
+/// A pill tinted with the Space colour, with a shortcut hint: "Open as Tab ⌘ ↩".
 final class AccentPillButton: NSView {
     var onClick: (() -> Void)?
     var accent = NSColor.controlAccentColor { didSet { needsDisplay = true } }

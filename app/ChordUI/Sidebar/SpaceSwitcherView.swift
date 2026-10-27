@@ -118,8 +118,8 @@ final class SpaceChipView: NSView {
     override func menu(for event: NSEvent) -> NSMenu? {
         let space = space
         let menu = NSMenu()
-        menu.addItem(closureItem("Renommer…") { [weak self] in self?.delegate?.sidebarRename(space) })
-        let colors = NSMenuItem(title: "Couleur", action: nil, keyEquivalent: "")
+        menu.addItem(closureItem("Rename…") { [weak self] in self?.delegate?.sidebarRename(space) })
+        let colors = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
         let palette = NSMenu()
         for hex in Theme.spacePalette {
             let entry = closureItem(Theme.colorName(hex)) { [weak self] in self?.delegate?.sidebarSetColor(space, hex: hex) }
@@ -130,7 +130,7 @@ final class SpaceChipView: NSView {
         colors.submenu = palette
         menu.addItem(colors)
         menu.addItem(.separator())
-        let delete = closureItem("Supprimer le Space…") { [weak self] in self?.delegate?.sidebarDelete(space) }
+        let delete = closureItem("Delete Space…") { [weak self] in self?.delegate?.sidebarDelete(space) }
         delete.isEnabled = canDelete
         menu.addItem(delete)
         menu.autoenablesItems = false

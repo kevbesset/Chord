@@ -118,7 +118,7 @@ final class SiteControlsController: NSObject {
         }
         let permissions = page.sitePermissions ?? []
         if !permissions.isEmpty {
-            sections.append((SectionTitle("Autorisations"), 14))
+            sections.append((SectionTitle("Permissions"), 14))
             for (index, permission) in permissions.enumerated() {
                 guard let id = permission["id"], let state = permission["state"] else { continue }
                 let row = PermissionRow(title: permission["title"] ?? id, symbol: Self.symbol(for: id), state: state) { [weak self] in
@@ -199,15 +199,15 @@ final class SiteControlsController: NSObject {
 
     /// Quick actions, as Arc's: icon tiles, named on hover.
     private func actions() -> NSView {
-        let share = ActionTile(symbol: "square.and.arrow.up", title: "Partager") { [weak self] tile in
+        let share = ActionTile(symbol: "square.and.arrow.up", title: "Share") { [weak self] tile in
             guard let url = self?.url else { return }
             NSSharingServicePicker(items: [url]).show(relativeTo: tile.bounds, of: tile, preferredEdge: .minY)
         }
-        let copy = ActionTile(symbol: "link", title: "Copier le lien") { [weak self] _ in
+        let copy = ActionTile(symbol: "link", title: "Copy Link") { [weak self] _ in
             self?.dismiss()
             self?.onCopy?()
         }
-        let devTools = ActionTile(symbol: "hammer", title: "Outils de développement (⌥⌘I)") { [weak self] _ in
+        let devTools = ActionTile(symbol: "hammer", title: "Developer Tools (⌥⌘I)") { [weak self] _ in
             let page = self?.page
             self?.dismiss()
             page?.toggleDevTools?()
@@ -228,7 +228,7 @@ final class SiteControlsController: NSObject {
                 actions.run(item, anchor)
             }
         }
-        tiles.append(ExtensionTile(symbol: "plus", title: "Gérer les extensions") { [weak self] in
+        tiles.append(ExtensionTile(symbol: "plus", title: "Manage Extensions") { [weak self] in
             self?.dismiss()
             if let url = URL(string: "chrome://extensions") { actions.open(url) }
         })
@@ -254,11 +254,11 @@ final class SiteControlsController: NSObject {
     private func footer(for url: URL) -> NSView {
         let connection: (symbol: String, title: String)
         if url.scheme == "https" {
-            connection = ("lock.fill", "Sécurisée")
+            connection = ("lock.fill", "Secure")
         } else if url.isLocal {
-            connection = ("desktopcomputer", "Locale")
+            connection = ("desktopcomputer", "Local")
         } else {
-            connection = ("lock.open.fill", "Non sécurisée")
+            connection = ("lock.open.fill", "Not Secure")
         }
         let pill = ConnectionPill(symbol: connection.symbol, title: connection.title)
         let view = NSView()
@@ -270,7 +270,7 @@ final class SiteControlsController: NSObject {
             pill.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ]
         if let settingsURL = Self.siteSettingsURL(for: url) {
-            let more = RoundButton(symbol: "ellipsis", title: "Tous les réglages du site") { [weak self] in
+            let more = RoundButton(symbol: "ellipsis", title: "All Site Settings") { [weak self] in
                 self?.dismiss()
                 self?.onOpen?(settingsURL)
             }
@@ -524,7 +524,7 @@ private final class PinMark: NSView {
 private final class PermissionRow: HoverRow {
     private let onToggle: () -> Void
 
-    private static let names = ["allow": "Autorisé", "block": "Bloqué", "ask": "Demander"]
+    private static let names = ["allow": "Allowed", "block": "Blocked", "ask": "Ask"]
 
     init(title: String, symbol: String, state: String, onToggle: @escaping () -> Void) {
         self.onToggle = onToggle
@@ -554,7 +554,7 @@ private final class PermissionRow: HoverRow {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("\(title) : \(Self.names[state] ?? state)")
+        setAccessibilityLabel("\(title): \(Self.names[state] ?? state)")
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -626,7 +626,7 @@ private final class ConnectionPill: NSView {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.staticText)
-        setAccessibilityLabel("Connexion : \(title)")
+        setAccessibilityLabel("Connection: \(title)")
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

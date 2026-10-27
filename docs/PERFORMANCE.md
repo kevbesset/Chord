@@ -1,40 +1,40 @@
-# Budgets de performance
+# Performance budgets
 
-La fluidité est une règle mesurée. Chaque interaction a un budget ; une fonctionnalité
-qui le dépasse ne sort pas.
+Smoothness is a measured rule. Every interaction has a budget; a feature that exceeds
+it does not ship.
 
 | Interaction | Signpost | Budget |
 | --- | --- | --- |
-| Ouvrir la barre de commande | `commandbar.open` | 50 ms |
-| Replier ou déplier la barre latérale | `sidebar.toggle` | 50 ms |
-| Sélectionner un onglet | `tab.select` | 100 ms |
-| Changer de Space | `space.switch` | 100 ms |
-| Suivre le glissement entre Spaces (une étape) | `space.swipe` | 8 ms |
-| Ouvrir un Peek | `peek.open` | 100 ms |
-| Ouvrir ou quitter la split view | `split.toggle` | 100 ms |
-| Ouvrir une petite fenêtre | `littlewindow.open` | 100 ms |
-| Ouvrir les réglages du site | `sitecontrols.open` | 50 ms |
-| Afficher la demande d'autorisation d'un site | `permission.prompt` | 50 ms |
-| Afficher la popup d'une extension, une fois chargée | `extension.popup` | 50 ms |
-| Lancement jusqu'à la première fenêtre | `app.launch` | 1 000 ms |
-| Défilement et animations | — | 120 images/s sur ProMotion, aucune image sautée |
+| Open the command bar | `commandbar.open` | 50 ms |
+| Collapse or expand the sidebar | `sidebar.toggle` | 50 ms |
+| Select a tab | `tab.select` | 100 ms |
+| Switch Spaces | `space.switch` | 100 ms |
+| Follow the swipe between Spaces (one step) | `space.swipe` | 8 ms |
+| Open a Peek | `peek.open` | 100 ms |
+| Enter or exit split view | `split.toggle` | 100 ms |
+| Open a little window | `littlewindow.open` | 100 ms |
+| Open the site settings | `sitecontrols.open` | 50 ms |
+| Show a site's permission request | `permission.prompt` | 50 ms |
+| Show an extension's popup, once loaded | `extension.popup` | 50 ms |
+| Launch to the first window | `app.launch` | 1,000 ms |
+| Scrolling and animations | — | 120 fps on ProMotion, no dropped frames |
 
-Les budgets vivent aussi dans le code, dans `app/ChordUI/Support/Perf.swift`.
-Ils mesurent jusqu'au premier affichage après l'action, pas seulement le code exécuté.
+The budgets also live in the code, in `app/ChordUI/Support/Perf.swift`.
+They measure up to the first display after the action, not just the code that runs.
 
-## Mesurer
+## Measuring
 
-Chaque interaction ouvre un intervalle `OSSignposter` (sous-système `app.chord`).
+Each interaction opens an `OSSignposter` interval (subsystem `app.chord`).
 
-- **Instruments** : modèle « Time Profiler » ou « Animation Hitches », instrument
-  « Points of Interest ». Chaque intervalle apparaît avec sa durée.
-- **Terminal** : un dépassement de budget est journalisé en avertissement.
+- **Instruments**: "Time Profiler" or "Animation Hitches" template, "Points of
+  Interest" instrument. Each interval shows with its duration.
+- **Terminal**: a budget overrun is logged as a warning.
 
 ```bash
 log stream --predicate 'subsystem == "app.chord"' --level debug
 ```
 
-## Plus tard
+## Later
 
-- Un test d'intégration qui rejoue les interactions et échoue en CI au-dessus du budget
-- Les mêmes mesures côté Chromium (création de `WebContents`, premier rendu)
+- An integration test that replays the interactions and fails in CI above budget
+- The same measurements on Chromium's side (`WebContents` creation, first paint)

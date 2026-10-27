@@ -1,185 +1,185 @@
-# Chord — Vision produit
+# Chord — Product vision
 
-23 octobre 2026 · Kevin
+October 23, 2026 · Kevin
 
-## Pourquoi Chord
+## Why Chord
 
-Arc est un navigateur mort-vivant, et la place qu'il laisse est vide. The Browser Company a gelé son développement le 27 mai 2025 pour se consacrer à Dia ; Atlassian a racheté la société pour 610 M$ le 21 octobre 2025. Arc fonctionne encore et reçoit les correctifs de sécurité de Chromium, mais n'aura plus aucune fonctionnalité et n'a pas de date de fin annoncée.
+Arc is an undead browser, and the space it leaves is empty. The Browser Company froze its development on May 27, 2025 to focus on Dia; Atlassian bought the company for $610M on October 21, 2025. Arc still works and still receives Chromium's security fixes, but it will get no new features and has no announced end date.
 
-Le trou dans le marché est précis : en 2026, aucun navigateur open source basé sur Chromium ne reprend le modèle complet d'Arc (barre latérale, Spaces, barre de commande, Peek, split view). L'alternative open source la plus proche, Zen, est basée sur Firefox. Vivaldi couvre une partie du périmètre mais son interface est fermée. Et les développeurs, cœur de cible historique d'Arc, n'ont jamais eu de version Linux.
+The gap in the market is precise: in 2026, no open source Chromium-based browser takes up Arc's full model (sidebar, Spaces, command bar, Peek, split view). The closest open source alternative, Zen, is based on Firefox. Vivaldi covers part of the scope but its interface is closed. And developers, Arc's historical core audience, never had a Linux version.
 
-Chord vise cette place : l'Arc open source, sur Chromium, pensé pour ceux qui construisent le web.
+Chord aims for that space: the open source Arc, on Chromium, built for the people who build the web.
 
-Le projet ne fait pas de rétro-ingénierie du binaire d'Arc : la valeur d'Arc est dans son UX, pas dans son code, et une reconstruction « clean room » (observer, documenter, réimplémenter) évite tout risque juridique avec Atlassian.
+The project does not reverse-engineer Arc's binary: Arc's value is in its UX, not its code, and a clean-room rebuild (observe, document, reimplement) avoids any legal risk with Atlassian.
 
 ## Vision
 
-**Arc, en plus rapide, ouvert pour toujours, et pensé pour ceux qui construisent le web.**
+**Arc, faster, open forever, and built for the people who build the web.**
 
-Trois credos guident chaque décision :
+Three beliefs guide every decision:
 
-1. **Un nouvel Arc, modernisé, fluide et ultra rapide.** On reprend l'UX d'Arc telle quelle, parce qu'elle était bonne, et on la rend plus belle et plus réactive. Pas de réinvention.
-2. **Une IA discrète.** Pas d'IA injectée partout. C'est précisément ce que la communauté a reproché à Dia. L'IA viendra, plus tard, là où elle sert vraiment, jamais au premier plan.
-3. **Le navigateur du développement et de la productivité.** Les outils pour développeurs sont l'horizon qui justifie le positionnement, mais ils n'arrivent qu'une fois la base irréprochable.
+1. **A new Arc, modernized, smooth and very fast.** We take Arc's UX as it is, because it was good, and make it more beautiful and more responsive. No reinvention.
+2. **Discreet AI.** No AI injected everywhere. That is exactly what the community held against Dia. AI will come, later, where it truly helps, never in the foreground.
+3. **The browser for development and productivity.** Developer tools are the horizon that justifies the positioning, but they only come once the foundation is flawless.
 
-L'ordre des priorités est strict : d'abord un très beau et très fluide navigateur, ensuite seulement les grosses fonctionnalités.
+The order of priorities is strict: first a very beautiful and very smooth browser, only then the big features.
 
-## Cible et récit
+## Audience and story
 
-**Cible :** les développeurs front et full-stack qui jonglent toute la journée entre localhost, staging, production, la documentation, les dashboards, les pull requests et, de plus en plus, leurs agents de code. Et, dès le premier jour, les réfugiés d'Arc qui cherchent leur barre latérale.
+**Audience:** front-end and full-stack developers who juggle all day between localhost, staging, production, documentation, dashboards, pull requests and, more and more, their coding agents. And, from day one, Arc refugees looking for their sidebar.
 
-**Récit :** Arc a été gelé parce qu'une entreprise l'a décidé. Chord est open source : quoi qu'il arrive au projet, son code lui survit, et n'importe qui peut le reprendre. Chord ne pourra jamais disparaître comme Arc.
+**Story:** Arc was frozen because a company decided so. Chord is open source: whatever happens to the project, its code outlives it, and anyone can take it over. Chord can never disappear the way Arc did.
 
-Ce récit tient avec n'importe quelle licence open source et ne ferme pas la porte à un rachat ; il promet la survie du code, pas l'absence de propriétaire.
+This story holds with any open source license and does not rule out an acquisition; it promises the code's survival, not the absence of an owner.
 
-## Principes de design
+## Design principles
 
-Chord reprend l'UX d'Arc mais pas son look : là où Arc était coloré et ludique, Chord est calme, premium et natif, dans l'esprit de Safari.
+Chord takes Arc's UX but not its look: where Arc was colorful and playful, Chord is calm, premium and native, in the spirit of Safari.
 
-1. **Le contenu d'abord.** L'interface s'efface ; la page web est la star. La page flotte dans une carte aux coins arrondis, et la barre latérale se replie d'un geste.
-2. **De la matière plutôt que de la couleur.** Des matériaux translucides natifs de macOS (NSVisualEffectView, le langage Liquid Glass) au lieu des grands aplats colorés. Le fond d'écran traverse la barre latérale et le cadre de la fenêtre. Chaque Space garde sa couleur, sous forme de teinte discrète (environ 7 %) et d'accents : onglet actif, pastille du Space, résultat sélectionné dans la barre de commande.
-3. **Un mouvement physique.** Animations à ressort, courtes et interruptibles : on peut changer d'avis en plein geste.
-4. **Natif jusqu'au détail.** Interface en Swift, typographie SF Pro, icônes SF Symbols, raccourcis et gestes standards de macOS. Pas d'Electron.
-5. **Une densité maîtrisée.** Un développeur a 40 onglets ouverts : la barre latérale doit rester lisible et élégante même chargée.
+1. **Content first.** The interface steps back; the web page is the star. The page floats in a card with rounded corners, and the sidebar collapses with one gesture.
+2. **Material rather than color.** Native macOS translucent materials (NSVisualEffectView, the Liquid Glass language) instead of large flat colors. The wallpaper shows through the sidebar and the window frame. Each Space keeps its color, as a subtle tint (about 7%) and accents: active tab, Space dot, selected result in the command bar.
+3. **Physical motion.** Spring animations, short and interruptible: you can change your mind mid-gesture.
+4. **Native down to the details.** Interface in Swift, SF Pro typography, SF Symbols icons, standard macOS shortcuts and gestures. No Electron.
+5. **Controlled density.** A developer has 40 tabs open: the sidebar must stay legible and elegant even when full.
 
-La barre de commande est la pièce maîtresse : verre translucide, résultats groupés (onglets ouverts, actions, recherche), raccourcis visibles, aide-mémoire en pied. Elle doit être l'élément le plus rapide du navigateur.
+The command bar is the centerpiece: translucent glass, grouped results (open tabs, actions, search), visible shortcuts, a cheat sheet at the bottom. It must be the fastest element of the browser.
 
-Les maquettes de référence (fenêtre principale, variantes, états, test du verre) sont sur le canvas « Chord — Fenêtre principale ».
+The reference mockups (main window, variants, states, glass test) are on the "Chord — Main window" canvas.
 
-## Budgets de latence
+## Latency budgets
 
-La fluidité est une règle mesurée, pas une promesse : chaque interaction a un budget, vérifié automatiquement en intégration continue. Une fonctionnalité qui dépasse son budget ne sort pas. Le repère est connu : en dessous de 100 ms, une action paraît instantanée.
+Smoothness is a measured rule, not a promise: every interaction has a budget, checked automatically in continuous integration. A feature that exceeds its budget does not ship. The benchmark is well known: under 100 ms, an action feels instant.
 
-| Interaction | Budget cible |
+| Interaction | Target budget |
 | --- | --- |
-| Ouvrir la barre de commande | < 50 ms |
-| Changer de Space | < 100 ms, animation sans saccade |
-| Ouvrir un nouvel onglet | < 100 ms |
-| Replier ou déplier la barre latérale | < 50 ms |
-| Ouvrir un Peek | < 100 ms |
-| Démarrage à froid | < 1 s jusqu'à une fenêtre utilisable |
-| Défilement et animations | 120 images/s sur ProMotion, aucune image sautée |
-| Onglets inactifs | mise en veille automatique pour libérer la mémoire |
+| Open the command bar | < 50 ms |
+| Switch Spaces | < 100 ms, stutter-free animation |
+| Open a new tab | < 100 ms |
+| Collapse or expand the sidebar | < 50 ms |
+| Open a Peek | < 100 ms |
+| Cold start | < 1 s to a usable window |
+| Scrolling and animations | 120 fps on ProMotion, no dropped frames |
+| Inactive tabs | put to sleep automatically to free memory |
 
-Ces chiffres sont des cibles de départ, à affiner avec les premières mesures sur Apple Silicon.
+These numbers are starting targets, to be refined with the first measurements on Apple Silicon.
 
-## Parité Arc de la v1
+## Arc parity for v1
 
-Un utilisateur d'Arc doit se sentir chez lui dès la première minute. La v1 reprend six fonctionnalités ; les Boosts attendront.
+An Arc user must feel at home from the first minute. v1 takes six features; Boosts will wait.
 
-| Fonctionnalité | Ce qu'on garde d'Arc | La touche Chord |
+| Feature | What we keep from Arc | The Chord touch |
 | --- | --- | --- |
-| Barre latérale | Onglets verticaux, favoris, épinglés, onglets du jour, « Nouvel onglet » en tête des onglets du jour | Matériau translucide ; ligne compacte feux + navigation + repli ; Spaces et téléchargements en bas ; repliée, elle réapparaît en panneau flottant au survol du bord gauche |
-| Spaces | Contextes séparés, glisser pour changer | Teinte discrète, changement < 100 ms |
-| Barre de commande | Tout au clavier (⌘L) | La pièce maîtresse : verre, résultats groupés, raccourcis visibles |
-| Peek | Aperçu d'un lien sans quitter la page | Fenêtre flottante à ressort, « Ouvrir dans un onglet », split view direct |
-| Split view | Plusieurs pages côte à côte (⌃⇧=) | Chaque volet porte sa propre adresse ; volet actif cerclé de la couleur du Space ; redimensionnement à 120 images/s |
-| Petite fenêtre (Little Arc) | Mini-fenêtre flottante pour un lien ouvert depuis une autre app (⌥⌘N) | En verre, « Ouvrir dans Chord » ; nom définitif à trouver |
+| Sidebar | Vertical tabs, favorites, pinned, today's tabs, "New Tab" at the top of today's tabs | Translucent material; compact row with traffic lights + navigation + collapse; Spaces and downloads at the bottom; when collapsed, it comes back as a floating panel when hovering the left edge |
+| Spaces | Separate contexts, swipe to switch | Subtle tint, switch < 100 ms |
+| Command bar | Everything from the keyboard (⌘L) | The centerpiece: glass, grouped results, visible shortcuts |
+| Peek | Preview a link without leaving the page | Floating spring window, "Open as Tab", direct split view |
+| Split view | Several pages side by side (⌃⇧=) | Each pane has its own address; active pane outlined in the Space's color; resizing at 120 fps |
+| Little window (Little Arc) | Small floating window for a link opened from another app (⌥⌘N) | Glass, "Open in Chord"; final name still to find |
 
-Deux dispositions de la barre d'adresse sont prévues dès la v1 : dans la barre latérale (par défaut, comme Arc) ou intégrée en haut de la page, en 32 px, avec les actions à droite (style Safari).
+Two address bar layouts are planned from v1: in the sidebar (default, like Arc) or built into the top of the page, 32 px high, with the actions on the right (Safari style).
 
-**Import depuis Arc en un clic, au premier lancement.** Arc stocke sa barre latérale (Spaces, favoris, épinglés, dossiers) dans un fichier JSON local. Au premier lancement, Chord le détecte et propose de tout reprendre à l'identique, avec l'historique, les mots de passe et les cookies comme le fait l'import depuis Chrome. C'est probablement la fonctionnalité d'acquisition la plus efficace du projet : le réfugié d'Arc retrouve son navigateur en un clic.
+**One-click import from Arc, at first launch.** Arc stores its sidebar (Spaces, favorites, pinned tabs, folders) in a local JSON file. At first launch, Chord detects it and offers to bring everything over as it is, with history, passwords and cookies as the import from Chrome does. This is probably the project's most effective acquisition feature: the Arc refugee gets their browser back in one click.
 
-## Personnalisation et raccourcis
+## Customization and shortcuts
 
-La personnalisation et les raccourcis clavier sont des piliers, pas des options. La v1 reprend les outils de personnalisation d'Arc et en ajoute deux.
+Customization and keyboard shortcuts are pillars, not options. v1 takes Arc's customization tools and adds two.
 
-**Personnalisation (v1)**
+**Customization (v1)**
 
-- Couleur et nom de chaque Space
-- Mode clair, sombre ou automatique
-- Edgeless : la page collée aux bords, sans arrondi ni ombre (nouveau)
-- Barre d'adresse : latérale ou en haut de la page (nouveau)
-- Largeur de la barre latérale
-- Favoris épinglés (4 à 8)
-- Thème de la barre de commande
-- Raccourcis remappables
+- Color and name of each Space
+- Light, dark or automatic mode
+- Edgeless: the page against the edges, without rounded corners or shadow (new)
+- Address bar: in the sidebar or above the page (new)
+- Sidebar width
+- Pinned favorites (4 to 8)
+- Command bar theme
+- Remappable shortcuts
 
-**Raccourcis par défaut**
+**Default shortcuts**
 
-| Raccourci | Action |
+| Shortcut | Action |
 | --- | --- |
-| ⌘L | Barre de commande |
-| ⌘T | Nouvel onglet |
-| ⌘S | Replier / déplier la barre latérale |
+| ⌘L | Command bar |
+| ⌘T | New tab |
+| ⌘S | Collapse / expand the sidebar |
 | ⌃⇧= | Split view |
-| ⇧⌘D | Barre d'adresse en haut ou dans la barre latérale |
-| ⌥⌘N | Petite fenêtre |
-| ⇧⌘C | Copier l'URL |
-| ⌃Tab | Onglet suivant |
-| ⌥⌘← / → | Space précédent / suivant |
-| ⇧⌘J | Téléchargements |
-| ⌘W | Fermer l'onglet (archive) |
-| ⌘1 à ⌘9 | Onglet épinglé n |
+| ⇧⌘D | Address bar on top or in the sidebar |
+| ⌥⌘N | Little window |
+| ⇧⌘C | Copy URL |
+| ⌃Tab | Next tab |
+| ⌥⌘← / → | Previous / next Space |
+| ⇧⌘J | Downloads |
+| ⌘W | Close tab (archive) |
+| ⌘1 to ⌘9 | Pinned tab n |
 
-Les raccourcis reprennent ceux d'Arc partout où ils existent, pour que les anciens utilisateurs n'aient rien à réapprendre.
+Shortcuts are Arc's wherever Arc has one, so that former users have nothing to relearn.
 
-## Choix techniques
+## Technical choices
 
-**Moteur : Chromium, via ungoogled-chromium.** C'est le seul choix compatible avec la cible : les développeurs vivent dans les Chrome DevTools et les extensions Chrome. ungoogled-chromium (licence BSD-3) retire les services Google et fournit déjà un dépôt de packaging Mac, ungoogled-chromium-macos ; Helium, envisagé un temps, est construit sur cette même base mais sous GPL-3, ce qui aurait figé la licence de Chord. Les bonnes idées d'Helium (bloqueur intégré, interface nettoyée) se réimplémentent sans copier son code.
+**Engine: Chromium, via ungoogled-chromium.** It is the only choice that fits the audience: developers live in Chrome DevTools and Chrome extensions. ungoogled-chromium (BSD-3 license) removes Google services and already provides a Mac packaging repository, ungoogled-chromium-macos; Helium, considered for a while, is built on the same base but under GPL-3, which would have fixed Chord's license. Helium's good ideas (built-in blocker, cleaned-up interface) can be reimplemented without copying its code.
 
-**Intégration : un fork de Chromium avec l'interface remplacée.** C'est l'approche d'Arc. On garde tout le processus navigateur de Chromium (extensions Chrome, DevTools, profils, mots de passe) et on remplace l'interface macOS de Chrome par des fenêtres natives en Swift qui hébergent le contenu web. CEF (Chromium Embedded Framework), plus rapide à démarrer, est écarté : il n'embarque pas la couche navigateur de Chrome et ne supporte les extensions que partiellement. Pas d'Electron non plus. Les matériaux translucides passent par NSVisualEffectView, les animations par des ressorts interruptibles (CASpringAnimation).
+**Integration: a Chromium fork with the interface replaced.** This is Arc's approach. We keep all of Chromium's browser process (Chrome extensions, DevTools, profiles, passwords) and replace Chrome's macOS interface with native Swift windows that host the web content. CEF (Chromium Embedded Framework), quicker to get started with, is ruled out: it does not include Chrome's browser layer and only partially supports extensions. No Electron either. Translucent materials go through NSVisualEffectView, animations through interruptible springs (CASpringAnimation).
 
-**Premier jalon technique : le spike 0.** Une fenêtre Swift qui affiche une page Chromium, avec les DevTools et une extension Chrome qui fonctionnent. Rien d'autre n'est construit avant qu'il tienne.
+**First technical milestone: spike 0.** A Swift window that shows a Chromium page, with DevTools and a Chrome extension that work. Nothing else is built until it holds.
 
-**Plateforme : macOS uniquement, Apple Silicon d'abord.** Windows et Linux viendront après, si le projet trouve sa communauté.
+**Platform: macOS only, Apple Silicon first.** Windows and Linux will come later, if the project finds its community.
 
-**Coût à ne pas sous-estimer :** suivre Chromium, c'est absorber une nouvelle version majeure toutes les quatre semaines. En solo, c'est le plus gros risque du projet ; la v1 doit rester volontairement petite.
+**A cost not to underestimate:** following Chromium means absorbing a new major version every four weeks. Solo, this is the project's biggest risk; v1 must stay deliberately small.
 
-**Multi-moteur, plus tard.** L'architecture isole le moteur derrière une couche commune (historique, cookies, téléchargements) pour pouvoir brancher WebKit (livré avec macOS, c'est le vrai moteur de Safari) dans une v2, puis explorer Gecko. Ce n'est pas un objectif de la v1.
+**Multiple engines, later.** The architecture isolates the engine behind a common layer (history, cookies, downloads) so that WebKit (shipped with macOS, Safari's real engine) can be plugged in for a v2, then Gecko explored. This is not a v1 goal.
 
-**DevTools personnalisables.** L'interface des DevTools est un projet open source à part (devtools-frontend, BSD-3), écrit en TypeScript avec des web components, et embarqué dans Chromium. Dans un fork, on peut la modifier entièrement : retravailler le mode responsive, ajouter des panneaux, des options d'émulation. Elle se développe sans recompiler Chromium, en la servant à un navigateur lancé avec le flag `--custom-devtools-frontend`. Règle de maintenance : ajouter des modules plutôt que réécrire les panneaux existants, pour que la mise à jour toutes les quatre semaines reste un rebase simple.
+**Customizable DevTools.** The DevTools interface is a separate open source project (devtools-frontend, BSD-3), written in TypeScript with web components, and bundled into Chromium. In a fork, it can be modified entirely: rework the responsive mode, add panels, emulation options. It can be developed without recompiling Chromium, by serving it to a browser launched with the `--custom-devtools-frontend` flag. Maintenance rule: add modules rather than rewrite existing panels, so that the update every four weeks stays a simple rebase.
 
-## Open source, licence et modèle économique
+## Open source, license and business model
 
-Chord est open source. C'est la réponse au problème d'Arc : le code appartient à la communauté et survit au projet.
+Chord is open source. That is the answer to Arc's problem: the code belongs to the community and outlives the project.
 
-**Licence : GPL-3.0** (décision 0005). Le code de Chord reste libre, dérivés compris ; Chromium, ungoogled-chromium et Sparkle gardent leurs licences (BSD, MIT). Tant que Kevin possède 100 % du code, il peut encore changer de licence. Dès qu'un contributeur arrive, ses contributions sont sous GPL-3.0 et il faudrait son accord : un CLA (Contributor License Agreement) avant la première contribution externe garde la possibilité de relicencier, de proposer une édition commerciale ou d'accepter un rachat. Ce qui a été publié reste ouvert pour toujours ; seules les versions futures peuvent changer.
+**License: GPL-3.0** (decision 0005). Chord's code stays free, derivatives included; Chromium, ungoogled-chromium and Sparkle keep their licenses (BSD, MIT). As long as Kevin owns 100% of the code, he can still change the license. As soon as a contributor arrives, their contributions are under GPL-3.0 and their consent would be needed: a CLA (Contributor License Agreement) before the first outside contribution keeps the option to relicense, offer a commercial edition or accept an acquisition. What has been published stays open forever; only future versions can change.
 
-**Modèle économique :** gratuit, financé par les dons (GitHub Sponsors, Open Collective). Si le projet grandit, le modèle classique d'un navigateur ouvert est de vendre des services, jamais le code : synchronisation entre appareils, fonctionnalités Pro hébergées, support aux équipes. Aucune monétisation des utilisateurs ni de leurs données.
+**Business model:** free, funded by donations (GitHub Sponsors, Open Collective). If the project grows, the classic model for an open browser is to sell services, never the code: sync between devices, hosted Pro features, support for teams. No monetization of users or their data.
 
-- [x] Choisir la licence : GPL-3.0
-- [ ] Rédiger le CLA, avant la première contribution externe
-- [ ] Vérifier le nom « Chord » : domaine, organisation GitHub, marques (INPI, EUIPO)
+- [x] Choose the license: GPL-3.0
+- [ ] Write the CLA, before the first outside contribution
+- [ ] Check the name "Chord": domain, GitHub organization, trademarks (INPI, EUIPO)
 
-## Ce qu'on ne fait pas, pour l'instant
+## What we don't do, for now
 
-- Pas d'IA envahissante à la Dia
-- Pas de compte obligatoire
-- Pas de Windows ni de Linux
-- Pas de multi-moteur en v1
-- Pas de Boosts en v1
-- Pas de grosse fonctionnalité tant que l'expérience de base n'est pas impeccable
+- No intrusive Dia-style AI
+- No required account
+- No Windows or Linux
+- No multiple engines in v1
+- No Boosts in v1
+- No big feature until the core experience is flawless
 
-**Horizon, une fois la base solide :** les outils pour développeurs qui justifient le positionnement. Pistes déjà notées : un Space lié à un repo qui détecte les serveurs de dev et l'état des PR ; le changement d'environnement local / staging / prod en un raccourci ; des sessions isolées par onglet ; un split view responsive avec scroll synchronisé ; une barre de commande orientée dev (vider le storage, copier en cURL, ouvrir le composant dans l'éditeur) ; et un serveur MCP intégré pour que les agents de code pilotent le navigateur.
+**Horizon, once the foundation is solid:** the developer tools that justify the positioning. Ideas already noted: a Space linked to a repo that detects dev servers and PR status; switching between local / staging / prod environments with one shortcut; sessions isolated per tab; a responsive split view with synchronized scrolling; a developer-oriented command bar (clear storage, copy as cURL, open the component in the editor); and a built-in MCP server so coding agents can drive the browser.
 
-## Feuille de route
+## Roadmap
 
-Phases sans dates : l'ordre et les portes comptent, pas le calendrier.
+Phases without dates: the order and the gates matter, not the calendar.
 
-| Phase | Contenu |
+| Phase | Content |
 | --- | --- |
-| 0 · Fondations | Build de Chromium, coque Swift et fenêtre, moteur et onglets, latence mesurée en CI |
-| 1 · Parité Arc | Barre latérale et Spaces, barre de commande, Peek et split view, petite fenêtre, mode sombre et edgeless |
-| *Porte* | *Budgets de latence tenus* |
-| 2 · Bêta publique | Dépôt public, licence et CLA, dons activés, import depuis Arc, extensions Chrome |
-| *Porte* | *Communauté et dons en place* |
-| 3 · Outils pour développeurs | Space lié à un repo, local / staging / prod, commandes dev, serveur MCP |
-| 4 · Horizon | Moteur WebKit, Boosts, Windows et Linux, synchronisation |
+| 0 · Foundations | Chromium build, Swift shell and window, engine and tabs, latency measured in CI |
+| 1 · Arc parity | Sidebar and Spaces, command bar, Peek and split view, little window, dark mode and edgeless |
+| *Gate* | *Latency budgets met* |
+| 2 · Public beta | Public repository, license and CLA, donations enabled, import from Arc, Chrome extensions |
+| *Gate* | *Community and donations in place* |
+| 3 · Developer tools | Space linked to a repo, local / staging / prod, dev commands, MCP server |
+| 4 · Horizon | WebKit engine, Boosts, Windows and Linux, sync |
 
-La phase 1 est la seule qui compte au début : rien ne passe la première porte tant que les budgets de latence ne sont pas tenus. Les outils pour développeurs n'arrivent qu'en phase 3, une fois la communauté installée.
+Phase 1 is the only one that matters at first: nothing passes the first gate until the latency budgets are met. Developer tools only arrive in phase 3, once the community is in place.
 
-## Identité
+## Identity
 
-**Nom : Chord.** En géométrie, la corde est le segment qui relie les deux extrémités d'un arc. Le nom dit la filiation avec Arc sans la copier, il est court, prononçable dans toutes les langues, et aucun navigateur ne le porte. À vérifier avant toute annonce : le domaine, l'organisation GitHub et les marques déposées (INPI, EUIPO).
+**Name: Chord.** In geometry, the chord is the segment that joins the two ends of an arc. The name states the lineage with Arc without copying it, it is short, pronounceable in every language, and no browser uses it. To check before any announcement: the domain, the GitHub organization and registered trademarks (INPI, EUIPO).
 
-**Marque : l'arc et sa corde.** Un arc de cercle ouvert, fermé par la corde qui relie ses deux extrémités. C'est littéralement la définition du mot, et le récit du projet en une forme : Chord est ce qui vient fermer l'arc. L'arc porte la couleur du texte (noir sur clair, blanc sur sombre), la corde porte l'accent, indigo par défaut ou la couleur du Space actif dans l'application. En monochrome, les deux partagent le même trait.
+**Mark: the arc and its chord.** An open circular arc, closed by the chord that joins its two ends. It is literally the definition of the word, and the project's story in one shape: Chord is what comes to close the arc. The arc takes the text color (black on light, white on dark), the chord takes the accent, indigo by default or the active Space's color in the app. In monochrome, both share the same stroke.
 
-**Icône d'app :** fond indigo profond uni, sans dégradé, l'arc en blanc et la corde en indigo clair. Le trait s'épaissit aux petites tailles pour rester lisible en 16 px ; la barre de menus utilise le glyphe monochrome.
+**App icon:** a plain deep indigo background, no gradient, the arc in white and the chord in light indigo. The stroke gets thicker at small sizes to stay legible at 16 px; the menu bar uses the monochrome glyph.
 
-**Logo :** le symbole suivi du mot « Chord » en SF Pro Display Semibold, interlettrage resserré, jamais en capitales. Signature : « The browser that closes the arc. »
+**Logo:** the symbol followed by the word "Chord" in SF Pro Display Semibold, tight letter spacing, never in capitals. Tagline: "The browser that closes the arc."
 
-Les trois pistes étudiées, l'icône à toutes les tailles et les versions claire, sombre et monochrome du logo sont sur le canvas « Chord — Fenêtre principale », rangée « Identité ».
+The three directions explored, the icon at every size and the light, dark and monochrome versions of the logo are on the "Chord — Main window" canvas, "Identity" row.
 
 ## Sources
 

@@ -22,7 +22,7 @@ case "${1:-}" in
   --framework) BUILD=false; FRAMEWORK="${2:?chemin de ChordUI.framework}" ;;
 esac
 
-[ -d "$APP" ] || { echo "Construire d'abord Chord : engine/scripts/build.sh"; exit 1; }
+[ -d "$APP" ] || { echo "Build Chord first: engine/scripts/build.sh"; exit 1; }
 
 if $BUILD; then
   (cd "$REPO_DIR/app" && xcodegen generate >/dev/null && \

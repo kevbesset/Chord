@@ -93,7 +93,7 @@ public final class BrowserState: NSObject {
         var fromVersion = SessionSnapshot.currentVersion
         var readSession = false
         if isPrivate {
-            let space = Space(name: "Navigation privée", colorHex: Theme.privateSpaceColor)
+            let space = Space(name: "Private Browsing", colorHex: Theme.privateSpaceColor)
             spaces = [space]
             activeSpaceID = space.id
         } else if let snapshot = store?.load(), !snapshot.spaces.isEmpty {
@@ -109,7 +109,7 @@ public final class BrowserState: NSObject {
             readSession = true
         } else {
             let first = Space(name: "Chord", colorHex: Theme.spacePalette[0])
-            spaces = [first, Space(name: "Perso", colorHex: Theme.spacePalette[1], profileID: UUID().uuidString)]
+            spaces = [first, Space(name: "Personal", colorHex: Theme.spacePalette[1], profileID: UUID().uuidString)]
             activeSpaceID = first.id
         }
         super.init()
@@ -123,7 +123,7 @@ public final class BrowserState: NSObject {
     /// Before version 4 a profile only grouped favorites, and every Space shared one
     /// session. Arc's default profile, imported as "arc:Default", becomes Chord's
     /// default one; the Spaces left on the default profile by default (the first
-    /// launch's "Perso", Spaces added since) get a profile, and so a session, of their own.
+    /// launch's "Personal", Spaces added since) get a profile, and so a session, of their own.
     private func separateSessions() {
         let arcDefault = "arc:Default"
         if !spaces.contains(where: { $0.profileID == Space.defaultProfile }) {
@@ -503,7 +503,7 @@ public final class BrowserState: NSObject {
     @discardableResult
     public func newFolder(with tab: Tab? = nil) -> Folder {
         let space = tab.flatMap { self.space(containing: $0) } ?? activeSpace
-        let folder = Folder(name: "Nouveau dossier")
+        let folder = Folder(name: "New Folder")
         if let tab, tab.isPinned, let place = space.removePinned(tab) {
             space.insertPinned(.folder(folder), in: place.parent, at: place.index)
             folder.items = [.tab(tab)]
@@ -718,7 +718,7 @@ public final class BrowserState: NSObject {
     }
 
     /// What goes with a profile, for the alerts that come before.
-    public static let profileDeletionWarning = "C'est le dernier Space de son profil : le profil sera supprimé aussi, avec ses connexions, cookies, historique, extensions et favoris."
+    public static let profileDeletionWarning = "This is the last Space on its profile: the profile will be deleted too, with its logins, cookies, history, extensions and favorites."
 
     /// Whether the Space is the last one on its profile, which then goes with it (see
     /// `dropUnusedProfiles`). The default profile always stays.

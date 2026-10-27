@@ -125,8 +125,8 @@ final class IconButton: NSButton {
         guard stop != stopShown else { return }
         stopShown = stop
         image = Theme.symbol(stop ? "xmark" : "arrow.clockwise", size: stop ? pointSize - 1 : pointSize)
-        toolTip = stop ? "Arrêter (⌘.)" : "Recharger (⌘R)"
-        setAccessibilityLabel(stop ? "Arrêter le chargement" : "Recharger")
+        toolTip = stop ? "Stop (⌘.)" : "Reload (⌘R)"
+        setAccessibilityLabel(stop ? "Stop loading" : "Reload")
     }
 }
 

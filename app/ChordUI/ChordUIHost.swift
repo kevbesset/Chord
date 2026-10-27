@@ -48,7 +48,7 @@ public final class ChordUIHost: NSObject {
     }
 
     /// Checks for updates in the background and installs them at the next launch, as Arc
-    /// does; « Rechercher les mises à jour… » checks now. Without a feed (development
+    /// does; "Check for Updates…" checks now. Without a feed (development
     /// builds) the item is hidden.
     private static func startUpdater(menu: NSMenu) {
         let check = #selector(SPUStandardUpdaterController.checkForUpdates(_:))

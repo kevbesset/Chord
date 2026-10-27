@@ -77,7 +77,7 @@ import AppKit
 @objc(ChordPermissionRequest) public protocol ChordPermissionRequest: AnyObject {
     /// The site's host.
     var site: String { get }
-    /// What the site asks for, as the engine words it ("Utiliser vos caméras").
+    /// What the site asks for, as the engine words it ("Use your cameras").
     var asks: [String] { get }
     /// An SF Symbol for the first thing asked.
     var symbol: String { get }

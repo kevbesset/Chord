@@ -33,6 +33,6 @@ public final class Tab {
     public var displayTitle: String {
         if !title.isEmpty { return title }
         if let host = url?.host, !host.isEmpty { return host }
-        return url?.absoluteString ?? "Nouvel onglet"
+        return url?.absoluteString ?? "New Tab"
     }
 }

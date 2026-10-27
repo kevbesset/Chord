@@ -40,17 +40,17 @@ struct ExtensionActions {
     /// The right-click menu of an extension's button, like Arc's.
     func menu(for item: PageExtension) -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(closureItem(item.isPinned ? "Retirer de la barre d'adresse" : "Épingler dans la barre d'adresse") {
+        menu.addItem(closureItem(item.isPinned ? "Unpin from Address Bar" : "Pin to Address Bar") {
             setPinned(item, !item.isPinned)
         })
         if let options = item.optionsURL {
             menu.addItem(closureItem("Options") { open(options) })
         }
         if let manage = item.manageURL {
-            menu.addItem(closureItem("Gérer l'extension") { open(manage) })
+            menu.addItem(closureItem("Manage Extension") { open(manage) })
         }
         menu.addItem(.separator())
-        menu.addItem(closureItem("Supprimer « \(item.name) »…") { uninstall(item) })
+        menu.addItem(closureItem("Remove “\(item.name)”…") { uninstall(item) })
         return menu
     }
 }

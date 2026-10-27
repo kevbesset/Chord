@@ -1,8 +1,8 @@
 import AppKit
 
 /// A site's question (camera, notifications…), like Arc's: a popover from the site
-/// controls button with a round badge, the question, "Bloquer" and "Autoriser", and a
-/// quieter "Pas maintenant". The page
+/// controls button with a round badge, the question, "Block" and "Allow", and a
+/// quieter "Not Now". The page
 /// stays usable while it is up. It stays until answered, or until the engine takes
 /// it back (another tab selected, the tab closed), and asks again later.
 final class PermissionPromptController: NSObject, NSPopoverDelegate {
@@ -72,7 +72,7 @@ final class PermissionPromptController: NSObject, NSPopoverDelegate {
 
     enum Answer { case allow, block, notNow }
 
-    /// "Autoriser" and "Bloquer" are kept for the site; "Pas maintenant" decides
+    /// "Allow" and "Block" are kept for the site; "Not Now" decides
     /// nothing, like Arc's "Not Now": the site may ask again.
     private func answer(_ answer: Answer) {
         guard let request else { return }
@@ -116,13 +116,13 @@ final class PermissionPromptController: NSObject, NSPopoverDelegate {
         return NSRect(x: view.bounds.minX + 28, y: top, width: 1, height: 1)
     }
 
-    /// The question in French, from what the engine says is asked: "Autoriser
-    /// webcamtoy.com à utiliser vos caméras ?"
+    /// The question, from what the engine says is asked: "Allow webcamtoy.com to use
+    /// your cameras?"
     static func question(site: String, asks: [String]) -> String {
         let parts = asks.map { $0.prefix(1).lowercased() + $0.dropFirst() }
-        guard let last = parts.last else { return "\(site) demande une autorisation." }
-        let what = parts.count == 1 ? last : parts.dropLast().joined(separator: ", ") + " et " + last
-        return "Autoriser \(site) à \(what)\u{202F}?"
+        guard let last = parts.last else { return "\(site) asks for a permission." }
+        let what = parts.count == 1 ? last : parts.dropLast().joined(separator: ", ") + " and " + last
+        return "Allow \(site) to \(what)?"
     }
 }
 
@@ -144,9 +144,9 @@ private final class PermissionPromptViewController: NSViewController {
         question.font = .systemFont(ofSize: 15, weight: .medium)
         question.textColor = .labelColor
         question.preferredMaxLayoutWidth = 214
-        let block = PromptButton(title: "Bloquer", style: .secondary) { [weak self] in self?.onAnswer(.block) }
-        let allow = PromptButton(title: "Autoriser", style: .primary) { [weak self] in self?.onAnswer(.allow) }
-        let notNow = PromptButton(title: "Pas maintenant", style: .quiet) { [weak self] in self?.onAnswer(.notNow) }
+        let block = PromptButton(title: "Block", style: .secondary) { [weak self] in self?.onAnswer(.block) }
+        let allow = PromptButton(title: "Allow", style: .primary) { [weak self] in self?.onAnswer(.allow) }
+        let notNow = PromptButton(title: "Not Now", style: .quiet) { [weak self] in self?.onAnswer(.notNow) }
 
         let view = NSView()
         for subview in [badge, question, block, allow, notNow] as [NSView] {

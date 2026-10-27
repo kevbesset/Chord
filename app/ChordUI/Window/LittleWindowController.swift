@@ -1,7 +1,7 @@
 import AppKit
 
 /// The little window (Little Arc): a small glass window for a link opened from another
-/// app, or ⌥⌘N. "Ouvrir dans" (⌘O) moves the page into the main window as a tab of the
+/// app, or ⌥⌘N. "Open in" (⌘O) moves the page into the main window as a tab of the
 /// Space it names: the last Space used, or another one picked from its chevron.
 final class LittleWindowController: NSWindowController, NSWindowDelegate, NSTextFieldDelegate, ChordWebPageDelegate {
     var onOpenInChord: ((ChordWebPage, Space) -> Void)?
@@ -18,12 +18,12 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     private let addressPill = NSView()
     private let addressField = NSTextField()
     private let openButton = OpenInSpaceButton()
-    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Page précédente (⌘[)", target: self, action: #selector(goBack(_:)), size: 26, pointSize: 13)
+    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Back (⌘[)", target: self, action: #selector(goBack(_:)), size: 26, pointSize: 13)
     private let spaces: () -> [Space]
     private(set) var targetSpace: Space
     private let permissionPrompt = PermissionPromptController()
 
-    /// `space` is where "Ouvrir dans" sends the page until another one is picked;
+    /// `space` is where "Open in" sends the page until another one is picked;
     /// `spaces` lists the choices when the picker opens.
     init(engine: ChordWebEngine, settings: ChordSettings, url: URL?, space: Space, spaces: @escaping () -> [Space]) {
         self.settings = settings
@@ -43,7 +43,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         window.minSize = NSSize(width: 420, height: 300)
         // Like the main window: no shadow, so no dark outline around the glass.
         window.hasShadow = false
-        window.title = "Petite fenêtre"
+        window.title = "Little Window"
         // A compact toolbar makes the title bar 46 px tall, so the traffic lights sit
         // centred in the same row as the address.
         let toolbar = NSToolbar(identifier: "app.chord.little")
@@ -105,7 +105,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         addressField.drawsBackground = false
         addressField.focusRingType = .none
         addressField.font = .systemFont(ofSize: 13)
-        addressField.placeholderString = "Rechercher ou saisir une adresse"
+        addressField.placeholderString = "Search or enter URL"
         addressField.lineBreakMode = .byTruncatingTail
         addressField.cell?.usesSingleLineMode = true
         addressField.delegate = self
@@ -187,7 +187,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
 
     // MARK: - Target Space
 
-    /// The Space "Ouvrir dans" sends the page to. The window takes its tint and accent,
+    /// The Space "Open in" sends the page to. The window takes its tint and accent,
     /// like Little Arc takes the Space's theme.
     private func setTarget(_ space: Space) {
         targetSpace = space
@@ -198,7 +198,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
 
     private func showSpaceMenu(from anchor: NSView) {
         let menu = NSMenu()
-        let header = NSMenuItem(title: "Ouvrir dans le Space", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Open in Space", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
         for space in spaces() {
@@ -246,7 +246,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
         if let root = window?.contentView {
-            toast.show("URL copiée", detail: url.displayHost, symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
+            toast.show("URL copied", detail: url.displayHost, symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
         }
     }
 
@@ -262,7 +262,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         guard page === self.page else { return }
         updateAddress(url: page.url)
         card.setLoading(page.isLoading, accent: targetSpace.accent)
-        window?.title = page.title ?? "Petite fenêtre"
+        window?.title = page.title ?? "Little Window"
     }
 
     func page(_ page: ChordWebPage, wantsNewTabWith url: URL) {
@@ -270,7 +270,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     }
 }
 
-/// The little window's glass. Catches ⌘O for "Ouvrir dans Chord".
+/// The little window's glass. Catches ⌘O for "Open in Chord".
 final class LittleRootView: NSVisualEffectView {
     var onOpenInChord: (() -> Void)?
 
@@ -284,7 +284,7 @@ final class LittleRootView: NSVisualEffectView {
     }
 }
 
-/// "Ouvrir dans ● Perso ⌘O ⌄", tinted with the Space's colour. The main part opens the
+/// "Open in ● Personal ⌘O ⌄", tinted with the Space's colour. The main part opens the
 /// page in that Space; the chevron, past a thin divider, picks another Space.
 final class OpenInSpaceButton: NSView {
     var onOpen: (() -> Void)?
@@ -304,7 +304,7 @@ final class OpenInSpaceButton: NSView {
         super.init(frame: frameRect)
         wantsLayer = true
         translatesAutoresizingMaskIntoConstraints = false
-        let label = NSTextField(labelWithString: "Ouvrir dans")
+        let label = NSTextField(labelWithString: "Open in")
         label.font = .systemFont(ofSize: 12, weight: .medium)
         nameLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         nameLabel.lineBreakMode = .byTruncatingTail
@@ -355,8 +355,8 @@ final class OpenInSpaceButton: NSView {
         accent = space.accent
         nameLabel.stringValue = space.name
         dot.layer?.backgroundColor = space.color.cgColor
-        toolTip = "Ouvrir la page dans le Space \(space.name) (⌘O)"
-        setAccessibilityLabel("Ouvrir dans le Space \(space.name)")
+        toolTip = "Open the page in Space \(space.name) (⌘O)"
+        setAccessibilityLabel("Open in Space \(space.name)")
         needsDisplay = true
     }
 

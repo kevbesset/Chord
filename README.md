@@ -1,69 +1,67 @@
 # Chord
 
-Le navigateur pour ceux qui construisent le web : un successeur d'Arc, natif Mac, sur
-Chromium. L'interface est écrite en Swift / AppKit ; le moteur est
+The browser for the people who build the web: a successor to Arc, native to the Mac,
+on Chromium. The interface is written in Swift / AppKit; the engine is
 [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium).
 
-> **Statut : préversion.** Chord sert tous les jours à son auteur, mais tout peut encore
-> changer. Mac Apple Silicon, macOS 14 ou plus.
+> **Status: preview.** Chord is used every day by its author, but anything can still
+> change. Apple Silicon Mac, macOS 14 or later.
 
-## Installer
+## Install
 
-Télécharger `Chord-<version>.dmg` depuis les
-[versions publiées](https://github.com/kevbesset/Chord/releases/latest), ouvrir l'image
-et glisser Chord dans Applications. Chord se met ensuite à jour tout seul (il vérifie
-une fois par jour, installe au lancement suivant ; « Rechercher les mises à jour… »
-dans le menu Chord pour vérifier tout de suite).
+Download `Chord-<version>.dmg` from the
+[releases](https://github.com/kevbesset/Chord/releases/latest), open the image and drag
+Chord into Applications. Chord then updates itself (it checks once a day and installs
+at the next launch; "Check for Updates…" in the Chord menu checks right away).
 
-Tant que Chord n'est pas notarisé par Apple, macOS refuse de l'ouvrir la première fois :
-Réglages Système › Confidentialité et sécurité › « Ouvrir quand même ». Ou, dans un
-terminal :
+Until Chord is notarized by Apple, macOS refuses to open it the first time: System
+Settings › Privacy & Security › "Open Anyway". Or, in a terminal:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Chord.app
 ```
 
-## Ce qu'il sait faire
+## What it does
 
-- Barre latérale à la Arc : favoris, épinglés avec dossiers, onglets du jour, Spaces
-  (chacun sur son profil, glisser à deux doigts pour passer de l'un à l'autre)
-- Barre de commande (⌘T, ⌘L), Peek, split view, petite fenêtre pour les liens d'autres apps
-- Import d'Arc : barre latérale, connexions, mots de passe, historique, données des
-  sites, extensions du Chrome Web Store
-- Extensions Chrome, épinglables dans la barre d'adresse ; DevTools ancrés (⌥⌘I)
-- Picture-in-picture automatique, demandes d'autorisation discrètes, réglages du site
-- Navigation privée, plusieurs fenêtres, mode clair / sombre, raccourcis remappables
+- Arc-style sidebar: favorites, pinned tabs with folders, today's tabs, Spaces (each on
+  its own profile, two-finger swipe to go from one to the next)
+- Command bar (⌘T, ⌘L), Peek, split view, little window for links from other apps
+- Import from Arc: sidebar, logins, passwords, history, site data, Chrome Web Store
+  extensions
+- Chrome extensions, pinnable in the address bar; docked DevTools (⌥⌘I)
+- Automatic picture in picture, discreet permission requests, site settings
+- Private browsing, multiple windows, light / dark mode, remappable shortcuts
 
-## Construire
+## Build
 
-Prérequis : Mac Apple Silicon, Xcode 16 ou plus, Homebrew, environ 100 Go d'espace
-libre. Le premier build de Chromium prend plusieurs heures.
+Requirements: Apple Silicon Mac, Xcode 16 or later, Homebrew, about 100 GB of free
+space. The first Chromium build takes several hours.
 
 ```bash
 brew install xcodegen
 engine/scripts/bootstrap.sh && engine/scripts/prepare.sh
-engine/scripts/build.sh          # Chromium et ChordUI : out/Chord/Chord.app
-engine/scripts/run.sh            # au quotidien : l'interface seule, en quelques secondes
+engine/scripts/build.sh          # Chromium and ChordUI: out/Chord/Chord.app
+engine/scripts/run.sh            # day to day: the interface alone, in a few seconds
 ```
 
-Détails dans `engine/README.md`. Publier une version : `docs/RELEASING.md`.
+Details in `engine/README.md`. Publishing a version: `docs/RELEASING.md`.
 
 ## Structure
 
 ```
-app/                Interface native (Swift, AppKit)
-  ChordUI/          framework : fenêtre, barre latérale, Spaces, barre de commande.
-                    Ne connaît aucun moteur, seulement le protocole ChordWebEngine.
-  project.yml       définition du projet Xcode (XcodeGen)
-engine/             Chromium : version figée, //chord, patchs, marque, scripts
-docs/               Vision produit, architecture, budgets de performance, décisions
-design/             Maquettes de référence et marque (logo, icône)
-CLAUDE.md           Contexte du projet pour Claude Code
+app/                Native interface (Swift, AppKit)
+  ChordUI/          framework: window, sidebar, Spaces, command bar.
+                    Knows no engine, only the ChordWebEngine protocol.
+  project.yml       Xcode project definition (XcodeGen)
+engine/             Chromium: pinned version, //chord, patches, brand, scripts
+docs/               Product vision, architecture, performance budgets, decisions
+design/             Reference mockups and brand (logo, icon)
+CLAUDE.md           Project context for Claude Code
 ```
 
-## Licence
+## License
 
-Chord est distribué sous la licence publique générale GNU, version 3 (`LICENSE`).
-Chromium et ungoogled-chromium, sur lesquels il repose, gardent leurs propres licences
-(BSD pour l'essentiel) ; Chord les liste dans `chord://credits`. Sparkle (mises à jour)
-est sous licence MIT.
+Chord is distributed under the GNU General Public License, version 3 (`LICENSE`).
+Chromium and ungoogled-chromium, which it builds on, keep their own licenses (mostly
+BSD); Chord lists them in `chord://credits`. Sparkle (updates) is under the MIT
+license.

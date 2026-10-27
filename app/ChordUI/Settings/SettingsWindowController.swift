@@ -10,7 +10,7 @@ final class SettingsWindowController: NSWindowController {
         model = SettingsModel(state: state, settings: settings, onImportArc: onImportArc)
         let hosting = NSHostingController(rootView: SettingsView(model: model))
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Réglages"
+        window.title = "Settings"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.tabbingMode = .disallowed
         window.isRestorable = false
@@ -60,17 +60,17 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            GeneralPane(model: model).tabItem { Label("Général", systemImage: "gearshape") }
-            AppearancePane(model: model).tabItem { Label("Apparence", systemImage: "paintbrush") }
+            GeneralPane(model: model).tabItem { Label("General", systemImage: "gearshape") }
+            AppearancePane(model: model).tabItem { Label("Appearance", systemImage: "paintbrush") }
             SpacesPane(model: model).tabItem { Label("Spaces", systemImage: "square.stack") }
-            ShortcutsPane(model: model).tabItem { Label("Raccourcis", systemImage: "command") }
+            ShortcutsPane(model: model).tabItem { Label("Shortcuts", systemImage: "command") }
         }
         .padding(20)
         .frame(width: 620, height: 480)
     }
 }
 
-// MARK: - Général
+// MARK: - General
 
 private struct GeneralPane: View {
     @ObservedObject var model: SettingsModel
@@ -88,25 +88,25 @@ private struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Picker("Moteur de recherche", selection: model.binding(\.searchTemplate)) {
+            Picker("Search engine", selection: model.binding(\.searchTemplate)) {
                 ForEach(Self.engines, id: \.1) { engine in Text(engine.0).tag(engine.1) }
                 if !Self.engines.contains(where: { $0.1 == model.settings.searchTemplate }) {
-                    Text("Personnalisé").tag(model.settings.searchTemplate)
+                    Text("Custom").tag(model.settings.searchTemplate)
                 }
             }
             Toggle(isOn: model.binding(\.autoPictureInPicture)) {
-                Text("Picture-in-picture automatique")
-                Text("Une vidéo en lecture continue dans une fenêtre flottante quand vous changez d'onglet ou de Space, et revient dans sa page à votre retour.")
+                Text("Automatic picture in picture")
+                Text("A playing video carries on in a floating window when you switch tabs or Spaces, and goes back to its page when you return.")
             }
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Importer depuis Arc")
-                        Text("Spaces, favoris et onglets épinglés, tels quels.")
+                        Text("Import from Arc")
+                        Text("Spaces, favorites and pinned tabs, as they are.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Importer…") { model.onImportArc() }
+                    Button("Import…") { model.onImportArc() }
                         .disabled(!ArcImport.isAvailable)
                 }
             }
@@ -123,24 +123,24 @@ private struct AppearancePane: View {
     var body: some View {
         Form {
             Picker("Mode", selection: model.binding(\.appearance)) {
-                Text("Automatique").tag(ChordSettings.Appearance.automatic)
-                Text("Clair").tag(ChordSettings.Appearance.light)
-                Text("Sombre").tag(ChordSettings.Appearance.dark)
+                Text("Automatic").tag(ChordSettings.Appearance.automatic)
+                Text("Light").tag(ChordSettings.Appearance.light)
+                Text("Dark").tag(ChordSettings.Appearance.dark)
             }
             .pickerStyle(.segmented)
-            Picker("Barre d'adresse", selection: model.binding(\.addressBarOnTop)) {
-                Text("Dans la barre latérale").tag(false)
-                Text("En haut de la page").tag(true)
+            Picker("Address bar", selection: model.binding(\.addressBarOnTop)) {
+                Text("In the sidebar").tag(false)
+                Text("Above the page").tag(true)
             }
-            Toggle("Edgeless : la page touche les bords de la fenêtre", isOn: model.binding(\.edgeless))
-            LabeledContent("Largeur de la barre latérale") {
+            Toggle("Edgeless: the page touches the window's edges", isOn: model.binding(\.edgeless))
+            LabeledContent("Sidebar width") {
                 Slider(value: Binding(get: { Double(model.settings.sidebarWidth) },
                                       set: { model.settings.sidebarWidth = CGFloat($0).rounded() }),
                        in: Double(ChordSettings.sidebarWidthRange.lowerBound)...Double(ChordSettings.sidebarWidthRange.upperBound))
                     .frame(width: 220)
             }
-            Picker("Barre de commande", selection: model.binding(\.commandBarGlass)) {
-                Text("Verre").tag(true)
+            Picker("Command bar", selection: model.binding(\.commandBarGlass)) {
+                Text("Glass").tag(true)
                 Text("Opaque").tag(false)
             }
             .pickerStyle(.segmented)
@@ -164,9 +164,9 @@ private struct SpacesPane: View {
             }
             .listStyle(.inset(alternatesRowBackgrounds: false))
             HStack {
-                Button("Nouveau Space") { model.state.addSpace() }
+                Button("New Space") { model.state.addSpace() }
                 Spacer()
-                Text("Les Spaces d'un même profil partagent leurs favoris et leur session.")
+                Text("Spaces on the same profile share their favorites and their session.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -196,13 +196,13 @@ private struct SpaceRow: View {
                         .accessibilityAddTraits(.isButton)
                 }
             }
-            TextField("Nom", text: $name)
+            TextField("Name", text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { model.state.rename(space, to: name) }
                 .onAppear { name = space.name }
             // Like Arc's profiles: Spaces in the same profile share their favorites and
             // their session (logins, cookies, extensions).
-            Picker("Profil", selection: Binding(
+            Picker("Profile", selection: Binding(
                 get: { space.profileID },
                 set: { choice in
                     let profile = choice == Self.separate ? UUID().uuidString : choice
@@ -217,11 +217,11 @@ private struct SpaceRow: View {
                     Text(profile.spaces.map(\.name).joined(separator: ", ")).tag(profile.id)
                 }
                 Divider()
-                Text("Nouveau profil").tag(Self.separate)
+                Text("New profile").tag(Self.separate)
             }
             .labelsHidden()
             .frame(width: 150)
-            .help("Les Spaces d'un même profil partagent leurs favoris et leur session (connexions, cookies, extensions), comme les profils d'Arc.")
+            .help("Spaces on the same profile share their favorites and their session (logins, cookies, extensions), like Arc's profiles.")
             Button(role: .destructive) {
                 if model.state.isLastSpace(ofItsProfile: space) || !space.allTabs.isEmpty {
                     confirmingDelete = true
@@ -231,26 +231,26 @@ private struct SpaceRow: View {
             } label: { Image(systemName: "trash") }
                 .buttonStyle(.borderless)
                 .disabled(model.state.spaces.count < 2)
-                .help("Supprimer le Space et ses onglets")
+                .help("Delete the Space and its tabs")
         }
         .padding(.vertical, 4)
-        .alert("Changer le profil de « \(space.name) » ?", isPresented: Binding(
+        .alert("Change the profile of “\(space.name)”?", isPresented: Binding(
             get: { pendingProfile != nil },
             set: { if !$0 { pendingProfile = nil } }
         )) {
-            Button("Changer et supprimer l'ancien profil", role: .destructive) {
+            Button("Change and Delete the Old Profile", role: .destructive) {
                 if let profile = pendingProfile { model.state.setProfile(space, to: profile) }
                 pendingProfile = nil
             }
-            Button("Annuler", role: .cancel) { pendingProfile = nil }
+            Button("Cancel", role: .cancel) { pendingProfile = nil }
         } message: {
-            Text("Aucun autre Space n'utilise son profil actuel : il sera supprimé, avec ses connexions, cookies, historique, extensions et favoris.")
+            Text("No other Space uses its current profile: it will be deleted, with its logins, cookies, history, extensions and favorites.")
         }
         .alert(model.state.isLastSpace(ofItsProfile: space)
-               ? "Supprimer le Space « \(space.name) » et son profil ?"
-               : "Supprimer le Space « \(space.name) » ?", isPresented: $confirmingDelete) {
-            Button("Supprimer", role: .destructive) { model.state.delete(space) }
-            Button("Annuler", role: .cancel) {}
+               ? "Delete the Space “\(space.name)” and its profile?"
+               : "Delete the Space “\(space.name)”?", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive) { model.state.delete(space) }
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text(deleteDetails)
         }
@@ -259,7 +259,7 @@ private struct SpaceRow: View {
     private var deleteDetails: String {
         var details: [String] = []
         let count = space.allTabs.count
-        if count > 0 { details.append(count == 1 ? "Son onglet sera fermé." : "Ses \(count) onglets seront fermés.") }
+        if count > 0 { details.append(count == 1 ? "Its tab will be closed." : "Its \(count) tabs will be closed.") }
         if model.state.isLastSpace(ofItsProfile: space) { details.append(BrowserState.profileDeletionWarning) }
         return details.joined(separator: " ")
     }
@@ -281,7 +281,7 @@ private struct ShortcutsPane: View {
         }
         let menus = items.reduce(into: [String]()) { if !$0.contains($1.menu) { $0.append($1.menu) } }
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Rechercher une commande ou un raccourci (⌘T, cmd maj c…)", text: $search)
+            TextField("Search a command or a shortcut (⌘T, cmd shift c…)", text: $search)
                 .textFieldStyle(.roundedBorder)
             List {
                 ForEach(menus, id: \.self) { menu in
@@ -292,7 +292,7 @@ private struct ShortcutsPane: View {
                                 Text(entry.title)
                                 if modified {
                                     Circle().fill(Color.accentColor).frame(width: 6, height: 6)
-                                        .help("Modifié")
+                                        .help("Changed")
                                 }
                                 Spacer()
                                 ShortcutField(model: model, id: entry.id, title: entry.title)
@@ -300,7 +300,7 @@ private struct ShortcutsPane: View {
                                     model.setShortcut(nil, for: entry.id)
                                 } label: { Image(systemName: "arrow.uturn.backward") }
                                     .buttonStyle(.borderless)
-                                    .help("Rétablir \(MainMenu.defaultShortcut(for: entry.id)?.display ?? "—")")
+                                    .help("Restore \(MainMenu.defaultShortcut(for: entry.id)?.display ?? "—")")
                                     .disabled(!modified)
                             }
                         }
@@ -308,19 +308,19 @@ private struct ShortcutsPane: View {
                 }
             }
             HStack(alignment: .firstTextBaseline) {
-                Text("Cliquez sur un raccourci puis tapez la nouvelle combinaison. ⌫ le retire, esc annule.")
+                Text("Click a shortcut, then type the new combination. ⌫ removes it, esc cancels.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Réinitialiser tous les raccourcis…") { confirmingReset = true }
+                Button("Reset All Shortcuts…") { confirmingReset = true }
                     .disabled(overrides.isEmpty)
             }
         }
         .onDisappear { model.stopRecording() }
-        .confirmationDialog("Réinitialiser tous les raccourcis ?", isPresented: $confirmingReset) {
-            Button("Réinitialiser", role: .destructive) { model.settings.shortcutOverrides = [:] }
-            Button("Annuler", role: .cancel) {}
+        .confirmationDialog("Reset all shortcuts?", isPresented: $confirmingReset) {
+            Button("Reset", role: .destructive) { model.settings.shortcutOverrides = [:] }
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Chaque commande retrouve son raccourci d'origine. Vos \(overrides.count) modification\(overrides.count > 1 ? "s" : "") seront perdue\(overrides.count > 1 ? "s" : "").")
+            Text("Every command gets its original shortcut back. Your \(overrides.count) change\(overrides.count > 1 ? "s" : "") will be lost.")
         }
     }
 }
@@ -391,16 +391,16 @@ extension SettingsModel {
         }
         let alert = NSAlert()
         if owner.reserved {
-            alert.messageText = "\(shortcut.display) est réservé à « \(owner.title) »"
-            alert.informativeText = "Ce raccourci est commun à toutes les apps du Mac. Choisissez-en un autre pour « \(title) »."
+            alert.messageText = "\(shortcut.display) is reserved for “\(owner.title)”"
+            alert.informativeText = "Every Mac app shares this shortcut. Choose another one for “\(title)”."
             alert.addButton(withTitle: "OK")
             if let window { alert.beginSheetModal(for: window) } else { alert.runModal() }
             return
         }
-        alert.messageText = "\(shortcut.display) est déjà utilisé par « \(owner.title) »"
-        alert.informativeText = "Le donner à « \(title) » ? « \(owner.title) » n'aura plus de raccourci."
-        alert.addButton(withTitle: "Remplacer")
-        alert.addButton(withTitle: "Annuler")
+        alert.messageText = "\(shortcut.display) is already used by “\(owner.title)”"
+        alert.informativeText = "Give it to “\(title)”? “\(owner.title)” will no longer have a shortcut."
+        alert.addButton(withTitle: "Replace")
+        alert.addButton(withTitle: "Cancel")
         let apply: (NSApplication.ModalResponse) -> Void = { [weak self] response in
             guard let self, response == .alertFirstButtonReturn else { return }
             var overrides = self.settings.shortcutOverrides
@@ -425,7 +425,7 @@ private struct ShortcutField: View {
         Button {
             if recording { model.stopRecording() } else { model.startRecording(id, title: title) }
         } label: {
-            Text(recording ? "Tapez…" : (shortcut?.display ?? "—"))
+            Text(recording ? "Type…" : (shortcut?.display ?? "—"))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(recording ? Color.accentColor : Color.primary)
                 .frame(width: 104, height: 20)
@@ -440,20 +440,20 @@ private struct ShortcutField: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(recording ? "Tapez la combinaison, ⌫ pour la retirer, esc pour annuler" : "Changer le raccourci")
+        .help(recording ? "Type the combination, ⌫ to remove it, esc to cancel" : "Change shortcut")
     }
 }
 
 /// Searching the shortcuts by command, by menu, or by the keys themselves: "⌘T",
-/// "cmd t", "maj cmd c", "ctrl tab".
+/// "cmd t", "shift cmd c", "ctrl tab".
 enum ShortcutSearch {
     private static let words: [String: String] = [
-        "cmd": "⌘", "command": "⌘", "commande": "⌘",
-        "shift": "⇧", "maj": "⇧", "majuscule": "⇧",
+        "cmd": "⌘", "command": "⌘",
+        "shift": "⇧",
         "opt": "⌥", "option": "⌥", "alt": "⌥",
-        "ctrl": "⌃", "control": "⌃", "contrôle": "⌃",
-        "tab": "⇥", "return": "↩", "enter": "↩", "esc": "⎋", "space": "Espace", "espace": "Espace",
-        "left": "←", "gauche": "←", "right": "→", "droite": "→", "up": "↑", "haut": "↑", "down": "↓", "bas": "↓",
+        "ctrl": "⌃", "control": "⌃",
+        "tab": "⇥", "return": "↩", "enter": "↩", "esc": "⎋", "space": "Space",
+        "left": "←", "right": "→", "up": "↑", "down": "↓",
     ]
 
     static func matches(_ query: String, title: String, menu: String, shortcut: MainMenu.Shortcut?) -> Bool {
@@ -472,7 +472,7 @@ enum ShortcutSearch {
         return !wanted.isEmpty && wanted.allSatisfy { keys.contains($0) }
     }
 
-    /// "⇧⌘C" → ["⇧", "⌘", "C"]; "⌃Espace" → ["⌃", "ESPACE"].
+    /// "⇧⌘C" → ["⇧", "⌘", "C"]; "⌃Space" → ["⌃", "SPACE"].
     private static func parts(of display: String) -> [String] {
         var result: [String] = []
         var rest = Substring(display)

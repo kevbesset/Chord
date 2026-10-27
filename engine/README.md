@@ -1,96 +1,85 @@
-# Moteur : Chromium
+# Engine: Chromium
 
-Chord s'appuie sur [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium)
-(licence BSD-3), une version de Chromium sans les services Google. La version est figée
-dans `UPSTREAM`.
+Chord builds on [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium)
+(BSD-3 license), a version of Chromium without Google services. The version is pinned
+in `UPSTREAM`.
 
-## Spike 0 — le premier jalon technique
+## Spike 0 — the first technical milestone
 
-**Rien d'autre n'est construit côté moteur tant qu'il ne tient pas.**
-Réussi quand, dans une fenêtre ChordUI :
+**Nothing else is built on the engine side until it holds.**
+Done when, in a ChordUI window:
 
-1. une page web s'affiche, rendue par Chromium ;
-2. les DevTools s'ouvrent (⌥⌘I) ;
-3. une extension chargée depuis `chrome://extensions` (mode développeur) fonctionne.
+1. a web page shows, rendered by Chromium;
+2. DevTools open (⌥⌘I);
+3. an extension loaded from `chrome://extensions` (developer mode) works.
 
-### Construire
+### Building
 
 ```bash
-engine/scripts/bootstrap.sh    # prérequis (Homebrew : ninja, coreutils, go, esbuild,
+engine/scripts/bootstrap.sh    # prerequisites (Homebrew: ninja, coreutils, go, esbuild,
                                # typescript, python@3.13) + ungoogled-chromium-macos
-engine/scripts/prepare.sh      # sources de Chromium (archive), patchs ungoogled, outils
-engine/scripts/build.sh        # ChordUI.framework, puis Chromium avec //chord
-engine/scripts/run.sh          # au quotidien : ChordUI seul, remis dans Chord.app
+engine/scripts/prepare.sh      # Chromium sources (archive), ungoogled patches, tools
+engine/scripts/build.sh        # ChordUI.framework, then Chromium with //chord
+engine/scripts/run.sh          # day to day: ChordUI alone, put back into Chord.app
 ```
 
-`build.sh` produit `engine/vendor/ungoogled-chromium-macos/build/src/out/Chord/Chord.app`,
-ChordUI.framework placé dans `Contents/Frameworks`. `run.sh` ne recompile que ChordUI
-(quelques secondes), le remplace dans l'app et relance Chord. Réglages de développement
-(`engine/chord.gn`) : ni LTO, ni PGO, ni symboles. Le premier build prend plusieurs
-heures ; les suivants ne recompilent que ce qui a changé.
+`build.sh` produces `engine/vendor/ungoogled-chromium-macos/build/src/out/Chord/Chord.app`,
+with ChordUI.framework in `Contents/Frameworks`. `run.sh` only recompiles ChordUI (a
+few seconds), replaces it in the app and relaunches Chord. Development settings
+(`engine/chord.gn`): no LTO, no PGO, no symbols. The first build takes several hours;
+the next ones only recompile what changed.
 
-À savoir :
+Good to know:
 
-- **SDK macOS 26.5.** L'éditeur de liens fourni avec Chromium 155 ne lit pas le SDK
-  macOS 27 de Xcode 27. Les scripts utilisent celui des Command Line Tools
-  (`/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk`), lié dans le dossier de
-  sortie pour GN.
-- **Pas d'en-têtes précompilés** : ils échouent avec le clang d'ungoogled-chromium.
-- `prepare.sh` reprend là où il s'est arrêté (marqueurs `.chord-step-*` dans les
-  sources).
+- **macOS SDK 26.5.** The linker that ships with Chromium 155 can't read Xcode 27's
+  macOS 27 SDK. The scripts use the Command Line Tools one
+  (`/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk`), linked into the output
+  folder for GN.
+- **No precompiled headers**: they fail with ungoogled-chromium's clang.
+- `prepare.sh` picks up where it stopped (`.chord-step-*` markers in the sources).
 
-### Comment Chord se branche (étapes 2 à 5)
+### How Chord plugs in (steps 2 to 5)
 
-- **`//chord`** (`engine/chord`, lien `src/chord`) : cible GN `//chord:browser`, liée au
-  navigateur par un patch (voir `patches/`).
-- **Démarrage** : `ChordBrowserMainExtraParts` empêche Chromium d'ouvrir sa fenêtre
-  (`--no-startup-window`), puis, le navigateur démarré, charge `ChordUI.framework` et
-  appelle `ChordUIHost.start(engine:…)`. Chromium garde `NSApplication` et son délégué ;
-  le menu installé est celui de ChordUI.
-- **Fenêtre** : la fabrique `BrowserWindow::CreateBrowserWindow` donne aux navigateurs
-  normaux une `ChordBrowserWindow`, sans vue Views, calquée sur `WebUIBrowserWindow`.
-  On garde `Browser` et `TabStripModel`, dont dépendent les extensions, les DevTools et
-  les fonctionnalités d'onglet ; les DevTools, popups et apps gardent leurs fenêtres
-  Chromium.
-- **Pont** : `ChordEngine` (conforme à `ChordWebEngine`) crée chaque page comme un
-  onglet de son `Browser` ; `ChordPage` (conforme à `ChordWebPage`) enveloppe le
-  `WebContents` et donne sa vue native à ChordUI. Les onglets que Chromium ouvre ou
-  ferme lui-même (lien en nouvel onglet, `window.open`, extension, `window.close()`)
-  remontent à ChordUI par `ChordWebEngineDelegate`. L'onglet sélectionné dans ChordUI
-  devient l'onglet actif de Chromium.
-- **ChordUI n'est pas lié à Chromium** : il est chargé à l'exécution et joint par le
-  runtime Objective-C (`NSClassFromString(@"ChordUIHost")`). Les protocoles ont des noms
-  Objective-C fixes, reflétés dans `engine/chord/browser/chord_ui.h`.
+- **`//chord`** (`engine/chord`, linked as `src/chord`): GN target `//chord:browser`,
+  linked into the browser by a patch (see `patches/`).
+- **Startup**: `ChordBrowserMainExtraParts` stops Chromium from opening its window
+  (`--no-startup-window`), then, once the browser has started, loads
+  `ChordUI.framework` and calls `ChordUIHost.start(engine:…)`. Chromium keeps
+  `NSApplication` and its delegate; the installed menu is ChordUI's.
+- **Window**: the `BrowserWindow::CreateBrowserWindow` factory gives normal browsers a
+  `ChordBrowserWindow`, with no Views view, modeled on `WebUIBrowserWindow`. We keep
+  `Browser` and `TabStripModel`, which extensions, DevTools and tab features depend on;
+  DevTools, popups and apps keep their Chromium windows.
+- **Bridge**: `ChordEngine` (conforming to `ChordWebEngine`) creates each page as a tab
+  of its `Browser`; `ChordPage` (conforming to `ChordWebPage`) wraps the `WebContents`
+  and hands its native view to ChordUI. Tabs that Chromium opens or closes itself (link
+  in a new tab, `window.open`, extension, `window.close()`) go up to ChordUI through
+  `ChordWebEngineDelegate`. The tab selected in ChordUI becomes Chromium's active tab.
+- **ChordUI is not linked into Chromium**: it is loaded at runtime and reached through
+  the Objective-C runtime (`NSClassFromString(@"ChordUIHost")`). The protocols have
+  fixed Objective-C names, mirrored in `engine/chord/browser/chord_ui.h`.
 
-## État (24 octobre 2026)
+## Status (October 24, 2026)
 
-Chord tourne sur Chromium 155. Vérifié par le protocole DevTools : les pages
-s'affichent dans les fenêtres de ChordUI (petite fenêtre comprise) ; une extension
-non empaquetée injecte ses scripts de contenu dans les pages de Chord ; `chrome.tabs`
-voit les onglets de Chord ; un onglet créé par une extension apparaît dans les onglets
-du jour. Les DevTools (⌥⌘I) s'ancrent dans la fenêtre de Chord : ils remplissent la
-zone de la page (`PageHostView` dans ChordUI) et la page prend la place que leur
-disposition lui laisse, comme dans `DevtoolsUIController` de Chromium.
+Chord runs on Chromium 155. Verified through the DevTools protocol: pages show in
+ChordUI's windows (little window included); an unpacked extension injects its content
+scripts into Chord's pages; `chrome.tabs` sees Chord's tabs; a tab created by an
+extension appears in today's tabs. DevTools (⌥⌘I) dock into Chord's window: they fill
+the page area (`PageHostView` in ChordUI) and the page takes the space their layout
+leaves it, as in Chromium's `DevtoolsUIController`.
 
-En build de développement, la clé de chiffrement des cookies est dans un trousseau
-simulé : sinon macOS demande l'accès au Trousseau à chaque build (la signature change)
-et chaque chargement de page attend la réponse.
+In a development build signed ad hoc, the cookie encryption key is in a mock keychain:
+otherwise macOS asks for keychain access on every build (the signature changes) and
+every page load waits for the answer.
 
-## Points connus à traiter
+## Known items to handle
 
-- **Icône** : l'app s'appelle Chord mais garde l'icône de Chromium.
-- **Pas encore branché** : Peek au ⇧-clic et liens sortant d'un épinglé (une
-  `NavigationThrottle` de `//chord`), téléchargements vers le panneau de ChordUI,
-  plein écran vidéo dans l'interface
-  (masquer la barre latérale), recherche dans la page (⌘F).
+- **Not wired yet**: Peek on ⇧-click and links leaving a pinned tab (a
+  `NavigationThrottle` in `//chord`), downloads into ChordUI's panel, video full screen
+  in the interface (hide the sidebar), find in page (⌘F).
+- **Main menu**: Chromium builds its own. Choose between replacing it with ChordUI's
+  and wiring its commands to ChordUI's.
+- **Updates**: a major Chromium version every four weeks. `UPSTREAM` changes, the
+  patches in `patches/` are reapplied.
 
-- **Chrome Web Store** : ungoogled-chromium bloque l'installation d'extensions depuis
-  le Web Store. Pour Chord, il faudra la rétablir (patch dédié).
-- **Widevine** (Netflix, Spotify…) : absent par défaut, à charger comme composant.
-- **Menu principal** : Chromium construit le sien. Choisir entre le remplacer par celui
-  de ChordUI et relier ses commandes à celles de ChordUI.
-- **Mises à jour** : une version majeure de Chromium toutes les quatre semaines.
-  `UPSTREAM` change, les patchs de `patches/` sont réappliqués.
-
-Tout ce qui touche à l'organisation interne de Chromium ci-dessus est un plan,
-à confirmer pendant le spike sur la version figée.
+Done since: Chord's icon, the Chrome Web Store and Widevine (see `patches/README.md`).

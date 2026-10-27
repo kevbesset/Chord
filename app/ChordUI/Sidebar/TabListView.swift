@@ -12,7 +12,7 @@ final class ListMarker {
     static let newTab = ListMarker(.newTab)
 }
 
-/// Pinned tabs and their folders, then "Aujourd'hui" with "Nouvel onglet" first, then
+/// Pinned tabs and their folders, then "Today" with "New Tab" first, then
 /// today's tabs. An NSOutlineView: rows are recycled, so the list stays fast with many
 /// tabs, and folders open and close like Arc's.
 ///
@@ -162,7 +162,7 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
                 return outlineView.makeView(withIdentifier: NewTabCellView.reuseID, owner: nil) as? NewTabCellView ?? NewTabCellView()
             case .header:
                 let cell = outlineView.makeView(withIdentifier: HeaderCellView.reuseID, owner: nil) as? HeaderCellView ?? HeaderCellView()
-                cell.configure(title: "Aujourd'hui", count: space?.today.count ?? 0)
+                cell.configure(title: "Today", count: space?.today.count ?? 0)
                 return cell
             case .separator:
                 return outlineView.makeView(withIdentifier: SeparatorCellView.reuseID, owner: nil) as? SeparatorCellView ?? SeparatorCellView()
@@ -223,7 +223,7 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     }
 
     /// Where a drop lands. In a folder; or at the top level: the pinned tabs down to the
-    /// "Aujourd'hui" header, today's tabs from "Nouvel onglet" down.
+    /// "Today" header, today's tabs from "New Tab" down.
     private func destination(item: Any?, index: Int) -> TabDestination? {
         guard let space else { return nil }
         if let folder = item as? Folder {
@@ -296,36 +296,36 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         case let tab as Tab:
             tabMenu(menu, tab)
         case let folder as Folder:
-            menu.addItem(closureItem("Renommer…") { [weak self] in self?.delegate?.sidebarRename(folder) })
-            menu.addItem(closureItem("Nouveau dossier") { [weak self] in self?.delegate?.sidebarNewFolder(with: nil) })
+            menu.addItem(closureItem("Rename…") { [weak self] in self?.delegate?.sidebarRename(folder) })
+            menu.addItem(closureItem("New Folder") { [weak self] in self?.delegate?.sidebarNewFolder(with: nil) })
             menu.addItem(.separator())
-            menu.addItem(closureItem("Dégrouper") { [weak self] in self?.delegate?.sidebarUngroup(folder) })
-            menu.addItem(closureItem("Supprimer le dossier et ses onglets…") { [weak self] in self?.delegate?.sidebarDelete(folder) })
+            menu.addItem(closureItem("Ungroup") { [weak self] in self?.delegate?.sidebarUngroup(folder) })
+            menu.addItem(closureItem("Delete Folder and Its Tabs…") { [weak self] in self?.delegate?.sidebarDelete(folder) })
         default:
-            menu.addItem(closureItem("Nouveau dossier") { [weak self] in self?.delegate?.sidebarNewFolder(with: nil) })
-            menu.addItem(closureItem("Nouvel onglet") { [weak self] in self?.delegate?.sidebarNewTab() })
+            menu.addItem(closureItem("New Folder") { [weak self] in self?.delegate?.sidebarNewFolder(with: nil) })
+            menu.addItem(closureItem("New Tab") { [weak self] in self?.delegate?.sidebarNewTab() })
         }
     }
 
     private func tabMenu(_ menu: NSMenu, _ tab: Tab) {
-        menu.addItem(closureItem("Ajouter aux favoris") { [weak self] in self?.delegate?.sidebarToggleFavorite(tab) })
-        menu.addItem(closureItem(tab.isPinned ? "Détacher" : "Épingler") { [weak self] in self?.delegate?.sidebarTogglePin(tab) })
-        menu.addItem(closureItem("Nouveau dossier avec cet onglet") { [weak self] in self?.delegate?.sidebarNewFolder(with: tab) })
+        menu.addItem(closureItem("Add to Favorites") { [weak self] in self?.delegate?.sidebarToggleFavorite(tab) })
+        menu.addItem(closureItem(tab.isPinned ? "Unpin" : "Pin") { [weak self] in self?.delegate?.sidebarTogglePin(tab) })
+        menu.addItem(closureItem("New Folder with This Tab") { [weak self] in self?.delegate?.sidebarNewFolder(with: tab) })
         if let space, let folder = space.parent(of: tab) {
-            menu.addItem(closureItem("Sortir du dossier « \(folder.name) »") { [weak self] in
+            menu.addItem(closureItem("Move Out of “\(folder.name)”") { [weak self] in
                 let parent = space.parent(of: folder)
                 let position = (space.items(in: parent).firstIndex { $0.object === folder } ?? 0) + 1
                 self?.delegate?.sidebarMove(tab, to: .pinned(parent, position))
             })
         }
         if splitIDs.contains(tab.id) {
-            menu.addItem(closureItem("Retirer de la split view") { [weak self] in self?.delegate?.sidebarRemoveFromSplit(tab) })
+            menu.addItem(closureItem("Remove from Split View") { [weak self] in self?.delegate?.sidebarRemoveFromSplit(tab) })
         } else if tab.id != selectedID {
-            menu.addItem(closureItem("Ouvrir en split view") { [weak self] in self?.delegate?.sidebarSplit(tab) })
+            menu.addItem(closureItem("Open in Split View") { [weak self] in self?.delegate?.sidebarSplit(tab) })
         }
         let others = spaces.filter { $0 !== space }
         if !others.isEmpty {
-            let move = NSMenuItem(title: "Déplacer vers", action: nil, keyEquivalent: "")
+            let move = NSMenuItem(title: "Move To", action: nil, keyEquivalent: "")
             let submenu = NSMenu()
             for other in others {
                 let entry = closureItem(other.name) { [weak self] in self?.delegate?.sidebarMove(tab, toSpace: other) }
@@ -336,9 +336,9 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
             menu.addItem(move)
         }
         menu.addItem(.separator())
-        menu.addItem(closureItem("Copier l'URL") { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
+        menu.addItem(closureItem("Copy URL") { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
         menu.addItem(.separator())
-        menu.addItem(closureItem(tab.isPinned ? "Mettre en veille" : "Fermer l'onglet") { [weak self] in self?.delegate?.sidebarClose(tab) })
+        menu.addItem(closureItem(tab.isPinned ? "Unload" : "Close Tab") { [weak self] in self?.delegate?.sidebarClose(tab) })
     }
 }
 

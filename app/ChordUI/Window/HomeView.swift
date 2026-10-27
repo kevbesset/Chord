@@ -42,10 +42,10 @@ final class HomeView: NSView {
         quickGrid.alignment = .top
         shortcuts.orientation = .horizontal
         shortcuts.spacing = 22
-        for (keys, label) in [("⌘T", "Nouvel onglet"), ("⌘L", "Adresse"), ("⌃⇧=", "Split view"), ("⌘S", "Barre latérale"), ("⌥⌘N", "Petite fenêtre")] {
+        for (keys, label) in [("⌘T", "New Tab"), ("⌘L", "Address"), ("⌃⇧=", "Split View"), ("⌘S", "Sidebar"), ("⌥⌘N", "Little Window")] {
             shortcuts.addArrangedSubview(Self.shortcut(keys, label))
         }
-        shortcutsTitle.stringValue = "RACCOURCIS"
+        shortcutsTitle.stringValue = "SHORTCUTS"
 
         let column = NSStackView(views: [mark, greeting, subtitle, search, quickTitle, quickGrid, shortcutsTitle, shortcuts])
         column.orientation = .vertical
@@ -72,7 +72,7 @@ final class HomeView: NSView {
             search.widthAnchor.constraint(equalToConstant: 480),
             search.heightAnchor.constraint(equalToConstant: 46),
         ])
-        setAccessibilityLabel("Accueil de Chord")
+        setAccessibilityLabel("Chord home")
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -105,7 +105,7 @@ final class HomeView: NSView {
     func update(space: Space, favorites: [Tab]) {
         accent = space.accent
         greeting.stringValue = Self.greeting()
-        subtitle.stringValue = "Space \(space.name) · aucun onglet ouvert"
+        subtitle.stringValue = "Space \(space.name) · no open tabs"
         needsDisplay = true
 
         let quick = Array((favorites + space.pinned).prefix(Self.maxQuickTiles))
@@ -115,17 +115,17 @@ final class HomeView: NSView {
             tile.onClick = { [weak self] in self?.onOpen?(tab) }
             quickGrid.addArrangedSubview(tile)
         }
-        quickTitle.stringValue = favorites.isEmpty ? "ÉPINGLÉS" : "FAVORIS ET ÉPINGLÉS"
+        quickTitle.stringValue = favorites.isEmpty ? "PINNED" : "FAVORITES AND PINNED"
         quickTitle.isHidden = quick.isEmpty
         quickGrid.isHidden = quick.isEmpty
     }
 
-    /// "Bonjour Kevin", "Bonsoir Kevin": the macOS account's first name, when there is one.
+    /// "Good morning, Kevin", "Good evening, Kevin": the macOS account's first name, when there is one.
     private static func greeting() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
-        let hello = hour >= 18 || hour < 5 ? "Bonsoir" : "Bonjour"
+        let hello = hour >= 18 || hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : "Good afternoon"
         let first = NSFullUserName().split(separator: " ").first.map(String.init) ?? ""
-        return first.isEmpty ? hello : "\(hello) \(first)"
+        return first.isEmpty ? hello : "\(hello), \(first)"
     }
 
     private static func shortcut(_ keys: String, _ label: String) -> NSView {
@@ -153,7 +153,7 @@ final class HomeSearchView: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         let icon = NSImageView(image: Theme.symbol("magnifyingglass", size: 15) ?? NSImage())
         icon.contentTintColor = .secondaryLabelColor
-        let placeholder = NSTextField(labelWithString: "Rechercher ou saisir une adresse")
+        let placeholder = NSTextField(labelWithString: "Search or enter URL")
         placeholder.font = .systemFont(ofSize: 15)
         placeholder.textColor = .secondaryLabelColor
         let key = NSTextField(labelWithString: "⌘T")
@@ -173,7 +173,7 @@ final class HomeSearchView: NSView {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("Rechercher ou saisir une adresse")
+        setAccessibilityLabel("Search or enter URL")
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

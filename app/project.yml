@@ -7,7 +7,7 @@ name: Chord
 
 options:
   bundleIdPrefix: app.chord
-  developmentLanguage: fr
+  developmentLanguage: en
   deploymentTarget:
     macOS: "14.0"
 
@@ -54,7 +54,7 @@ schemes:
       targets:
         ChordUI: all
       postActions:
-        - name: Lancer Chord
+        - name: Launch Chord
           settingsTarget: ChordUI
           script: |
             mkdir -p "$PROJECT_DIR/build"

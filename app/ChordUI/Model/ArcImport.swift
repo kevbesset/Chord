@@ -75,7 +75,7 @@ public enum ArcImport {
                 if let tab = tab(from: item, section: .pinned) { return .tab(tab) }
                 guard let data = item["data"] as? [String: Any], data["list"] != nil else { return nil }
                 folderCount += 1
-                let name = (item["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Dossier"
+                let name = (item["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Folder"
                 return .folder(Folder(name: name, isExpanded: false, items: pinnedItems(under: childID)))
             }
         }

@@ -98,4 +98,4 @@ fi
 
 sign --options restrict,library,runtime,kill --entitlements "$ENTITLEMENTS/app-entitlements.plist" "$APP"
 codesign --verify --deep --strict "$APP"
-echo "Signé : $([ "$ID" = "-" ] && echo "ad hoc" || echo "$ID")"
+echo "Signed: $([ "$ID" = "-" ] && echo "ad hoc" || echo "$ID")"

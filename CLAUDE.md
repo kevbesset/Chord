@@ -1,116 +1,117 @@
-# Chord — contexte pour Claude Code
+# Chord — context for Claude Code
 
-Chord est un navigateur macOS open source, successeur d'Arc, pour les développeurs.
-Fork de Chromium (base ungoogled-chromium) dont l'interface est remplacée par une
-interface native en Swift / AppKit. Projet solo de Kevin, développé avec l'IA.
+Chord is an open source macOS browser, a successor to Arc, for developers.
+A Chromium fork (based on ungoogled-chromium) whose interface is replaced by a native
+Swift / AppKit interface. Kevin's solo project, developed with AI.
 
-À lire avant toute tâche importante :
-- `docs/VISION.md` : vision produit, priorités, parité Arc de la v1, ce qu'on ne fait pas
-- `docs/ARCHITECTURE.md` : découpage ChordUI / moteur, règles d'architecture
-- `docs/PERFORMANCE.md` : budgets de latence
-- `docs/decisions/` : décisions déjà prises et leurs raisons
-- `design/` : maquettes de référence (valeurs exactes) et marque
-- `engine/README.md` : plan du spike 0 (intégration Chromium)
+Read before any significant task:
+- `docs/VISION.md`: product vision, priorities, v1 Arc parity, what we don't do
+- `docs/ARCHITECTURE.md`: ChordUI / engine split, architecture rules
+- `docs/PERFORMANCE.md`: latency budgets
+- `docs/decisions/`: decisions already made and their reasons
+- `design/`: reference mockups (exact values) and brand
+- `engine/README.md`: spike 0 plan (Chromium integration)
 
-## Construire et lancer
+## Build and run
 
-Chord, c'est Chromium (ungoogled-chromium) avec ChordUI chargé dedans. Une fois :
+Chord is Chromium (ungoogled-chromium) with ChordUI loaded into it. Once:
 
 ```bash
 engine/scripts/bootstrap.sh && engine/scripts/prepare.sh
-engine/scripts/build.sh          # plusieurs heures la première fois ; à relancer
-                                 # quand //chord ou engine/patches changent
+engine/scripts/build.sh          # several hours the first time; run again
+                                 # when //chord or engine/patches change
 ```
 
-Au quotidien, pour l'interface (quelques secondes, sans recompiler Chromium) :
+Day to day, for the interface (a few seconds, without recompiling Chromium):
 
 ```bash
-engine/scripts/run.sh            # recompile ChordUI, le remet dans Chord.app, relance
+engine/scripts/run.sh            # recompiles ChordUI, puts it back into Chord.app, relaunches
 ```
 
-Pour partager : `build.sh --release`, `package.sh`, `release.sh` (`docs/RELEASING.md`).
+To share: `build.sh --release`, `package.sh`, `release.sh` (`docs/RELEASING.md`).
 
-Dans Xcode, le schéma **Chord** fait la même chose : Build (⌘B) ou Run (⌘R) compile
-ChordUI, l'installe dans Chord.app et relance Chord (journal : `app/build/run-chord.log`).
+In Xcode, the **Chord** scheme does the same: Build (⌘B) or Run (⌘R) compiles
+ChordUI, installs it into Chord.app and relaunches Chord (log: `app/build/run-chord.log`).
 
-`Chord.xcodeproj` est généré depuis `app/project.yml` et ignoré par git : on modifie
-`project.yml`, jamais le projet. Après une modification de code, toujours recompiler
-et corriger les erreurs avant de rendre la main.
+`Chord.xcodeproj` is generated from `app/project.yml` and ignored by git: edit
+`project.yml`, never the project. After a code change, always recompile and fix the
+errors before handing back.
 
-## Règles
+## Rules
 
-- **ChordUI ne connaît aucun moteur.** Jamais d'en-tête de Chromium (ni d'`import
-  WebKit`) dans `app/ChordUI` : tout passe par les protocoles `@objc` de
-  `app/ChordUI/Engine/ChordWebEngine.swift`, que `engine/chord` implémente. Chromium est
-  le seul moteur, développement compris (`docs/decisions/0004`).
-- **ChordUI ne crée jamais `NSApplication`** : dans le vrai navigateur, Chromium la possède.
-- **AppKit, pas SwiftUI**, pour tout ce qui est sur le chemin critique (fenêtre, barre
-  latérale, barre de commande). SwiftUI toléré pour les réglages.
-- **La fluidité est mesurée.** Toute nouvelle interaction importante ouvre un intervalle
-  `Perf.begin(...)` et a un budget dans `Perf.budgets`. Ne pas dépasser les budgets.
-- **Beau et fluide d'abord.** Pas de grosse fonctionnalité nouvelle tant que la base
-  n'est pas impeccable. Pas d'IA ajoutée dans l'interface.
-- **Fidélité à Arc pour l'UX** (raccourcis compris), personnalité visuelle propre :
-  calme, premium, natif, dans l'esprit de Safari. Verre (NSVisualEffectView) plutôt
-  qu'aplats de couleur.
-- **Raccourcis** : tous déclarés dans `app/ChordUI/Menu/MainMenu.swift`.
-- **Concurrence** : Swift 5, `SWIFT_STRICT_CONCURRENCY = minimal`. Pas d'annotations
-  `@MainActor` explicites sur les types de ChordUI pour l'instant.
-- Code et commentaires en anglais ; textes de l'interface et documentation en français
-  (localisation prévue plus tard).
-- Côté Chromium : le code de Chord vit dans `//chord`, les patchs restent minuscules
-  et isolés (`engine/patches/README.md`), pour absorber une version majeure toutes les
-  quatre semaines.
+- **ChordUI knows no engine.** Never a Chromium header (nor `import WebKit`) in
+  `app/ChordUI`: everything goes through the `@objc` protocols in
+  `app/ChordUI/Engine/ChordWebEngine.swift`, which `engine/chord` implements. Chromium
+  is the only engine, development included (`docs/decisions/0004`).
+- **ChordUI never creates `NSApplication`**: in the real browser, Chromium owns it.
+- **AppKit, not SwiftUI**, for everything on the critical path (window, sidebar,
+  command bar). SwiftUI is tolerated for settings.
+- **Smoothness is measured.** Every significant new interaction opens a
+  `Perf.begin(...)` interval and has a budget in `Perf.budgets`. Don't exceed the
+  budgets.
+- **Beautiful and smooth first.** No big new feature until the foundation is flawless.
+  No AI added to the interface.
+- **Faithful to Arc for UX** (shortcuts included), with its own visual personality:
+  calm, premium, native, in the spirit of Safari. Glass (NSVisualEffectView) rather
+  than flat colors.
+- **Shortcuts**: all declared in `app/ChordUI/Menu/MainMenu.swift`.
+- **Concurrency**: Swift 5, `SWIFT_STRICT_CONCURRENCY = minimal`. No explicit
+  `@MainActor` annotations on ChordUI types for now.
+- Everything in English: code, comments, interface text and documentation
+  (localization planned later).
+- On the Chromium side: Chord's code lives in `//chord`, patches stay tiny and isolated
+  (`engine/patches/README.md`), to absorb a major version every four weeks.
 
-## État actuel
+## Current state
 
-- Interface native complète (ChordUI), sur Chromium : fenêtre en
-  verre translucide (aussi inactive), déplaçable depuis tout le vide de la barre latérale,
-  barre latérale redimensionnable, profils comme Arc (chaque profil est un vrai profil
-  Chromium : session, cookies, extensions et favoris à part ; un nouveau Space a le sien),
-  épinglés avec dossiers,
-  vraies icônes des sites (cache disque, reprises d'Arc à l'import), glisser-déposer des
-  onglets et dossiers (ordre, dossiers, épingler, favoris, autre Space, liens d'autres apps), Spaces (couleur, nom, ⌃1…⌃9,
-  glisser deux doigts qui suit les doigts comme Arc), favoris en grille aux rangées pleines, barre de commande (compacte sur le champ d'adresse au clic ou ⌘L, comme Arc), Peek (⇧-clic, liens sortant d'un épinglé),
-  split view (⌃⇧=, 2 à 4 volets), petite fenêtre (⌥⌘N, liens d'autres apps), barre
-  d'adresse en haut ou latérale (⇧⌘D, copie de l'URL au survol avec confirmation), mode clair/sombre, edgeless, réglages (⌘,) avec raccourcis
-  remappables, import d'Arc (barre latérale, puis connexions, mots de passe, historique et
-  données des sites de chaque profil Arc dans le profil Chord de ses Spaces), page d'accueil (quand aucun onglet
-  n'est ouvert : fermer un onglet ramène au dernier onglet encore actif, jamais à un
-  onglet en veille), téléchargements (panneau façon Arc, ⇧⌘J), session.
-- **Chord sur Chromium** (spike 0, `engine/`) : ChordUI tourne dans Chromium 155
-  (ungoogled-chromium), construit par `engine/scripts/build.sh`. Vérifié : les pages
-  s'affichent dans les fenêtres de Chord, les extensions marchent (scripts de contenu,
-  `chrome.tabs`, onglets ouverts par une extension adoptés par ChordUI), DevTools (⌥⌘I)
-  ancrés dans la fenêtre à droite, à gauche ou en bas, ou dans leur propre fenêtre.
-- Plusieurs fenêtres (⌘N) sur les mêmes Spaces, chacune avec son Space et ses onglets
-  sélectionnés (`WindowSelection`) ; navigation privée (⇧⌘N) sur le profil incognito de
-  Chromium, fenêtre sombre, rien d'enregistré ; ⌘← / ⌘→ pour l'historique (sauf en
-  saisie de texte).
-- Picture-in-picture comme Arc : une vidéo en lecture passe dans la fenêtre PiP de
-  Chromium (flottante, déplaçable, redimensionnable) quand son onglet quitte l'écran,
-  et revient à son retour ; « retour à l'onglet » sélectionne l'onglet dans ChordUI ;
-  ⌃⌘P à la main ; réglage « Picture-in-picture automatique ».
-- Demandes de permission des pages : petite bulle discrète en haut de la page, comme
-  Arc (Bloquer / Autoriser), qui ne bloque pas la page ; double-clic sur la vidéo PiP
-  ou « retour à l'onglet » : l'onglet revient, Space compris.
-- Réglages du site comme Arc (bouton du champ d'adresse, barre latérale ou barre du
-  haut) : carte avec partager, copier, outils de développement, les extensions (tuiles
-  avec badge ; clic = popup, clic droit = épingler, options, gérer, supprimer), les
-  autorisations choisies pour le site et un lien vers tous les réglages du site. Les
-  extensions épinglées ont leur bouton dans le champ d'adresse ; leurs popups s'ouvrent
-  dans une bulle native (//chord héberge l'`ExtensionViewHost`).
-- `chord://` pour les pages internes de Chromium (`chord://settings`,
-  `chord://extensions`, aussi dans la barre de commande).
-- Après un plantage, le lancement suivant écrit un rapport lisible dans
-  `~/Library/Logs/Chord/latest-crash.md` (pile du fil fautif, message d'erreur de
-  Chromium s'il y en a un, capté par //chord dans `last-fatal.txt`) et le propose.
-- Pas encore côté Chromium : Peek au ⇧-clic, téléchargements dans le panneau de Chord,
-  plein écran vidéo dans l'interface, recherche dans la page.
-- Partage : Chord signé par le meilleur certificat du Mac (`engine/scripts/sign.sh`),
-  données dans `~/Library/Application Support/Chord` (celles des anciens builds y sont
-  déplacées et rechiffrées avec la clé du Trousseau), nom et icône de Chord partout,
-  Chrome Web Store et composants (Widevine) rétablis, mises à jour Sparkle,
-  `package.sh` (image disque) et `release.sh` (version GitHub), voir `docs/RELEASING.md`.
-  Pas encore de Developer ID : pas de notarisation.
-- Licence : GPL-3.0 (`LICENSE`, décision 0005).
+- Complete native interface (ChordUI), on Chromium: translucent glass window (inactive
+  too), draggable from all the empty space of the sidebar, resizable sidebar, profiles
+  like Arc (each profile is a real Chromium profile: separate session, cookies,
+  extensions and favorites; a new Space gets its own), pinned tabs with folders, real
+  site icons (disk cache, taken from Arc on import), drag and drop of tabs and folders
+  (order, folders, pin, favorites, another Space, links from other apps), Spaces
+  (color, name, ⌃1…⌃9, two-finger swipe that follows the fingers like Arc), favorites in
+  a grid with full rows, command bar (compact over the address field on click or ⌘L,
+  like Arc), Peek (⇧-click, links leaving a pinned tab), split view (⌃⇧=, 2 to 4
+  panes), little window (⌥⌘N, links from other apps), address bar on top or in the
+  sidebar (⇧⌘D, copy the URL on hover with confirmation), light/dark mode, edgeless,
+  settings (⌘,) with remappable shortcuts, Arc import (sidebar, then logins, passwords,
+  history and site data of each Arc profile into the Chord profile of its Spaces), home
+  page (when no tab is open: closing a tab goes back to the last tab still active, never
+  to a sleeping tab), downloads (Arc-style panel, ⇧⌘J), session.
+- **Chord on Chromium** (spike 0, `engine/`): ChordUI runs in Chromium 155
+  (ungoogled-chromium), built by `engine/scripts/build.sh`. Verified: pages show in
+  Chord's windows, extensions work (content scripts, `chrome.tabs`, tabs opened by an
+  extension adopted by ChordUI), DevTools (⌥⌘I) docked in the window on the right, left
+  or bottom, or in their own window.
+- Multiple windows (⌘N) on the same Spaces, each with its own Space and selected tabs
+  (`WindowSelection`); private browsing (⇧⌘N) on Chromium's incognito profile, dark
+  window, nothing saved; ⌘← / ⌘→ for history (except while typing text).
+- Picture in picture like Arc: a playing video moves into Chromium's PiP window
+  (floating, movable, resizable) when its tab leaves the screen, and comes back when it
+  returns; "back to tab" selects the tab in ChordUI; ⌃⌘P by hand; "Automatic picture in
+  picture" setting.
+- Page permission requests: a small discreet bubble at the top of the page, like Arc
+  (Block / Allow), which doesn't block the page; double-click on the PiP video or "back
+  to tab": the tab comes back, Space included.
+- Site settings like Arc (button in the address field, sidebar or top bar): a card with
+  share, copy, developer tools, the extensions (tiles with badges; click = popup, right
+  click = pin, options, manage, remove), the permissions chosen for the site and a link
+  to all of the site's settings. Pinned extensions have their button in the address
+  field; their popups open in a native bubble (//chord hosts the `ExtensionViewHost`).
+- `chord://` for Chromium's internal pages (`chord://settings`, `chord://extensions`,
+  also in the command bar).
+- After a crash, the next launch writes a readable report to
+  `~/Library/Logs/Chord/latest-crash.md` (stack of the faulting thread, Chromium's error
+  message if there is one, caught by //chord in `last-fatal.txt`) and offers it.
+- Not yet on the Chromium side: Peek on ⇧-click, downloads in Chord's panel, video full
+  screen in the interface, find in page.
+- Sharing: Chord signed with the Mac's best certificate (`engine/scripts/sign.sh`), data
+  in `~/Library/Application Support/Chord` (older builds' data is moved there and
+  re-encrypted with the keychain key), Chord's name and icon everywhere, Chrome Web
+  Store and components (Widevine) restored, Sparkle updates, `package.sh` (disk image)
+  and `release.sh` (GitHub release), see `docs/RELEASING.md`. No Developer ID yet: no
+  notarization. Version 0.1.0 is published.
+- Interface in English. Chromium's own parts (internal pages, page context menus,
+  permission wording) follow the system language.
+- License: GPL-3.0 (`LICENSE`, decision 0005).

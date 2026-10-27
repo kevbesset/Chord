@@ -15,5 +15,5 @@ if [ -z "$found" ]; then
     xcodebuild -resolvePackageDependencies -project Chord.xcodeproj >/dev/null)
   found="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/artifacts/sparkle/Sparkle/bin/$TOOL" -type f 2>/dev/null | head -1)"
 fi
-[ -n "$found" ] || { echo "Outil de Sparkle introuvable : $TOOL" >&2; exit 1; }
+[ -n "$found" ] || { echo "Sparkle tool not found: $TOOL" >&2; exit 1; }
 exec "$found" "$@"

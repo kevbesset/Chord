@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Chord — petite fenêtre</title>
+<title>Chord — little window</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -16,14 +16,14 @@ button{font:inherit}
 </helmet>
 <div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; overflow: hidden; font-size: 13px; line-height: 1.35; color: #1C1C1E; background: radial-gradient(55% 55% at 15% 25%, #F7A95B 0%, rgba(247,169,91,0) 70%), radial-gradient(45% 60% at 85% 15%, #E24F8C 0%, rgba(226,79,140,0) 70%), radial-gradient(60% 55% at 65% 90%, #3B6CF6 0%, rgba(59,108,246,0) 70%), radial-gradient(40% 40% at 35% 75%, #7C3AED 0%, rgba(124,58,237,0) 70%), #1A1E3A">
 
-  <!-- Barre de menus macOS -->
+  <!-- macOS menu bar -->
   <div style="position: absolute; left: 0; right: 0; top: 0; height: 26px; display: flex; align-items: center; gap: 18px; padding: 0 16px; font-size: 13px; color: #FFFFFF; background: rgba(0,0,0,0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); text-shadow: 0 1px 2px rgba(0,0,0,0.3)">
-    <span style="font-weight: 700">Chord</span><span>Fichier</span><span>Édition</span><span>Affichage</span><span>Historique</span><span>Onglets</span><span>Fenêtre</span><span>Aide</span>
+    <span style="font-weight: 700">Chord</span><span>File</span><span>Edit</span><span>View</span><span>History</span><span>Tabs</span><span>Window</span><span>Help</span>
     <span style="flex: 1"></span>
-    <span>ven. 23 oct.  12:49</span>
+    <span>Fri Oct 23  12:49</span>
   </div>
 
-  <!-- Une autre app derrière (éditeur), floutée par la distance -->
+  <!-- Another app behind (editor), blurred by distance -->
   <div style="position: absolute; left: 120px; top: 90px; width: 820px; height: 560px; border-radius: 12px; background: rgba(30,30,34,0.82); box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.12); overflow: hidden; display: flex; flex-direction: column">
     <div style="height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.06)">
       <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; display: block"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E; display: block"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #28C840; display: block"></span>
@@ -41,7 +41,7 @@ button{font:inherit}
     </div>
   </div>
 
-  <!-- Petite fenêtre Chord : un lien ouvert depuis l'éditeur -->
+  <!-- Chord little window: a link opened from the editor -->
   <div style="position: absolute; left: 560px; top: 250px; width: 760px; height: 540px; box-sizing: border-box; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; background: rgba(255,255,255,{{glass}}); backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); box-shadow: 0 30px 90px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.3), 0 0 0 1.5px rgba(0,0,0,0.3)">
 
     <div style="display: flex; align-items: center; gap: 6px; height: 46px; box-sizing: border-box; padding: 0 10px 0 12px">
@@ -50,14 +50,14 @@ button{font:inherit}
         <span style="width: 11px; height: 11px; border-radius: 50%; background: #FEBC2E; display: block"></span>
         <span style="width: 11px; height: 11px; border-radius: 50%; background: #28C840; display: block"></span>
       </div>
-      <button type="button" aria-label="Page précédente" style="width: 24px; height: 24px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #3A3A3C; cursor: pointer; padding: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"></path></svg></button>
+      <button type="button" aria-label="Back" style="width: 24px; height: 24px; border: 0; background: transparent; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #3A3A3C; cursor: pointer; padding: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"></path></svg></button>
       <div style="flex: 1; display: flex; align-items: center; gap: 8px; height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05)">
         <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#6E6E73" stroke-width="1.6"><rect x="3.5" y="7" width="9" height="7" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>
         <span style="font-size: 13px; font-weight: 500; color: #1C1C1E">developer.apple.com</span>
         <span style="font-size: 12px; color: #6E6E73">/documentation/quartzcore/caspringanimation</span>
       </div>
       <button type="button" style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 8px; background: color-mix(in srgb, {{accent}} 14%, rgba(255,255,255,0.6)); color: #1C1C1E; font-size: 12px; font-weight: 500; cursor: pointer; box-shadow: inset 0 0 0 1px color-mix(in srgb, {{accent}} 30%, transparent)">
-        <span>Ouvrir dans Chord</span>
+        <span>Open in Chord</span>
         <span style="font-size: 11px; color: #6E6E73">⌘ O</span>
       </button>
     </div>

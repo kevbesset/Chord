@@ -1,67 +1,66 @@
 # Architecture
 
-Chord est un fork de Chromium dont l'interface est remplacée par une interface native
-écrite en Swift. On garde tout ce que Chromium fait bien (moteur, extensions Chrome,
-DevTools, profils, mots de passe) et on remplace ce que les utilisateurs voient.
+Chord is a Chromium fork whose interface is replaced by a native interface written in
+Swift. We keep everything Chromium does well (engine, Chrome extensions, DevTools,
+profiles, passwords) and replace what users see.
 
-## Vue d'ensemble
+## Overview
 
 ```
 ┌──────────────────────────────── Chord.app ────────────────────────────────┐
-│  Processus navigateur de Chromium (NSApplication = BrowserCrApplication)   │
+│  Chromium's browser process (NSApplication = BrowserCrApplication)         │
 │                                                                            │
 │   ChordUI.framework  — Swift, AppKit                                       │
-│   fenêtres, barre latérale, Spaces, barre de commande, raccourcis          │
+│   windows, sidebar, Spaces, command bar, shortcuts                         │
 │              ▲                                                             │
-│              │  protocoles @objc ChordWebEngine / ChordWebPage             │
+│              │  @objc protocols ChordWebEngine / ChordWebPage              │
 │              │                                                             │
-│   //chord  — Objective-C++, dans l'arbre de Chromium                       │
-│   ChordBrowserWindow : BrowserWindow   (remplace BrowserView)              │
-│   ChordPage : ChordWebPage             (enveloppe un WebContents)          │
+│   //chord  — Objective-C++, in Chromium's tree                             │
+│   ChordBrowserWindow : BrowserWindow   (replaces BrowserView)              │
+│   ChordPage : ChordWebPage             (wraps a WebContents)               │
 │              │                                                             │
-│   //chrome/browser   Browser, TabStripModel, extensions, profils, DevTools │
-│   //content          WebContents, processus de rendu, GPU                  │
+│   //chrome/browser   Browser, TabStripModel, extensions, profiles, DevTools│
+│   //content          WebContents, renderer processes, GPU                  │
 └────────────────────────────────────────────────────────────────────────────┘
 
-ChordUI.framework n'est pas lié à Chromium : //chord le charge à l'exécution. Pour
-travailler l'interface, `engine/scripts/run.sh` recompile ChordUI seul et relance Chord
-(quelques secondes, sans recompiler Chromium).
+ChordUI.framework is not linked into Chromium: //chord loads it at runtime. To work on
+the interface, `engine/scripts/run.sh` recompiles ChordUI alone and relaunches Chord
+(a few seconds, without recompiling Chromium).
 ```
 
-## Règles
+## Rules
 
-1. **ChordUI ne connaît aucun moteur.** Il ne dépend que des protocoles de
-   `app/ChordUI/Engine/ChordWebEngine.swift`, jamais d'en-tête de Chromium ni de
-   WebKit. C'est ce qui permet de recompiler l'interface sans Chromium, et de brancher
-   d'autres moteurs plus tard.
-2. **ChordUI ne crée jamais `NSApplication`.** Dans le vrai navigateur, c'est Chromium
-   qui possède l'application et la boucle d'événements (`BrowserCrApplication`).
-   ChordUI fournit des fenêtres et un menu, par `ChordUIHost` ; Chromium les installe.
-3. **ChordUI est la source de vérité de l'organisation** : Spaces, épinglés, « Aujourd'hui ».
-   Côté Chromium, un `Browser` par fenêtre et son `TabStripModel` contiennent tous les
-   onglets de la fenêtre, pour que les API d'extension (`chrome.tabs`, `chrome.windows`)
-   fonctionnent. Le pont garde les deux synchronisés (validé : `chrome.tabs` voit les
-   onglets de Chord, un onglet créé par une extension arrive dans ChordUI).
-4. **Les protocoles sont `@objc`** pour que des classes Objective-C++ puissent s'y
-   conformer sans passer par l'interopérabilité C++ de Swift.
+1. **ChordUI knows no engine.** It depends only on the protocols in
+   `app/ChordUI/Engine/ChordWebEngine.swift`, never on Chromium or WebKit headers.
+   That is what lets the interface recompile without Chromium, and other engines plug
+   in later.
+2. **ChordUI never creates `NSApplication`.** In the real browser, Chromium owns the
+   application and the event loop (`BrowserCrApplication`). ChordUI provides windows
+   and a menu, through `ChordUIHost`; Chromium installs them.
+3. **ChordUI is the source of truth for organization**: Spaces, pinned tabs, "Today".
+   On Chromium's side, one `Browser` per window and its `TabStripModel` hold all of the
+   window's tabs, so that extension APIs (`chrome.tabs`, `chrome.windows`) work. The
+   bridge keeps both in sync (verified: `chrome.tabs` sees Chord's tabs, a tab created
+   by an extension arrives in ChordUI).
+4. **The protocols are `@objc`** so that Objective-C++ classes can conform to them
+   without going through Swift's C++ interoperability.
 
-## Modules de ChordUI
+## ChordUI modules
 
-| Dossier | Rôle |
+| Folder | Role |
 | --- | --- |
-| `Engine/` | Protocoles que tout moteur implémente |
-| `Model/` | Spaces, favoris, onglets, split, sélection, mise en veille, session, import Arc |
-| `Window/` | Fenêtre, zone de page (split view, barre d'adresse en haut), Peek, petite fenêtre |
-| `Sidebar/` | Barre latérale : navigation, adresse, favoris, liste d'onglets, Spaces |
-| `Settings/` | Fenêtre de réglages (SwiftUI, hors du chemin critique) |
-| `CommandBar/` | Barre de commande (⌘T, ⌘L) |
-| `Menu/` | Menu principal et raccourcis clavier |
-| `Support/` | Thème, mesures de performance, réglages, composants partagés |
+| `Engine/` | Protocols every engine implements |
+| `Model/` | Spaces, favorites, tabs, split, selection, sleeping tabs, session, Arc import |
+| `Window/` | Window, page area (split view, address bar on top), Peek, little window |
+| `Sidebar/` | Sidebar: navigation, address, favorites, tab list, Spaces |
+| `Settings/` | Settings window (SwiftUI, off the critical path) |
+| `CommandBar/` | Command bar (⌘T, ⌘L) |
+| `Menu/` | Main menu and keyboard shortcuts |
+| `Support/` | Theme, performance measurements, settings, shared components |
 
-## Pourquoi AppKit plutôt que SwiftUI
+## Why AppKit rather than SwiftUI
 
-Voir `docs/decisions/0002-appkit.md`. En résumé : la barre latérale doit rester fluide
-avec plus de cent onglets, les animations doivent être interruptibles, et chaque
-interaction a un budget de latence. AppKit donne un contrôle direct sur tout ça
-(recyclage des cellules de `NSTableView`, couches, mise en page). SwiftUI reste possible
-pour des écrans secondaires comme les réglages.
+See `docs/decisions/0002-appkit.md`. In short: the sidebar must stay smooth with more
+than a hundred tabs, animations must be interruptible, and every interaction has a
+latency budget. AppKit gives direct control over all of that (`NSTableView` cell reuse,
+layers, layout). SwiftUI remains possible for secondary screens such as settings.

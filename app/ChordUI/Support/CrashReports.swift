@@ -67,16 +67,16 @@ enum CrashReports {
             return String(format: "%2d  %@  %@", index, image, symbol)
         }
 
-        var text = "# Plantage de \(header["app_name"] as? String ?? "Chord")\n\n"
-        text += "- Date : \(header["timestamp"] as? String ?? "?")\n"
-        text += "- Version : \(header["app_version"] as? String ?? "?") (\(header["bundleID"] as? String ?? "?"))\n"
-        text += "- Système : \(header["os_version"] as? String ?? "?")\n"
-        text += "- Exception : \(exceptionText.isEmpty ? "?" : exceptionText)\n"
-        text += "- Rapport macOS : \(report.path)\n"
+        var text = "# \(header["app_name"] as? String ?? "Chord") crash\n\n"
+        text += "- Date: \(header["timestamp"] as? String ?? "?")\n"
+        text += "- Version: \(header["app_version"] as? String ?? "?") (\(header["bundleID"] as? String ?? "?"))\n"
+        text += "- System: \(header["os_version"] as? String ?? "?")\n"
+        text += "- Exception: \(exceptionText.isEmpty ? "?" : exceptionText)\n"
+        text += "- macOS report: \(report.path)\n"
         if let fatal = fatalMessage(near: report) {
-            text += "\n## Message d'erreur de Chromium\n\n```\n\(fatal)\n```\n"
+            text += "\n## Chromium's error message\n\n```\n\(fatal)\n```\n"
         }
-        text += "\n## Fil qui a planté (\(faulting))\n\n```\n\(lines.joined(separator: "\n"))\n```\n"
+        text += "\n## Crashed thread (\(faulting))\n\n```\n\(lines.joined(separator: "\n"))\n```\n"
 
         let firstChordFrame = frames.lazy
             .compactMap { $0["symbol"] as? String }
@@ -99,11 +99,11 @@ enum CrashReports {
 
     private static func offer(_ summary: Summary, file: URL, over window: NSWindow?) {
         let alert = NSAlert()
-        alert.messageText = "Chord s'est arrêté de manière inattendue"
-        alert.informativeText = "Un rapport a été enregistré dans \(file.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")).\n\n\(summary.headline)"
-        alert.addButton(withTitle: "Copier le rapport")
-        alert.addButton(withTitle: "Afficher dans le Finder")
-        alert.addButton(withTitle: "Fermer")
+        alert.messageText = "Chord quit unexpectedly"
+        alert.informativeText = "A report was saved in \(file.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")).\n\n\(summary.headline)"
+        alert.addButton(withTitle: "Copy Report")
+        alert.addButton(withTitle: "Show in Finder")
+        alert.addButton(withTitle: "Close")
         let handle: (NSApplication.ModalResponse) -> Void = { response in
             switch response {
             case .alertFirstButtonReturn:

@@ -14,91 +14,91 @@ public enum MainMenu {
         typealias C = BrowserWindowController
 
         main.addItem(submenu(appName, [
-            item("À propos de \(appName)", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+            item("About \(appName)", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
             // Handled by ChordUIHost's updater (Sparkle).
-            item("Rechercher les mises à jour…", Selector(("checkForUpdates:"))),
+            item("Check for Updates…", Selector(("checkForUpdates:"))),
             .separator(),
-            item("Réglages…", #selector(C.showSettings(_:)), ","),
+            item("Settings…", #selector(C.showSettings(_:)), ","),
             .separator(),
-            item("Masquer \(appName)", #selector(NSApplication.hide(_:)), "h"),
-            item("Masquer les autres", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
-            item("Tout afficher", #selector(NSApplication.unhideAllApplications(_:))),
+            item("Hide \(appName)", #selector(NSApplication.hide(_:)), "h"),
+            item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
+            item("Show All", #selector(NSApplication.unhideAllApplications(_:))),
             .separator(),
-            item("Quitter \(appName)", #selector(NSApplication.terminate(_:)), "q"),
+            item("Quit \(appName)", #selector(NSApplication.terminate(_:)), "q"),
         ]))
 
-        main.addItem(submenu("Fichier", [
-            item("Nouvel onglet", #selector(C.newTab(_:)), "t"),
+        main.addItem(submenu("File", [
+            item("New Tab", #selector(C.newTab(_:)), "t"),
             // Handled by ChordUIHost's app actions, so that they work with no window open.
-            item("Nouvelle fenêtre", Selector(("newWindow:")), "n"),
-            item("Nouvelle fenêtre de navigation privée", Selector(("newPrivateWindow:")), "n", [.command, .shift]),
-            item("Nouvelle petite fenêtre", #selector(C.newLittleWindow(_:)), "n", [.command, .option]),
-            item("Ouvrir l'adresse", #selector(C.openLocation(_:)), "l"),
+            item("New Window", Selector(("newWindow:")), "n"),
+            item("New Private Window", Selector(("newPrivateWindow:")), "n", [.command, .shift]),
+            item("New Little Window", #selector(C.newLittleWindow(_:)), "n", [.command, .option]),
+            item("Open Location", #selector(C.openLocation(_:)), "l"),
             .separator(),
-            item("Fermer l'onglet", #selector(C.closeTab(_:)), "w"),
-            item("Rouvrir l'onglet fermé", #selector(C.reopenClosedTab(_:)), "t", [.command, .shift]),
-            item("Fermer la fenêtre", #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
+            item("Close Tab", #selector(C.closeTab(_:)), "w"),
+            item("Reopen Closed Tab", #selector(C.reopenClosedTab(_:)), "t", [.command, .shift]),
+            item("Close Window", #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
             .separator(),
-            item("Importer depuis Arc…", #selector(C.importFromArc(_:))),
-            item("Reprendre les connexions d'Arc…", #selector(C.importArcLogins(_:))),
+            item("Import from Arc…", #selector(C.importFromArc(_:))),
+            item("Import Logins from Arc…", #selector(C.importArcLogins(_:))),
         ]))
 
-        main.addItem(submenu("Édition", [
-            item("Annuler", Selector(("undo:")), "z"),
-            item("Rétablir", Selector(("redo:")), "z", [.command, .shift]),
+        main.addItem(submenu("Edit", [
+            item("Undo", Selector(("undo:")), "z"),
+            item("Redo", Selector(("redo:")), "z", [.command, .shift]),
             .separator(),
-            item("Couper", #selector(NSText.cut(_:)), "x"),
-            item("Copier", #selector(NSText.copy(_:)), "c"),
-            item("Coller", #selector(NSText.paste(_:)), "v"),
-            item("Tout sélectionner", #selector(NSText.selectAll(_:)), "a"),
+            item("Cut", #selector(NSText.cut(_:)), "x"),
+            item("Copy", #selector(NSText.copy(_:)), "c"),
+            item("Paste", #selector(NSText.paste(_:)), "v"),
+            item("Select All", #selector(NSText.selectAll(_:)), "a"),
             .separator(),
-            item("Copier l'URL", #selector(C.copyURL(_:)), "c", [.command, .shift]),
+            item("Copy URL", #selector(C.copyURL(_:)), "c", [.command, .shift]),
         ]))
 
-        main.addItem(submenu("Affichage", [
-            item("Masquer la barre latérale", #selector(C.toggleSidebarVisibility(_:)), "s"),
-            hidden(item("Barre latérale (second raccourci)", #selector(C.toggleSidebarVisibility(_:)), "b", tag: 2)),
+        main.addItem(submenu("View", [
+            item("Hide Sidebar", #selector(C.toggleSidebarVisibility(_:)), "s"),
+            hidden(item("Sidebar (second shortcut)", #selector(C.toggleSidebarVisibility(_:)), "b", tag: 2)),
             // Arc's shortcuts: ⌃⇧= for the split view, ⇧⌘D for the address bar's place.
-            item("Split view", #selector(C.toggleSplitView(_:)), "=", [.control, .shift]),
-            item("Barre d'adresse en haut", #selector(C.toggleAddressBarPosition(_:)), "d", [.command, .shift]),
-            item("Mode edgeless", #selector(C.toggleEdgeless(_:))),
+            item("Split View", #selector(C.toggleSplitView(_:)), "=", [.control, .shift]),
+            item("Address Bar on Top", #selector(C.toggleAddressBarPosition(_:)), "d", [.command, .shift]),
+            item("Edgeless Mode", #selector(C.toggleEdgeless(_:))),
             .separator(),
-            item("Recharger la page", #selector(C.reloadPage(_:)), "r"),
-            item("Recharger sans le cache", #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
-            item("Arrêter le chargement", #selector(C.stopLoading(_:)), "."),
+            item("Reload Page", #selector(C.reloadPage(_:)), "r"),
+            item("Reload Ignoring Cache", #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
+            item("Stop Loading", #selector(C.stopLoading(_:)), "."),
             .separator(),
-            item("Outils de développement", #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
-            item("Picture-in-picture", #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),
+            item("Developer Tools", #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
+            item("Picture in Picture", #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),
             .separator(),
-            item("Plein écran", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
+            item("Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
         ]))
 
-        main.addItem(submenu("Historique", [
-            item("Précédent", #selector(C.goBack(_:)), "["),
-            item("Suivant", #selector(C.goForward(_:)), "]"),
+        main.addItem(submenu("History", [
+            item("Back", #selector(C.goBack(_:)), "["),
+            item("Forward", #selector(C.goForward(_:)), "]"),
             // ⌘← and ⌘→ too, like Arc and Chrome; off while typing, where they move the caret.
-            hidden(item("Précédent (flèche)", #selector(C.goBack(_:)), arrow(NSLeftArrowFunctionKey), tag: 2)),
-            hidden(item("Suivant (flèche)", #selector(C.goForward(_:)), arrow(NSRightArrowFunctionKey), tag: 2)),
+            hidden(item("Back (arrow)", #selector(C.goBack(_:)), arrow(NSLeftArrowFunctionKey), tag: 2)),
+            hidden(item("Forward (arrow)", #selector(C.goForward(_:)), arrow(NSRightArrowFunctionKey), tag: 2)),
         ]))
 
         var tabItems: [NSMenuItem] = [
-            item("Onglet suivant", #selector(C.nextTab(_:)), "\t", [.control]),
-            item("Onglet précédent", #selector(C.previousTab(_:)), "\t", [.control, .shift]),
+            item("Next Tab", #selector(C.nextTab(_:)), "\t", [.control]),
+            item("Previous Tab", #selector(C.previousTab(_:)), "\t", [.control, .shift]),
             .separator(),
-            item("Épingler l'onglet", #selector(C.togglePinTab(_:)), "d"),
-            item("Ajouter aux favoris", #selector(C.toggleFavoriteTab(_:))),
-            item("Nouveau dossier", #selector(C.newFolder(_:))),
+            item("Pin Tab", #selector(C.togglePinTab(_:)), "d"),
+            item("Add to Favorites", #selector(C.toggleFavoriteTab(_:))),
+            item("New Folder", #selector(C.newFolder(_:))),
             .separator(),
         ]
         for number in 1...9 {
-            let title = number == 9 ? "Dernier onglet" : "Onglet \(number)"
+            let title = number == 9 ? "Last Tab" : "Tab \(number)"
             tabItems.append(item(title, #selector(C.selectTabByNumber(_:)), "\(number)", tag: number))
         }
-        main.addItem(submenu("Onglets", tabItems))
+        main.addItem(submenu("Tabs", tabItems))
 
         var spaceItems: [NSMenuItem] = [
-            item("Space suivant", #selector(C.nextSpace(_:)), arrow(NSRightArrowFunctionKey), [.command, .option]),
-            item("Space précédent", #selector(C.previousSpace(_:)), arrow(NSLeftArrowFunctionKey), [.command, .option]),
+            item("Next Space", #selector(C.nextSpace(_:)), arrow(NSRightArrowFunctionKey), [.command, .option]),
+            item("Previous Space", #selector(C.previousSpace(_:)), arrow(NSLeftArrowFunctionKey), [.command, .option]),
             .separator(),
         ]
         for number in 1...9 {
@@ -106,16 +106,16 @@ public enum MainMenu {
         }
         spaceItems += [
             .separator(),
-            item("Nouveau Space", #selector(C.newSpace(_:))),
-            item("Renommer le Space…", #selector(C.renameSpace(_:))),
+            item("New Space", #selector(C.newSpace(_:))),
+            item("Rename Space…", #selector(C.renameSpace(_:))),
         ]
         main.addItem(submenu("Spaces", spaceItems))
 
-        let windowMenu = submenu("Fenêtre", [
-            item("Réduire", #selector(NSWindow.performMiniaturize(_:)), "m"),
-            item("Agrandir", #selector(NSWindow.performZoom(_:))),
+        let windowMenu = submenu("Window", [
+            item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"),
+            item("Zoom", #selector(NSWindow.performZoom(_:))),
             .separator(),
-            item("Téléchargements", #selector(C.showDownloads(_:)), "j", [.command, .shift]),
+            item("Downloads", #selector(C.showDownloads(_:)), "j", [.command, .shift]),
         ])
         main.addItem(windowMenu)
         NSApp.windowsMenu = windowMenu.submenu
@@ -156,7 +156,7 @@ public enum MainMenu {
             if modifiers.contains(.shift) { text += "⇧" }
             if modifiers.contains(.command) { text += "⌘" }
             let names: [String: String] = [
-                "\t": "⇥", "\r": "↩", " ": "Espace", "\u{1b}": "⎋",
+                "\t": "⇥", "\r": "↩", " ": "Space", "\u{1b}": "⎋",
                 MainMenu.arrow(NSLeftArrowFunctionKey): "←", MainMenu.arrow(NSRightArrowFunctionKey): "→",
                 MainMenu.arrow(NSUpArrowFunctionKey): "↑", MainMenu.arrow(NSDownArrowFunctionKey): "↓",
             ]
@@ -173,7 +173,7 @@ public enum MainMenu {
 
     private static func isReserved(_ item: NSMenuItem, in menu: NSMenu) -> Bool {
         if let action = item.action, reservedActions.contains(action) { return true }
-        // The app menu (À propos, Réglages, Masquer, Quitter).
+        // The app menu (About, Settings, Hide, Quit).
         guard let appMenu = menu.items.first?.submenu else { return false }
         return appMenu.items.contains { $0 === item }
     }
@@ -184,7 +184,7 @@ public enum MainMenu {
         var result: [(String, String, String)] = []
         for top in menu.items.dropFirst() {
             for item in top.submenu?.items ?? [] {
-                // Only Chord's own items: macOS adds some (Tout fermer…) that it manages itself.
+                // Only Chord's own items: macOS adds some (Close All…) that it manages itself.
                 guard let id = item.identifier?.rawValue, defaults[id] != nil, !isReserved(item, in: menu) else { continue }
                 result.append((top.title, item.title, id))
             }

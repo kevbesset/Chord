@@ -85,12 +85,12 @@ final class SidebarView: NSView {
     private let resizeHandle = SidebarResizeHandle()
     // The first row shares the title bar with the traffic lights: a touch larger than
     // the other icons, so that they hold their own next to them.
-    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Page précédente (⌘[)", target: self, action: #selector(backClicked), size: Theme.titleRowHeight, pointSize: 15)
-    private lazy var forwardButton = IconButton(symbol: "arrow.right", label: "Page suivante (⌘])", target: self, action: #selector(forwardClicked), size: Theme.titleRowHeight, pointSize: 15)
-    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Recharger (⌘R)", target: self, action: #selector(reloadClicked), size: Theme.titleRowHeight, pointSize: 15)
-    private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: "Barre latérale (⌘S)", target: self, action: #selector(collapseClicked), size: Theme.titleRowHeight, pointSize: 15)
-    private lazy var downloadsButton = IconButton(symbol: "tray.and.arrow.down", label: "Téléchargements (⇧⌘J)", target: self, action: #selector(downloadsClicked), size: 28, pointSize: 14)
-    private lazy var addSpaceButton = IconButton(symbol: "plus", label: "Nouveau Space", target: self, action: #selector(addSpaceClicked), size: 28, pointSize: 13)
+    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Back (⌘[)", target: self, action: #selector(backClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var forwardButton = IconButton(symbol: "arrow.right", label: "Forward (⌘])", target: self, action: #selector(forwardClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Reload (⌘R)", target: self, action: #selector(reloadClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var collapseButton = IconButton(symbol: "sidebar.left", label: "Sidebar (⌘S)", target: self, action: #selector(collapseClicked), size: Theme.titleRowHeight, pointSize: 15)
+    private lazy var downloadsButton = IconButton(symbol: "tray.and.arrow.down", label: "Downloads (⇧⌘J)", target: self, action: #selector(downloadsClicked), size: 28, pointSize: 14)
+    private lazy var addSpaceButton = IconButton(symbol: "plus", label: "New Space", target: self, action: #selector(addSpaceClicked), size: 28, pointSize: 13)
 
     /// Where the downloads panel opens from.
     var downloadsAnchor: NSView { downloadsButton }

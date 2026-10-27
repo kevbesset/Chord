@@ -241,7 +241,7 @@ final class SplitDividerView: NSView {
         layer?.addSublayer(grip)
         setAccessibilityElement(true)
         setAccessibilityRole(.splitter)
-        setAccessibilityLabel("Redimensionner les volets")
+        setAccessibilityLabel("Resize panes")
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

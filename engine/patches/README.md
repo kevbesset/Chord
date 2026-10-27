@@ -1,32 +1,32 @@
-# Patchs Chromium de Chord
+# Chord's Chromium patches
 
-Règles, pour que la mise à jour toutes les quatre semaines reste un simple rebase :
+Rules, so that the update every four weeks stays a simple rebase:
 
-- Le code de Chord vit dans `//chord` (`engine/chord`), pas dans les fichiers de Google.
-- Un patch ne fait que brancher `//chord` : rediriger une fabrique, ajouter une
-  dépendance GN, exposer un point d'entrée. Quelques lignes chacun.
-- Un patch par intention, nommé par ce qu'il fait.
-- Appliqués par-dessus les patchs d'ungoogled-chromium, dans l'ordre de `series`, par
-  `engine/scripts/build.sh` (une seule fois chacun : un marqueur `.chord-patch-<nom>`
-  reste dans l'arbre des sources).
+- Chord's code lives in `//chord` (`engine/chord`), not in Google's files.
+- A patch only plugs `//chord` in: redirect a factory, add a GN dependency, expose an
+  entry point. A few lines each.
+- One patch per intent, named after what it does.
+- Applied on top of ungoogled-chromium's patches, in `series` order, by
+  `engine/scripts/build.sh` (once each: a `.chord-patch-<name>` marker stays in the
+  source tree).
 
-| Patch | Ce qu'il branche |
+| Patch | What it plugs in |
 | --- | --- |
-| `chord-link-build.patch` | `//chord:browser` est lié au navigateur (`chrome/BUILD.gn`, groupe `dependencies`, macOS seulement) |
-| `chord-start-ui.patch` | Les « extra parts » de Chord : pas de fenêtre Chromium au démarrage, puis ChordUI démarre (`chrome_browser_main.cc`) |
-| `chord-browser-window-factory.patch` | Un navigateur normal reçoit la fenêtre de Chord, `ChordBrowserWindow` (`browser_window_factory.cc`) |
-| `chord-devtools-dock.patch` | Les DevTools peuvent s'ancrer dans les fenêtres de Chord (à droite, à gauche, en bas), qui les disposent elles-mêmes ; Chord est prévenu quand ils s'ouvrent, se ferment, changent de côté ou de taille (`devtools_window.cc`, `devtools_window_views.cc`) |
-| `chord-windows-without-views.patch` | Les fenêtres de Chord n'ont ni panneau latéral, ni ancre de toast, ni vue « onglet planté » de Views : Chromium les traite comme `WebUIBrowserWindow` au lieu de s'arrêter sur une vérification de test (fermeture de l'onglet actif, toasts) (`read_anything_side_panel_controller.cc`, `toast_controller.cc`, `tab_features.cc`) |
-| `chord-second-launch.patch` | Relancer Chord pendant qu'il tourne ramène sa fenêtre (et ouvre les liens passés en argument) au lieu d'ouvrir un onglet vide (`startup_browser_creator.cc`) |
-| `chord-permission-prompts.patch` | Les demandes de permission (caméra, micro, position, notifications…) des pages de Chord passent par l'invite de Chord, une petite bulle en haut de la page ; la bulle de Chromium, qui cherche sa fenêtre Views, faisait planter Chord (YouTube) (`permission_prompt_factory.cc`) |
-| `chord-branding.patch` | L'app s'appelle Chord (`app.chord.Chord`) ; le dossier de données reste `~/Library/Application Support/Chromium` (`chrome/app/theme/chromium/BRANDING`) |
-| `chord-fix-development-link.patch` | Correctif de build : en build de développement, un appel à une aide de test qu'ungoogled-chromium supprime empêchait l'édition de liens (`profile_management_disclaimer_service.cc`) |
-| `chord-app-controller.patch` | L'icône du Dock rouvre la fenêtre de Chord ; les liens d'autres apps vont à une petite fenêtre ; les menus Signets et Historique de Chromium ne sont plus tenus à jour, le menu étant celui de ChordUI (`app_controller_mac.mm`) |
-| `chord-context-menus.patch` | Le clic droit sur une page affiche son menu dans les fenêtres de Chord, qui n'ont pas de widget Views ; Chord retire les entrées dont l'interface en exige un (Caster, traduire, code QR, Lens…) (`render_view_context_menu_mac_cocoa.mm`) |
-| `chord-product-icon.patch` | L'icône du produit dans les pages internes (« À propos » du menu des paramètres, pages d'aide) est le symbole de Chord ; le logo des en-têtes vient de `engine/branding` (`settings/icons.html.ts`, `cr_elements/icons.html.ts`) |
-| `chord-own-data.patch` | Chord a son propre dossier de données (`~/Library/Application Support/Chord`) et sa propre clé de trousseau (« Chord Safe Storage »), à part d'un Chromium installé sur le même Mac (`app-Info.plist`, `keychain_password_mac.mm`) |
-| `chord-web-store.patch` | Le vrai Chrome Web Store : ses pages peuvent installer des extensions, qui s'y mettent à jour ; la substitution de domaines d'ungoogled-chromium l'avait coupé (`extension_urls.cc`, `_api_features.json`), et ses patchs avaient vidé le téléchargement et l'installation (`webstore_installer.cc`) |
-| `chord-components.patch` | Le client de mise à jour de Chromium vérifie de nouveau et rejoint Google, pour le module Widevine (vidéos protégées), les listes de Chromium et les mises à jour des extensions du Web Store (`component_updater_url_constants.cc`, `update_checker.cc`) |
+| `chord-link-build.patch` | `//chord:browser` is linked into the browser (`chrome/BUILD.gn`, `dependencies` group, macOS only) |
+| `chord-start-ui.patch` | Chord's "extra parts": no Chromium window at startup, then ChordUI starts (`chrome_browser_main.cc`) |
+| `chord-browser-window-factory.patch` | A normal browser gets Chord's window, `ChordBrowserWindow` (`browser_window_factory.cc`) |
+| `chord-devtools-dock.patch` | DevTools can dock into Chord's windows (right, left, bottom), which lay them out themselves; Chord is told when they open, close, change side or size (`devtools_window.cc`, `devtools_window_views.cc`) |
+| `chord-windows-without-views.patch` | Chord's windows have no side panel, no toast anchor and no Views "crashed tab" view: Chromium treats them like `WebUIBrowserWindow` instead of stopping on a test check (closing the active tab, toasts) (`read_anything_side_panel_controller.cc`, `toast_controller.cc`, `tab_features.cc`) |
+| `chord-second-launch.patch` | Launching Chord again while it runs brings its window back (and opens the links passed as arguments) instead of opening an empty tab (`startup_browser_creator.cc`) |
+| `chord-permission-prompts.patch` | Permission requests (camera, microphone, location, notifications…) from Chord's pages go through Chord's prompt, a small bubble at the top of the page; Chromium's bubble, which looks for its Views window, crashed Chord (YouTube) (`permission_prompt_factory.cc`) |
+| `chord-branding.patch` | The app is called Chord (`app.chord.Chord`); the data folder stays `~/Library/Application Support/Chromium` (`chrome/app/theme/chromium/BRANDING`) |
+| `chord-fix-development-link.patch` | Build fix: in a development build, a call to a test helper that ungoogled-chromium removes broke linking (`profile_management_disclaimer_service.cc`) |
+| `chord-app-controller.patch` | The Dock icon reopens Chord's window; links from other apps go to a little window; Chromium's Bookmarks and History menus are no longer kept up to date, since the menu is ChordUI's (`app_controller_mac.mm`) |
+| `chord-context-menus.patch` | Right-clicking a page shows its menu in Chord's windows, which have no Views widget; Chord removes the entries whose interface needs one (Cast, translate, QR code, Lens…) (`render_view_context_menu_mac_cocoa.mm`) |
+| `chord-product-icon.patch` | The product icon in internal pages ("About" in the settings menu, help pages) is Chord's symbol; the header logo comes from `engine/branding` (`settings/icons.html.ts`, `cr_elements/icons.html.ts`) |
+| `chord-own-data.patch` | Chord has its own data folder (`~/Library/Application Support/Chord`) and its own keychain key ("Chord Safe Storage"), apart from a Chromium installed on the same Mac (`app-Info.plist`, `keychain_password_mac.mm`) |
+| `chord-web-store.patch` | The real Chrome Web Store: its pages can install extensions, which update from it; ungoogled-chromium's domain substitution had cut it off (`extension_urls.cc`, `_api_features.json`), and its patches had emptied the download and install (`webstore_installer.cc`) |
+| `chord-components.patch` | Chromium's update client checks again and reaches Google, for the Widevine module (protected videos), Chromium's lists and Web Store extension updates (`component_updater_url_constants.cc`, `update_checker.cc`) |
 
-Les points d'appel sont déclarés dans `engine/chord/browser/chord_hooks.h`.
-`--disable-chord-ui` au lancement rend à Chromium son interface, pour déboguer.
+The call sites are declared in `engine/chord/browser/chord_hooks.h`.
+`--disable-chord-ui` at launch gives Chromium its interface back, for debugging.

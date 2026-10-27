@@ -9,7 +9,7 @@ final class ContentCardView: NSView {
     private var hostedConstraints: [NSLayoutConstraint] = []
     private let loadingBar = LoadingBarView()
     private var loadingBarTop: NSLayoutConstraint?
-    private let emptyLabel = NSTextField(labelWithString: "⌘T pour ouvrir un onglet")
+    private let emptyLabel = NSTextField(labelWithString: "⌘T to open a tab")
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

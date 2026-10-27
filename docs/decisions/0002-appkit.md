@@ -1,21 +1,21 @@
-# 0002 — AppKit pour l'interface principale
+# 0002 — AppKit for the main interface
 
-**Statut :** acceptée, 23 octobre 2026
+**Status:** accepted, October 23, 2026
 
-## Contexte
+## Context
 
-L'interface de Chord a des budgets de latence stricts (`docs/PERFORMANCE.md`) et des
-listes potentiellement longues (plus de cent onglets dans la barre latérale).
+Chord's interface has strict latency budgets (`docs/PERFORMANCE.md`) and potentially
+long lists (more than a hundred tabs in the sidebar).
 
-## Décision
+## Decision
 
-La fenêtre, la barre latérale, la barre de commande et tout ce qui est sur le chemin
-critique sont écrits en AppKit : `NSTableView` pour les listes (cellules recyclées),
-couches Core Animation pour le verre et les ombres, Auto Layout explicite.
-SwiftUI reste autorisé pour les écrans secondaires (réglages, à propos).
+The window, the sidebar, the command bar and everything on the critical path are
+written in AppKit: `NSTableView` for lists (reused cells), Core Animation layers for
+glass and shadows, explicit Auto Layout.
+SwiftUI is still allowed for secondary screens (settings, about).
 
-## Conséquences
+## Consequences
 
-- Plus de code que SwiftUI pour la même interface.
-- Contrôle direct sur ce qui est recalculé et redessiné à chaque interaction.
-- Pas de dépendance à la machinerie de mise à jour de SwiftUI dans les chemins mesurés.
+- More code than SwiftUI for the same interface.
+- Direct control over what is recomputed and redrawn on each interaction.
+- No dependency on SwiftUI's update machinery in the measured paths.

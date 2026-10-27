@@ -22,7 +22,7 @@ export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 export SDKROOT="${SDKROOT:-/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk}"
 
 if [ -f "$DONE" ]; then
-  echo "Sources déjà prêtes : $SRC"
+  echo "Sources already prepared: $SRC"
   exit 0
 fi
 
@@ -62,4 +62,4 @@ mkdir -p out
 ./tools/rust/build_bindgen.py --skip-test
 
 touch "$DONE"
-echo "Sources prêtes : $SRC"
+echo "Sources prepared: $SRC"

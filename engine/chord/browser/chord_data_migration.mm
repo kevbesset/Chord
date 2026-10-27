@@ -136,11 +136,11 @@ bool IsInUse(const base::FilePath& folder) {
 [[noreturn]] void AskToQuitOldChord() {
   CFUserNotificationDisplayAlert(
       0, kCFUserNotificationCautionAlertLevel, nullptr, nullptr, nullptr,
-      (__bridge CFStringRef) @"Une autre version de Chord est ouverte",
-      (__bridge CFStringRef) @"Chord range maintenant ses données dans son "
-                             @"propre dossier. Quittez la version déjà "
-                             @"ouverte, puis relancez Chord : vos Spaces, "
-                             @"onglets et connexions suivront.",
+      (__bridge CFStringRef) @"Another version of Chord is open",
+      (__bridge CFStringRef) @"Chord now keeps its data in a folder of its "
+                             @"own. Quit the version that is already open, "
+                             @"then open Chord again: your Spaces, tabs and "
+                             @"logins will come along.",
       (__bridge CFStringRef) @"OK", nullptr, nullptr, nullptr);
   base::Process::TerminateCurrentProcessImmediately(0);
 }

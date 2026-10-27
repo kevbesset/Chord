@@ -27,10 +27,10 @@ final class AddressPillView: NSView {
 
     private let icon = NSImageView()
     /// Shown only for a site without encryption that is not local.
-    private let insecureLabel = NSTextField(labelWithString: "Non sécurisé")
+    private let insecureLabel = NSTextField(labelWithString: "Not Secure")
     private let addressLabel = NSTextField(labelWithString: "")
-    private lazy var copyButton = IconButton(symbol: "link", label: "Copier l'URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
-    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: "Réglages du site", target: self, action: #selector(siteControlsClicked), size: 24, pointSize: 14)
+    private lazy var copyButton = IconButton(symbol: "link", label: "Copy URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
+    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: "Site Settings", target: self, action: #selector(siteControlsClicked), size: 24, pointSize: 14)
     private lazy var buttons = NSStackView(views: [copyButton, siteControlsButton])
     private var hasURL = false
     private var addressToEdge: NSLayoutConstraint!
@@ -84,9 +84,9 @@ final class AddressPillView: NSView {
             icon.image = Theme.symbol("magnifyingglass", size: 11)
             icon.isHidden = false
             insecureLabel.isHidden = true
-            addressLabel.stringValue = "Rechercher ou saisir une adresse"
+            addressLabel.stringValue = "Search or enter URL"
             addressLabel.textColor = .secondaryLabelColor
-            setAccessibilityLabel("Rechercher ou saisir une adresse")
+            setAccessibilityLabel("Search or enter URL")
             hasURL = false
             refreshButtons()
             return
@@ -95,7 +95,7 @@ final class AddressPillView: NSView {
         icon.image = Theme.symbol("lock.slash", size: 11)
         icon.isHidden = !url.isInsecure
         insecureLabel.isHidden = !url.isInsecure
-        setAccessibilityLabel((url.isInsecure ? "Non sécurisé. " : "") + "Adresse : \(url.absoluteString)")
+        setAccessibilityLabel((url.isInsecure ? "Not secure. " : "") + "Address: \(url.absoluteString)")
         hasURL = true
         refreshButtons()
     }

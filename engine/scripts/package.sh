@@ -10,7 +10,7 @@
 # certificate and notarytool credentials saved once:
 #   xcrun notarytool store-credentials chord-notary --apple-id … --team-id …
 # Without them the image is signed but not notarized: macOS asks, on other Macs, to
-# open Chord from Réglages Système › Confidentialité et sécurité the first time.
+# open Chord from System Settings › Privacy & Security the first time.
 set -euo pipefail
 
 ENGINE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,7 +18,7 @@ REPO_DIR="$(cd "$ENGINE_DIR/.." && pwd)"
 SRC="$ENGINE_DIR/vendor/ungoogled-chromium-macos/build/src"
 OUT="$SRC/out/Release"
 [ "${1:-}" = "--dev" ] && OUT="$SRC/out/Chord"
-[ -d "$OUT/Chord.app" ] || { echo "Pas de Chord.app dans $OUT : lancer d'abord engine/scripts/build.sh --release"; exit 1; }
+[ -d "$OUT/Chord.app" ] || { echo "No Chord.app in $OUT: run engine/scripts/build.sh --release first"; exit 1; }
 
 VERSION="$(tr -d '[:space:]' < "$REPO_DIR/VERSION")"
 BUILD="$(git -C "$REPO_DIR" rev-list --count HEAD)"
@@ -67,15 +67,15 @@ if [[ "$IDENTITY" == "Developer ID Application:"* ]]; then
     # image, and Gatekeeper finds the app's online.
     xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
     xcrun stapler staple "$DMG"
-    NOTARIZED="notarisé"
+    NOTARIZED="notarized"
   else
-    NOTARIZED="non notarisé (pas d'identifiants notarytool « $NOTARY_PROFILE »)"
+    NOTARIZED="not notarized (no notarytool credentials \"$NOTARY_PROFILE\")"
   fi
 elif [ -n "$IDENTITY" ]; then
   codesign --sign "$IDENTITY" --timestamp=none "$DMG"
-  NOTARIZED="non notarisé (il faut un certificat Developer ID Application)"
+  NOTARIZED="not notarized (needs a Developer ID Application certificate)"
 else
-  NOTARIZED="non notarisé (signé ad hoc)"
+  NOTARIZED="not notarized (signed ad hoc)"
 fi
 
-echo "Chord $VERSION ($BUILD), $NOTARIZED : $DMG"
+echo "Chord $VERSION ($BUILD), $NOTARIZED: $DMG"

@@ -1,4 +1,4 @@
-Chord: the icon of Chromium's own pages ("À propos" in the settings menu, help pages) is Chord's mark.
+Chord: the icon of Chromium's own pages ("About" in the settings menu, help pages) is Chord's mark.
 --- a/chrome/browser/resources/settings/icons.html.ts
 +++ b/chrome/browser/resources/settings/icons.html.ts
 @@ -33,7 +33,7 @@
