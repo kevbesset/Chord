@@ -76,7 +76,7 @@ every page load waits for the answer.
 
 - **Not wired yet**: Peek on ⇧-click and links leaving a pinned tab (a
   `NavigationThrottle` in `//chord`), downloads into ChordUI's panel, video full screen
-  in the interface (hide the sidebar), find in page (⌘F).
+  in the interface (hide the sidebar).
 - **Main menu**: Chromium builds its own. Choose between replacing it with ChordUI's
   and wiring its commands to ChordUI's.
 - **Updates**: a major Chromium version every four weeks. `UPSTREAM` changes, the

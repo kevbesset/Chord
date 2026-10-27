@@ -9,6 +9,7 @@ protocol SidebarDelegate: AnyObject {
     func sidebarNewTab()
     func sidebarSelect(_ tab: Tab)
     func sidebarClose(_ tab: Tab)
+    func sidebarToggleMute(_ tab: Tab)
     func sidebarTogglePin(_ tab: Tab)
     func sidebarToggleFavorite(_ tab: Tab)
     func sidebarSplit(_ tab: Tab)

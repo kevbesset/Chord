@@ -36,10 +36,11 @@ import AppKit
     /// as more arrive, until the next call. An empty text ends the search.
     @objc optional func suggest(_ text: String, completion: @escaping ([[String: String]]) -> Void)
     /// Brings one of Arc's profiles ("…/Arc/User Data/Profile 1") into this engine's
-    /// profile: logins (cookies), passwords and history now, site storage at the next
-    /// launch, its extensions from the Chrome Web Store (installed again, their data at
-    /// the next launch). macOS asks the user for Arc's key. `completion` gets the
-    /// counts: "cookies", "passwords", "pages", "extensions", "siteStorage" (1 when
+    /// profile: logins (cookies), passwords, history and the values typed in forms now,
+    /// site storage at the next launch, its extensions from the Chrome Web Store
+    /// (installed again, their data at the next launch). macOS asks the user for Arc's
+    /// key. `completion` gets the counts: "cookies", "passwords", "pages",
+    /// "formValues", "extensions", "siteStorage" (1 when
     /// some comes next launch) and "keyDenied" (1 when macOS did not give Arc's key).
     @objc optional func importFromArc(_ arcProfile: String, completion: @escaping ([String: Int]) -> Void)
     /// Whether the page belongs to this engine's profile.
@@ -84,6 +85,17 @@ import AppKit
     var asks: [String] { get }
     /// An SF Symbol for the first thing asked.
     var symbol: String { get }
+    /// A question of the browser's own rather than a site's permission (save a
+    /// password, translate the page), worded in full: shown instead of "Allow
+    /// <site> to …?".
+    @objc optional var question: String? { get }
+    /// A quieter line under the question: the account a password is for.
+    @objc optional var detail: String? { get }
+    /// The buttons' titles when they are not "Allow", "Block" and "Not Now". An empty
+    /// block title leaves that button out.
+    @objc optional var allowTitle: String? { get }
+    @objc optional var blockTitle: String? { get }
+    @objc optional var dismissTitle: String? { get }
     /// Set by ChordUI: the request went away unanswered (another tab was selected, the
     /// tab closed). The engine asks again when it comes back.
     var onCancel: (() -> Void)? { get set }
@@ -151,6 +163,41 @@ import AppKit
     /// Pins the extension's button in the address field, or takes it out.
     @objc optional func setExtension(_ id: String, pinned: Bool)
     @objc optional func uninstallExtension(_ id: String)
+
+    /// Finds `text` in the page (⌘F), highlighting every match: the next match, or the
+    /// previous one when `forward` is false. The same text again moves to the next
+    /// match. Results come through `page(_:didFindMatches:activeMatch:isFinal:)`.
+    @objc(find:forward:) optional func find(_ text: String, forward: Bool)
+    /// Ends the search; the current match stays selected.
+    @objc optional func stopFinding()
+
+    /// Zooms the page in (1), out (-1) or back to its actual size (0). The engine keeps
+    /// the level for the site.
+    @objc optional func zoom(_ direction: Int)
+    /// The page's zoom, in percent.
+    @objc optional var zoomPercent: Int { get }
+    /// Shows the system's print dialog for the page (⌘P).
+    @objc optional func printPage()
+
+    /// The page plays sound right now.
+    @objc optional var isAudible: Bool { get }
+    @objc optional var isMuted: Bool { get }
+    @objc optional func setMuted(_ muted: Bool)
+    /// The page uses the camera or the microphone, or records the screen.
+    @objc optional var isCapturingMedia: Bool { get }
+
+    /// Puts the page to sleep: its process goes, its history, scroll position and form
+    /// state stay, and it loads again where it was on `wake()`. False when it could not
+    /// (its video is in picture in picture, its developer tools are open).
+    @objc optional func sleep() -> Bool
+    /// The page sleeps (put to sleep by ChordUI or by the engine, short of memory).
+    @objc optional var isAsleep: Bool { get }
+    @objc optional func wake()
+
+    /// Runs `script` on the page's main frame, in a world of its own (the page's scripts
+    /// do not see it, the document is shared, its globals stay between runs), and gives
+    /// back its result: strings, numbers, booleans, arrays and dictionaries, or nil.
+    @objc(evaluateJavaScript:completion:) optional func evaluateJavaScript(_ script: String, completion: @escaping (Any?) -> Void)
 }
 
 @objc(ChordWebPageDelegate) public protocol ChordWebPageDelegate: AnyObject {
@@ -161,6 +208,9 @@ import AppKit
     /// The user clicked a link. Return false when ChordUI handled it elsewhere
     /// (a Peek, a background tab); the engine then cancels the navigation.
     @objc optional func page(_ page: ChordWebPage, shouldFollowLinkTo url: URL, modifiers: NSEvent.ModifierFlags) -> Bool
+    /// What a search found: `count` matches, the `activeMatch`th selected (from 1, 0
+    /// when none). `isFinal` once the count is complete.
+    @objc(page:didFindMatches:activeMatch:isFinal:) optional func page(_ page: ChordWebPage, didFindMatches count: Int, activeMatch: Int, isFinal: Bool)
 
     /// A download started from the page, saved at `destination`. `id` names it in the
     /// calls that follow, and for `ChordWebEngine.cancelDownload(_:)`.

@@ -19,6 +19,7 @@
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
 #include "base/no_destructor.h"
+#include "base/scoped_observation.h"
 #include "base/strings/sys_string_conversions.h"
 #include "components/content_settings/core/browser/content_settings_registry.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
@@ -34,6 +35,8 @@
 #include "chrome/browser/devtools/devtools_window.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/lifetime/browser_shutdown.h"
+#include "chrome/browser/media/webrtc/media_capture_devices_dispatcher.h"
+#include "chrome/browser/media/webrtc/media_stream_capture_indicator.h"
 #include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
 #include "chrome/browser/profiles/keep_alive/profile_keep_alive_types.h"
 #include "chrome/browser/profiles/keep_alive/scoped_profile_keep_alive.h"
@@ -43,13 +46,20 @@
 #include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/profiles/profile_metrics.h"
+#include "chrome/browser/resource_coordinator/tab_lifecycle_unit_external.h"
 #include "chrome/browser/ui/browser_active_state_manager/browser_active_state_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
+#include "components/find_in_page/find_result_observer.h"
+#include "components/find_in_page/find_tab_helper.h"
+#include "components/find_in_page/find_types.h"
 #include "components/page_info/page_info_ui.h"
+#include "components/autofill/core/common/autofill_prefs.h"
+#include "components/password_manager/core/common/password_manager_pref_names.h"
+#include "components/prefs/pref_service.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/media_session.h"
@@ -62,6 +72,11 @@
 #include "content/public/browser/reload_type.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_observer.h"
+#include "content/public/common/page_zoom.h"
+#include "components/zoom/page_zoom.h"
+#include "components/zoom/zoom_controller.h"
+#include "printing/buildflags/buildflags.h"
+#include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "net/base/apple/url_conversions.h"
 #include "third_party/blink/public/mojom/favicon/favicon_url.mojom.h"
 #include "third_party/skia/include/core/SkBitmap.h"
@@ -69,6 +84,10 @@
 #include "ui/gfx/geometry/size.h"
 #include "ui/base/page_transition_types.h"
 #include "url/gurl.h"
+
+#if BUILDFLAG(ENABLE_PRINTING)
+#include "chrome/browser/printing/print_view_manager_common.h"
+#endif
 
 @class ChordPage;
 
@@ -166,6 +185,37 @@ void EnterPictureInPicture(content::WebContents* contents) {
 bool IsQuitting() {
   return browser_shutdown::IsTryingToQuit() ||
          browser_shutdown::HasShutdownStarted();
+}
+
+// A script's result as Foundation objects, for ChordUI.
+id ObjectFromValue(const base::Value& value) {
+  switch (value.type()) {
+    case base::Value::Type::BOOLEAN:
+      return @(value.GetBool());
+    case base::Value::Type::INTEGER:
+      return @(value.GetInt());
+    case base::Value::Type::DOUBLE:
+      return @(value.GetDouble());
+    case base::Value::Type::STRING:
+      return base::SysUTF8ToNSString(value.GetString());
+    case base::Value::Type::LIST: {
+      NSMutableArray* array = [NSMutableArray array];
+      for (const base::Value& item : value.GetList()) {
+        [array addObject:ObjectFromValue(item) ?: NSNull.null];
+      }
+      return array;
+    }
+    case base::Value::Type::DICT: {
+      NSMutableDictionary* dictionary = [NSMutableDictionary dictionary];
+      for (const auto [key, item] : value.GetDict()) {
+        dictionary[base::SysUTF8ToNSString(key)] =
+            ObjectFromValue(item) ?: NSNull.null;
+      }
+      return dictionary;
+    }
+    default:
+      return nil;
+  }
 }
 
 }  // namespace
@@ -271,15 +321,37 @@ HostContentSettingsMap* SettingsFor(content::WebContents* contents, GURL* url) {
 // The tab is gone (closed by Chromium, or replaced): forget its WebContents.
 - (void)detach;
 - (void)replaceWebContents:(content::WebContents*)contents;
+- (void)didFindMatches:(int)count active:(int)active final:(BOOL)final;
 @end
 
 namespace {
 
 // Forwards what changes on a page to ChordUI.
-class PageObserver : public content::WebContentsObserver {
+class PageObserver : public content::WebContentsObserver,
+                     public find_in_page::FindResultObserver {
  public:
   PageObserver(content::WebContents* contents, ChordPage* page)
       : content::WebContentsObserver(contents), page_(page) {}
+
+  // The page's searches, from the first one (the tab's helpers are attached once the
+  // page is in its browser, after this observer is made).
+  void ObserveFind(find_in_page::FindTabHelper* helper) {
+    if (!find_observation_.IsObserving()) {
+      find_observation_.Observe(helper);
+    }
+  }
+
+  // find_in_page::FindResultObserver:
+  void OnFindResultAvailable(content::WebContents* contents) override {
+    const find_in_page::FindNotificationDetails& result =
+        find_in_page::FindTabHelper::FromWebContents(contents)->find_result();
+    [page_ didFindMatches:result.number_of_matches()
+                   active:result.active_match_ordinal()
+                    final:result.final_update()];
+  }
+  void OnFindTabHelperDestroyed(find_in_page::FindTabHelper* helper) override {
+    find_observation_.Reset();
+  }
 
   // content::WebContentsObserver:
   void DidStartLoading() override { [page_ notifyUpdate]; }
@@ -307,10 +379,15 @@ class PageObserver : public content::WebContentsObserver {
       blink::mojom::FaviconUpdateReason reason) override {
     [page_ updateFavicon:candidates];
   }
+  void OnAudioStateChanged(bool audible) override { [page_ notifyUpdate]; }
+  void DidUpdateAudioMutingState(bool muted) override { [page_ notifyUpdate]; }
   void WebContentsDestroyed() override { [page_ detach]; }
 
  private:
   ChordPage* __weak page_;
+  base::ScopedObservation<find_in_page::FindTabHelper,
+                          find_in_page::FindResultObserver>
+      find_observation_{this};
 };
 
 }  // namespace
@@ -395,6 +472,13 @@ class PageObserver : public content::WebContentsObserver {
 }
 
 - (void)replaceWebContents:(content::WebContents*)contents {
+  // A page put to sleep keeps its sound off.
+  if (_webContents && _webContents->IsAudioMuted()) {
+    contents->SetAudioMuted(true);
+  }
+  // A WebContents made hidden (the one a sleeping tab gets) has its view hidden until
+  // Chrome's Views show it: in Chord, ChordUI shows it by placing it in a window.
+  contents->GetNativeView().GetNativeNSView().hidden = NO;
   [self detach];
   _webContents = contents;
   _observer = std::make_unique<PageObserver>(contents, self);
@@ -404,6 +488,13 @@ class PageObserver : public content::WebContentsObserver {
 
 - (void)notifyUpdate {
   [_delegate pageDidUpdate:self];
+}
+
+- (void)didFindMatches:(int)count active:(int)active final:(BOOL)final {
+  if ([_delegate respondsToSelector:@selector
+                 (page:didFindMatches:activeMatch:isFinal:)]) {
+    [_delegate page:self didFindMatches:count activeMatch:active isFinal:final];
+  }
 }
 
 // A new document declares its own icon: the previous one must not be taken for it.
@@ -739,6 +830,149 @@ class PageObserver : public content::WebContentsObserver {
   }
 }
 
+// MARK: Find, zoom, print
+
+// ⌘F: Chromium's find in page, every match highlighted, without its find bar.
+- (void)find:(NSString*)text forward:(BOOL)forward {
+  find_in_page::FindTabHelper* helper =
+      _webContents ? find_in_page::FindTabHelper::FromWebContents(_webContents)
+                   : nullptr;
+  if (!helper) {
+    return;
+  }
+  _observer->ObserveFind(helper);
+  if (text.length == 0) {
+    // An empty text would search the previous one again.
+    helper->StopFinding(find_in_page::SelectionAction::kClear);
+    [self didFindMatches:0 active:0 final:YES];
+    return;
+  }
+  helper->StartFinding(base::SysNSStringToUTF16(text), forward,
+                       /*case_sensitive=*/false, /*find_match=*/true);
+}
+
+- (void)stopFinding {
+  if (find_in_page::FindTabHelper* helper =
+          _webContents
+              ? find_in_page::FindTabHelper::FromWebContents(_webContents)
+              : nullptr) {
+    helper->StopFinding(find_in_page::SelectionAction::kKeep);
+  }
+}
+
+// Chromium keeps the zoom per site, as in Chrome.
+- (void)zoom:(NSInteger)direction {
+  if (!_webContents) {
+    return;
+  }
+  zoom::PageZoom::Zoom(_webContents, direction > 0   ? content::PAGE_ZOOM_IN
+                                     : direction < 0 ? content::PAGE_ZOOM_OUT
+                                                     : content::PAGE_ZOOM_RESET);
+}
+
+- (NSInteger)zoomPercent {
+  zoom::ZoomController* zoom =
+      _webContents ? zoom::ZoomController::FromWebContents(_webContents)
+                   : nullptr;
+  return zoom ? zoom->GetZoomPercent() : 100;
+}
+
+// The Mac's own print dialog, as in Safari: Chromium's print preview is made of
+// Views and needs Chrome's window.
+- (void)printPage {
+#if BUILDFLAG(ENABLE_PRINTING)
+  if (_webContents) {
+    printing::StartBasicPrint(_webContents);
+  }
+#endif
+}
+
+// MARK: Sound and sleep
+
+- (BOOL)isAudible {
+  return _webContents && _webContents->IsCurrentlyAudible();
+}
+
+- (BOOL)isMuted {
+  return _webContents && _webContents->IsAudioMuted();
+}
+
+- (void)setMuted:(BOOL)muted {
+  if (_webContents) {
+    _webContents->SetAudioMuted(muted);
+  }
+}
+
+- (BOOL)isCapturingMedia {
+  if (!_webContents) {
+    return NO;
+  }
+  scoped_refptr<MediaStreamCaptureIndicator> indicator =
+      MediaCaptureDevicesDispatcher::GetInstance()
+          ->GetMediaStreamCaptureIndicator();
+  return indicator->IsCapturingUserMedia(_webContents) ||
+         indicator->IsCapturingWindow(_webContents) ||
+         indicator->IsCapturingDisplay(_webContents) ||
+         indicator->IsBeingMirrored(_webContents);
+}
+
+// Chromium's own tab discarding, as Chrome's Memory Saver does it: the renderer goes,
+// the tab keeps its history and each page's state (scroll position, form fields),
+// which come back when it loads again. The tab strip replaces the WebContents, which
+// the page follows (kReplaced).
+- (BOOL)sleep {
+  if (!_webContents) {
+    return NO;
+  }
+  if (_webContents->WasDiscarded()) {
+    return YES;
+  }
+  // Its video floats in picture in picture, or its developer tools are open.
+  if (IsInPictureInPicture(_webContents) ||
+      DevToolsWindow::GetInstanceForInspectedWebContents(_webContents)) {
+    return NO;
+  }
+  resource_coordinator::TabLifecycleUnitExternal* unit =
+      resource_coordinator::TabLifecycleUnitExternal::FromWebContents(
+          _webContents);
+  return unit &&
+         unit->DiscardTab(::mojom::LifecycleUnitDiscardReason::EXTERNAL);
+}
+
+- (BOOL)isAsleep {
+  return _webContents && _webContents->WasDiscarded();
+}
+
+- (void)wake {
+  if (!_webContents || !_webContents->WasDiscarded()) {
+    return;
+  }
+  content::NavigationController& controller = _webContents->GetController();
+  controller.SetNeedsReload();
+  controller.LoadIfNecessary();
+}
+
+// In a world of its own, which Chrome's translation (not used in Chord) would have
+// taken: the page's scripts cannot see it, its globals stay between runs.
+- (void)evaluateJavaScript:(NSString*)script
+                completion:(void (^)(id))completion {
+  // A sleeping page has no frame to run in.
+  if (!_webContents || !_webContents->GetPrimaryMainFrame()->IsRenderFrameLive()) {
+    completion(nil);
+    return;
+  }
+  void (^done)(id) = [completion copy];
+  // The completion always comes, with nil when the frame goes before answering.
+  _webContents->GetPrimaryMainFrame()->ExecuteJavaScriptInIsolatedWorld(
+      base::SysNSStringToUTF16(script),
+      mojo::WrapCallbackWithDefaultInvokeIfNotRun(
+          base::BindOnce(^(base::Value result) {
+            done(ObjectFromValue(result));
+          }),
+          base::Value()),
+      ISOLATED_WORLD_ID_TRANSLATE);
+}
+
 // Docked DevTools: their WebContents fills the page's area, the page sits where the
 // DevTools' layout leaves room (the same strategy as Chromium's DevtoolsUIController).
 - (NSView*)devToolsView {
@@ -973,6 +1207,14 @@ void DeleteProfileAt(const base::FilePath& path) {
 
 - (void)useProfile:(Profile*)profile {
   _profile = profile;
+  // ungoogled-chromium turns "Offer to save passwords" off by default: Chord offers,
+  // like every browser. A choice made in chord://settings/passwords stays.
+  profile->GetPrefs()->SetDefaultPrefValue(
+      password_manager::prefs::kCredentialsEnableService, base::Value(true));
+  // The same for what forms offer again (the emails typed before, addresses), which
+  // Chrome and Arc do by default.
+  profile->GetPrefs()->SetDefaultPrefValue(
+      autofill::prefs::kAutofillProfileEnabled, base::Value(true));
   _profileKeepAlive = std::make_unique<ScopedProfileKeepAlive>(
       profile, ProfileKeepAliveOrigin::kBrowserWindow);
   if (!_private) {
@@ -1137,6 +1379,7 @@ void DeleteProfileAt(const base::FilePath& path) {
             @"cookies" : @(counts.cookies),
             @"passwords" : @(counts.passwords),
             @"pages" : @(counts.pages),
+            @"formValues" : @(counts.form_values),
             @"extensions" : @(counts.extensions),
             @"siteStorage" : @(counts.site_storage),
             @"keyDenied" : @(counts.key_denied),

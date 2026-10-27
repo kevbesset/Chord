@@ -68,10 +68,13 @@ final class TabCellView: SidebarRowCellView {
     static let reuseID = NSUserInterfaceItemIdentifier("TabCell")
 
     var onClose: (() -> Void)?
+    var onToggleMute: (() -> Void)?
     private let tile = FaviconTileView(size: 16)
     private let titleLabel = NSTextField(labelWithString: "")
     private let splitIcon = NSImageView(image: Theme.symbol("rectangle.split.2x1", size: 10) ?? NSImage())
     private lazy var closeButton = IconButton(symbol: "xmark", label: String(localized: "Close Tab (⌘W)", bundle: .chordUI), target: self, action: #selector(closeClicked), size: 20, pointSize: 9)
+    /// Shown while the page plays sound or is muted, like Arc's: a click mutes it.
+    private lazy var audioButton = IconButton(symbol: "speaker.wave.2.fill", label: String(localized: "Mute Tab", bundle: .chordUI), target: self, action: #selector(audioClicked), size: 20, pointSize: 10)
 
     init() {
         super.init(frame: .zero)
@@ -81,7 +84,7 @@ final class TabCellView: SidebarRowCellView {
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         splitIcon.contentTintColor = .tertiaryLabelColor
         splitIcon.toolTip = String(localized: "Split View", bundle: .chordUI)
-        for view in [tile, titleLabel, splitIcon, closeButton] as [NSView] {
+        for view in [tile, titleLabel, audioButton, splitIcon, closeButton] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -90,7 +93,9 @@ final class TabCellView: SidebarRowCellView {
             tile.centerYAnchor.constraint(equalTo: centerYAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: 10),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: splitIcon.leadingAnchor, constant: -4),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: audioButton.leadingAnchor, constant: -2),
+            audioButton.trailingAnchor.constraint(equalTo: splitIcon.leadingAnchor, constant: -2),
+            audioButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             splitIcon.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -2),
             splitIcon.centerYAnchor.constraint(equalTo: centerYAnchor),
             closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
@@ -108,6 +113,12 @@ final class TabCellView: SidebarRowCellView {
         toolTip = tab.url?.absoluteString
         setAccessibilityLabel(tab.displayTitle)
         splitIcon.isHidden = !inSplit
+        let muted = tab.page?.isMuted == true
+        audioButton.isHidden = !(muted || tab.page?.isAudible == true)
+        audioButton.image = Theme.symbol(muted ? "speaker.slash.fill" : "speaker.wave.2.fill", size: 10)
+        let audioLabel = muted ? String(localized: "Unmute Tab", bundle: .chordUI) : String(localized: "Mute Tab", bundle: .chordUI)
+        audioButton.toolTip = audioLabel
+        audioButton.setAccessibilityLabel(audioLabel)
         isSoftHighlighted = inSplit && !selected
         isActive = selected
     }
@@ -118,6 +129,7 @@ final class TabCellView: SidebarRowCellView {
     }
 
     @objc private func closeClicked() { onClose?() }
+    @objc private func audioClicked() { onToggleMute?() }
 }
 
 final class NewTabCellView: SidebarRowCellView {

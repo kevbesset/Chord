@@ -7,11 +7,35 @@
 
 #include "components/permissions/permission_prompt.h"
 
+#if defined(__OBJC__)
+#import "chord/browser/chord_ui.h"
+
+// A question ChordUI shows and answers once: a site's permission request, or one of the
+// browser's own (save a password). The answer goes back through `answer`, which does
+// nothing once the question is gone.
+@interface ChordPermissionRequestImpl : NSObject <ChordPermissionRequest>
+- (instancetype)initWithSite:(NSString*)site
+                        asks:(NSArray<NSString*>*)asks
+                      symbol:(NSString*)symbol
+                      answer:(void (^)(NSInteger answer))answer;
+// The question went away unanswered: ChordUI takes it down.
+- (void)cancel;
+@property(nonatomic, copy) NSString* question;
+@property(nonatomic, copy) NSString* detail;
+@property(nonatomic, copy) NSString* allowTitle;
+@property(nonatomic, copy) NSString* blockTitle;
+@property(nonatomic, copy) NSString* dismissTitle;
+@end
+#endif
+
 namespace content {
 class WebContents;
 }
 
 namespace chord {
+
+// How a question was answered.
+enum Answer : long { kAllow, kBlock, kDismiss };
 
 // chrome/browser/ui/views/permissions/permission_prompt_factory.cc: whether the page
 // is in a Chord window, whose permission prompts are Chord's. Chromium's bubble needs

@@ -27,6 +27,8 @@ Rules, so that the update every four weeks stays a simple rebase:
 | `chord-own-data.patch` | Chord has its own data folder (`~/Library/Application Support/Chord`) and its own keychain key ("Chord Safe Storage"), apart from a Chromium installed on the same Mac (`app-Info.plist`, `keychain_password_mac.mm`) |
 | `chord-web-store.patch` | The real Chrome Web Store: its pages can install extensions, which update from it; ungoogled-chromium's domain substitution had cut it off (`extension_urls.cc`, `_api_features.json`), and its patches had emptied the download and install (`webstore_installer.cc`) |
 | `chord-components.patch` | Chromium's update client checks again and reaches Google, for the Widevine module (protected videos), Chromium's lists and Web Store extension updates (`component_updater_url_constants.cc`, `update_checker.cc`) |
+| `chord-password-prompt.patch` | The password manager's "Save password?" and "Update password?" go through Chord's prompt, like a site's permission; Chromium's bubble hangs from Chrome's toolbar, which Chord's windows do not have, and never showed (`manage_passwords_ui_controller.cc`) |
+| `chord-username-first.patch` | A sign-in whose first page only asks for an email (`autocomplete="email"`, the password on the next page) offers the saved usernames and remembers the one typed: Chrome learns such forms from its crowdsourcing server, which ungoogled-chromium leaves out (`password_manager_util.cc`, `form_data_parser.cc`) |
 
 The call sites are declared in `engine/chord/browser/chord_hooks.h`.
 `--disable-chord-ui` at launch gives Chromium its interface back, for debugging.

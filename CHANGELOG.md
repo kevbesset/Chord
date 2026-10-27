@@ -14,9 +14,31 @@ What changes in Chord, version by version. Each change adds a line under
   "espace", "mayús", "izquierda"…).
 - Settings › General › Reset Chord: deletes everything Chord keeps on the Mac (Spaces,
   logins, history, extensions, settings, caches) and restarts it as on its first launch.
+- Find in page (⌘F): a glass bar at the top right of the page highlights every match,
+  with how many there are; ↩ and ⌘G go to the next one, ⇧↩ and ⇧⌘G to the previous one.
+- Zoom (⌘+, ⌘-, ⌘0), remembered per site, with a toast showing the level.
+- Print (⌘P), with the Mac's print dialog.
+- View Source (⌥⌘U) opens the page's source in a new tab.
+- Chord offers to save a password after you sign in, and to update it when it changed
+  ("Save password?" from the address field, like a site's question). Saved passwords
+  fill the sign-in forms, and the list under the field offers them, also on sign-ins
+  that ask for the email first and the password on the next page.
+- Fields offer again what you typed in them before (emails, names), like Chrome and
+  Arc; importing from Arc brings over what you typed in Arc's forms.
+- Pages in a language you do not read are offered a translation into your Mac's
+  language, done on your Mac by Apple's translation (macOS 26 or later): nothing is
+  sent to Google or anyone. It goes paragraph by paragraph, the page's text on screen
+  first and the rest as you scroll, links kept in their sentence. View › Translate
+  Page, and Show Original to go back; the site settings card has a "Translate into…"
+  switch too.
+- A speaker shows on tabs and favorites playing sound; click it, or use Mute Tab in the
+  Tabs menu or the tab's menu, to mute the tab.
 
 ### Changed
 
+- Sleeping tabs keep their place: back on a tab put to sleep, its page comes back with
+  its history, where it was scrolled and what was typed in its forms. Tabs playing
+  sound or on a call (camera, microphone, screen sharing) no longer go to sleep.
 - English is the default language of the interface, the documentation and the scripts
   (it was French).
 - The home page greets with the time of day: morning, afternoon or evening.

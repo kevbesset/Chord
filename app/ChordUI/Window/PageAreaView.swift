@@ -13,6 +13,8 @@ final class PageAreaView: NSView {
     }
 
     let toolbar = PageToolbarView()
+    /// Find in page, over the active pane's page.
+    let findBar = FindBarView()
     /// Shown when the Space has no tab open.
     let home = HomeView()
     private var panes: [PaneView] = []
@@ -30,6 +32,10 @@ final class PageAreaView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         panes = [makePane()]
+        wantsLayer = true
+        addSubview(findBar)
+        // Web views draw over their siblings: the bar stays above the panes.
+        findBar.layer?.zPosition = 100
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -119,6 +125,26 @@ final class PageAreaView: NSView {
                 x += gap
             }
         }
+        layoutFindBar()
+    }
+
+    /// At the top right of the active pane's page, below its toolbar when it has one.
+    private func layoutFindBar() {
+        guard !findBar.isHidden else { return }
+        let index = tabs.firstIndex { $0.id == activeID } ?? 0
+        guard panes.indices.contains(index) else { return }
+        let pane = panes[index]
+        pane.layoutSubtreeIfNeeded()
+        let card = pane.card
+        var page = card.bounds
+        if let accessory = card.accessory, accessory.superview === card {
+            let accessoryFrame = card.convert(accessory.bounds, from: accessory)
+            page = card.isFlipped ? page.divided(atDistance: accessoryFrame.maxY, from: .minYEdge).remainder
+                                  : page.divided(atDistance: card.bounds.maxY - accessoryFrame.minY, from: .maxYEdge).remainder
+        }
+        let area = convert(page, from: card)
+        let size = NSSize(width: min(FindBarView.size.width, area.width - 24), height: FindBarView.size.height)
+        findBar.frame = NSRect(x: area.maxX - size.width - 12, y: area.maxY - size.height - 10, width: size.width, height: size.height)
     }
 
     private func makePane() -> PaneView {

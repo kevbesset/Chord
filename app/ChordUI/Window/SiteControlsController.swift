@@ -14,6 +14,9 @@ final class SiteControlsController: NSObject {
     /// What the extensions' tiles do. A tile's popup hangs from the button that
     /// opened the card, as the card closes.
     var extensionActions: ExtensionActions?
+    /// The page's translation, when it can be translated: whether it is on, and a way
+    /// to turn it on or off.
+    var translation: (target: String, isOn: () -> Bool, toggle: () -> Void)?
     var isGlass = true
     private(set) var isVisible = false
 
@@ -23,6 +26,8 @@ final class SiteControlsController: NSObject {
     private let content = KeyCatcherView()
     private var page: ChordWebPage?
     private var url: URL?
+    /// The translation's state just asked for, until the card closes.
+    private var translationOverride: Bool?
     private weak var anchor: NSView?
     private weak var host: NSView?
 
@@ -70,6 +75,7 @@ final class SiteControlsController: NSObject {
         scrim.isHidden = true
         panelHost.isHidden = true
         page = nil
+        translationOverride = nil
         onDismiss?()
     }
 
@@ -112,6 +118,19 @@ final class SiteControlsController: NSObject {
         content.subviews.forEach { $0.removeFromSuperview() }
 
         var sections: [(view: NSView, gap: CGFloat)] = [(actions(), 0)]
+        if let translation {
+            // Like a permission: a click turns it on or off.
+            let isOn = translationOverride ?? translation.isOn()
+            let row = PermissionRow(title: String(localized: "Translate into \(translation.target)", bundle: .chordUI), symbol: "translate",
+                                    isOn: isOn, stateText: isOn ? String(localized: "On", bundle: .chordUI) : String(localized: "Off", bundle: .chordUI)) { [weak self] in
+                guard let self else { return }
+                translation.toggle()
+                // The translation takes a moment: the row says at once what was asked.
+                self.translationOverride = !isOn
+                self.rebuild()
+            }
+            sections.append((row, 6))
+        }
         if let extensionActions {
             sections.append((SectionTitle(String(localized: "Extensions", bundle: .chordUI)), 14))
             sections.append((extensionsGrid(PageExtension.all(of: page), actions: extensionActions), 6))
@@ -526,15 +545,19 @@ private final class PermissionRow: HoverRow {
 
     private static let names = ["allow": String(localized: "Allowed", bundle: .chordUI), "block": String(localized: "Blocked", bundle: .chordUI), "ask": String(localized: "Ask", bundle: .chordUI)]
 
-    init(title: String, symbol: String, state: String, onToggle: @escaping () -> Void) {
+    convenience init(title: String, symbol: String, state: String, onToggle: @escaping () -> Void) {
+        self.init(title: title, symbol: symbol, isOn: state == "allow", stateText: Self.names[state] ?? state, onToggle: onToggle)
+    }
+
+    init(title: String, symbol: String, isOn: Bool, stateText: String, onToggle: @escaping () -> Void) {
         self.onToggle = onToggle
         super.init(frame: .zero)
-        let badge = PermissionBadge(symbol: symbol, isOn: state == "allow")
+        let badge = PermissionBadge(symbol: symbol, isOn: isOn)
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let stateLabel = NSTextField(labelWithString: Self.names[state] ?? state)
+        let stateLabel = NSTextField(labelWithString: stateText)
         stateLabel.font = .systemFont(ofSize: 12)
         stateLabel.textColor = .secondaryLabelColor
 
@@ -554,7 +577,7 @@ private final class PermissionRow: HoverRow {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel(String(localized: "\(title): \(Self.names[state] ?? state)", bundle: .chordUI))
+        setAccessibilityLabel(String(localized: "\(title): \(stateText)", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

@@ -39,6 +39,8 @@ public enum MainMenu {
             item(String(localized: "Reopen Closed Tab", bundle: .chordUI), #selector(C.reopenClosedTab(_:)), "t", [.command, .shift]),
             item(String(localized: "Close Window", bundle: .chordUI), #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
             .separator(),
+            item(String(localized: "Print…", bundle: .chordUI), #selector(C.printPage(_:)), "p"),
+            .separator(),
             item(String(localized: "Import from Arc…", bundle: .chordUI), #selector(C.importFromArc(_:))),
             item(String(localized: "Import Logins from Arc…", bundle: .chordUI), #selector(C.importArcLogins(_:))),
         ]))
@@ -53,6 +55,12 @@ public enum MainMenu {
             item(String(localized: "Select All", bundle: .chordUI), #selector(NSText.selectAll(_:)), "a"),
             .separator(),
             item(String(localized: "Copy URL", bundle: .chordUI), #selector(C.copyURL(_:)), "c", [.command, .shift]),
+            .separator(),
+            submenu(String(localized: "Find", bundle: .chordUI), [
+                item(String(localized: "Find…", bundle: .chordUI), #selector(C.showFindBar(_:)), "f"),
+                item(String(localized: "Find Next", bundle: .chordUI), #selector(C.findNext(_:)), "g"),
+                item(String(localized: "Find Previous", bundle: .chordUI), #selector(C.findPrevious(_:)), "g", [.command, .shift]),
+            ]),
         ]))
 
         main.addItem(submenu(String(localized: "View", bundle: .chordUI), [
@@ -67,7 +75,16 @@ public enum MainMenu {
             item(String(localized: "Reload Ignoring Cache", bundle: .chordUI), #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
             item(String(localized: "Stop Loading", bundle: .chordUI), #selector(C.stopLoading(_:)), "."),
             .separator(),
+            // ⌘+ and ⌘= both zoom in, like Chrome and Arc.
+            item(String(localized: "Zoom In", bundle: .chordUI), #selector(C.zoomIn(_:)), "+"),
+            hidden(item(String(localized: "Zoom In (second shortcut)", bundle: .chordUI), #selector(C.zoomIn(_:)), "=", tag: 2)),
+            item(String(localized: "Zoom Out", bundle: .chordUI), #selector(C.zoomOut(_:)), "-"),
+            item(String(localized: "Actual Size", bundle: .chordUI), #selector(C.actualSize(_:)), "0"),
+            .separator(),
+            item(String(localized: "Translate Page", bundle: .chordUI), #selector(C.toggleTranslation(_:))),
+            .separator(),
             item(String(localized: "Developer Tools", bundle: .chordUI), #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
+            item(String(localized: "View Source", bundle: .chordUI), #selector(C.viewSource(_:)), "u", [.command, .option]),
             item(String(localized: "Picture in Picture", bundle: .chordUI), #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),
             .separator(),
             item(String(localized: "Full Screen", bundle: .chordUI), #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
@@ -86,6 +103,7 @@ public enum MainMenu {
             item(String(localized: "Previous Tab", bundle: .chordUI), #selector(C.previousTab(_:)), "\t", [.control, .shift]),
             .separator(),
             item(String(localized: "Pin Tab", bundle: .chordUI), #selector(C.togglePinTab(_:)), "d"),
+            item(String(localized: "Mute Tab", bundle: .chordUI), #selector(C.toggleMuteTab(_:))),
             item(String(localized: "Add to Favorites", bundle: .chordUI), #selector(C.toggleFavoriteTab(_:))),
             item(String(localized: "New Folder", bundle: .chordUI), #selector(C.newFolder(_:))),
             .separator(),

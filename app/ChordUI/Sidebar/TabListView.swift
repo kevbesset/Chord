@@ -151,6 +151,7 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
             let cell = outlineView.makeView(withIdentifier: TabCellView.reuseID, owner: nil) as? TabCellView ?? TabCellView()
             cell.configure(tab: tab, selected: tab.id == selectedID, inSplit: splitIDs.contains(tab.id))
             cell.onClose = { [weak self] in self?.delegate?.sidebarClose(tab) }
+            cell.onToggleMute = { [weak self] in self?.delegate?.sidebarToggleMute(tab) }
             return cell
         case let folder as Folder:
             let cell = outlineView.makeView(withIdentifier: FolderCellView.reuseID, owner: nil) as? FolderCellView ?? FolderCellView()
@@ -337,6 +338,11 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         }
         menu.addItem(.separator())
         menu.addItem(closureItem(String(localized: "Copy URL", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
+        if let page = tab.page, page.setMuted != nil {
+            menu.addItem(closureItem(page.isMuted == true ? String(localized: "Unmute Tab", bundle: .chordUI) : String(localized: "Mute Tab", bundle: .chordUI)) { [weak self] in
+                self?.delegate?.sidebarToggleMute(tab)
+            })
+        }
         menu.addItem(.separator())
         menu.addItem(closureItem(tab.isPinned ? String(localized: "Unload", bundle: .chordUI) : String(localized: "Close Tab", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarClose(tab) })
     }

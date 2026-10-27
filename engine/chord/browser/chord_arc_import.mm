@@ -33,6 +33,9 @@
 #include "base/values.h"
 #include "base/version_info/version_info.h"
 #include "chrome/browser/history/history_service_factory.h"
+#include "chrome/browser/webdata_services/web_data_service_factory.h"
+#include "components/autofill/core/browser/webdata/autofill_webdata_service.h"
+#include "components/autofill/core/common/form_field_data.h"
 #include "chrome/browser/password_manager/factories/profile_password_store_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/crx_file/crx_verifier.h"
@@ -76,6 +79,8 @@ constexpr char kPendingSiteStorage[] = "Chord Arc Site Storage";
 // In a Chord profile's folder: the last visit of Arc's history already imported,
 // so that importing again adds only what is newer.
 constexpr char kHistoryImported[] = "Chord Arc History";
+// The same for the values typed in forms (Arc's autocomplete), in seconds.
+constexpr char kFormValuesImported[] = "Chord Arc Form Values";
 
 // Like Chromium's history, only the last 90 days.
 constexpr base::TimeDelta kHistoryKept = base::Days(90);
@@ -102,6 +107,9 @@ struct ArcData {
   std::vector<password_manager::StoredCredential> passwords;
   history::URLRows pages;
   base::Time newest_page;
+  // Values typed in forms, offered again under fields of the same name (emails).
+  std::vector<autofill::FormFieldData> form_values;
+  int64_t newest_form_value = 0;
   // Ids of Arc's extensions from the Chrome Web Store: the same in every browser.
   std::vector<std::string> extensions;
   bool site_storage = false;
@@ -360,6 +368,40 @@ void ReadHistory(const base::FilePath& arc_profile,
   }
 }
 
+// The values typed in Arc's forms since the last import (Chromium's autocomplete:
+// the emails, names and searches a field offers again).
+void ReadFormValues(const base::FilePath& arc_profile,
+                    const base::FilePath& chord_profile,
+                    const base::ScopedTempDir& temp,
+                    ArcData& data) {
+  sql::Database db(sql::DatabaseOptions(), "FirefoxImporter");
+  if (!OpenCopy(arc_profile.Append("Web Data"), temp, db)) {
+    return;
+  }
+  std::string imported;
+  int64_t since = 0;
+  if (base::ReadFileToString(chord_profile.Append(kFormValuesImported),
+                             &imported)) {
+    base::StringToInt64(base::TrimWhitespaceASCII(imported, base::TRIM_ALL),
+                        &since);
+  }
+  sql::Statement statement(db.GetUniqueStatement(
+      "SELECT name, value, date_last_used FROM autofill "
+      "WHERE date_last_used > ? ORDER BY date_last_used"));
+  statement.BindInt64(0, since);
+  while (statement.Step()) {
+    autofill::FormFieldData field;
+    field.set_name(statement.ColumnString16(0));
+    field.set_value(statement.ColumnString16(1));
+    if (field.name().empty() || field.value().empty()) {
+      continue;
+    }
+    data.newest_form_value =
+        std::max(data.newest_form_value, statement.ColumnInt64(2));
+    data.form_values.push_back(std::move(field));
+  }
+}
+
 // Arc's extensions installed from the Chrome Web Store (Arc's own and Chromium's
 // built-in ones stay behind), from its preferences.
 void ReadExtensions(const base::FilePath& arc_profile, ArcData& data) {
@@ -405,6 +447,7 @@ std::unique_ptr<ArcData> ReadArcProfile(const base::FilePath& arc_profile,
     data->key_denied = true;
   }
   ReadHistory(arc_profile, chord_profile, temp, *data);
+  ReadFormValues(arc_profile, chord_profile, temp, *data);
   ReadExtensions(arc_profile, *data);
   data->site_storage =
       base::PathExists(arc_profile.Append("Local Storage")) ||
@@ -622,6 +665,25 @@ void ApplyArcData(base::WeakPtr<Profile> weak_profile,
             },
             profile->GetPath().Append(kHistoryImported),
             data->newest_page.ToDeltaSinceWindowsEpoch().InMicroseconds()));
+  }
+
+  if (scoped_refptr<autofill::AutofillWebDataService> web_data =
+          WebDataServiceFactory::GetAutofillWebDataForProfile(
+              profile, ServiceAccessType::EXPLICIT_ACCESS);
+      web_data && !data->form_values.empty()) {
+    counts->data.form_values = data->form_values.size();
+    // One at a time: Chromium keeps a single value per field name and call.
+    for (const autofill::FormFieldData& field : data->form_values) {
+      web_data->AddFormFields({field});
+    }
+    base::ThreadPool::PostTask(
+        FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
+        base::BindOnce(
+            [](base::FilePath file, int64_t newest) {
+              base::WriteFile(file, base::NumberToString(newest));
+            },
+            profile->GetPath().Append(kFormValuesImported),
+            data->newest_form_value));
   }
 
   counts->data.site_storage = data->site_storage;

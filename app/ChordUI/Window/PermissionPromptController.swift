@@ -2,15 +2,15 @@ import AppKit
 
 /// A site's question (camera, notifications…), like Arc's: a popover from the site
 /// controls button with a round badge, the question, "Block" and "Allow", and a
-/// quieter "Not Now". The page
-/// stays usable while it is up. It stays until answered, or until the engine takes
+/// quieter "Not Now". The browser's own questions (save a password, translate the
+/// page) come the same way, in their own words. The page stays usable while it is up. It stays until answered, or until the engine takes
 /// it back (another tab selected, the tab closed), and asks again later.
 final class PermissionPromptController: NSObject, NSPopoverDelegate {
     /// Called once the question is gone, answered or not.
     var onClose: (() -> Void)?
 
     private let popover = NSPopover()
-    private var request: ChordPermissionRequest?
+    private(set) var request: ChordPermissionRequest?
     private(set) weak var page: ChordWebPage?
     /// Closed by Chord itself (answered, taken back): nothing more to tell the engine.
     private var closingQuietly = false
@@ -143,19 +143,34 @@ private final class PermissionPromptViewController: NSViewController {
 
     override func loadView() {
         let badge = SymbolBadgeView(symbol: request.symbol)
-        let question = NSTextField(wrappingLabelWithString: PermissionPromptController.question(site: request.site, asks: request.asks))
+        let text = (request.question ?? nil) ?? PermissionPromptController.question(site: request.site, asks: request.asks)
+        let question = NSTextField(wrappingLabelWithString: text)
         question.font = .systemFont(ofSize: 15, weight: .medium)
         question.textColor = .labelColor
         question.preferredMaxLayoutWidth = 214
-        let block = PromptButton(title: String(localized: "Block", bundle: .chordUI), style: .secondary) { [weak self] in self?.onAnswer(.block) }
-        let allow = PromptButton(title: String(localized: "Allow", bundle: .chordUI), style: .primary) { [weak self] in self?.onAnswer(.allow) }
-        let notNow = PromptButton(title: String(localized: "Not Now", bundle: .chordUI), style: .quiet) { [weak self] in self?.onAnswer(.notNow) }
+        let detailText = request.detail ?? nil
+        let detail = NSTextField(labelWithString: detailText ?? "")
+        detail.font = .systemFont(ofSize: 12)
+        detail.textColor = .secondaryLabelColor
+        detail.lineBreakMode = .byTruncatingMiddle
+        detail.isHidden = detailText?.isEmpty ?? true
+        let blockTitle = (request.blockTitle ?? nil) ?? String(localized: "Block", bundle: .chordUI)
+        let block = PromptButton(title: blockTitle, style: .secondary) { [weak self] in self?.onAnswer(.block) }
+        block.isHidden = blockTitle.isEmpty
+        let allow = PromptButton(title: (request.allowTitle ?? nil) ?? String(localized: "Allow", bundle: .chordUI), style: .primary) { [weak self] in self?.onAnswer(.allow) }
+        let notNow = PromptButton(title: (request.dismissTitle ?? nil) ?? String(localized: "Not Now", bundle: .chordUI), style: .quiet) { [weak self] in self?.onAnswer(.notNow) }
 
         let view = NSView()
-        for subview in [badge, question, block, allow, notNow] as [NSView] {
+        for subview in [badge, question, detail, block, allow, notNow] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(subview)
         }
+        // The text ends with the detail line when there is one.
+        let textBottom = detail.isHidden ? question.bottomAnchor : detail.bottomAnchor
+        // A one-line question sits level with the badge; with a detail, at the top.
+        let centred = question.centerYAnchor.constraint(greaterThanOrEqualTo: badge.centerYAnchor)
+        centred.priority = detail.isHidden ? .required : .defaultLow
+        centred.isActive = true
         NSLayoutConstraint.activate([
             view.widthAnchor.constraint(equalToConstant: 300),
             badge.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -163,19 +178,28 @@ private final class PermissionPromptViewController: NSViewController {
             question.leadingAnchor.constraint(equalTo: badge.trailingAnchor, constant: 12),
             question.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             question.topAnchor.constraint(equalTo: view.topAnchor, constant: 15),
-            question.centerYAnchor.constraint(greaterThanOrEqualTo: badge.centerYAnchor),
-            block.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-            block.topAnchor.constraint(greaterThanOrEqualTo: badge.bottomAnchor, constant: 16),
-            block.topAnchor.constraint(greaterThanOrEqualTo: question.bottomAnchor, constant: 16),
-            allow.leadingAnchor.constraint(equalTo: block.trailingAnchor, constant: 8),
+            detail.leadingAnchor.constraint(equalTo: question.leadingAnchor),
+            detail.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -16),
+            detail.topAnchor.constraint(equalTo: question.bottomAnchor, constant: 3),
+            allow.topAnchor.constraint(greaterThanOrEqualTo: badge.bottomAnchor, constant: 16),
+            allow.topAnchor.constraint(greaterThanOrEqualTo: textBottom, constant: 16),
             allow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-            allow.topAnchor.constraint(equalTo: block.topAnchor),
-            allow.widthAnchor.constraint(equalTo: block.widthAnchor),
-            notNow.topAnchor.constraint(equalTo: block.bottomAnchor, constant: 6),
+            notNow.topAnchor.constraint(equalTo: allow.bottomAnchor, constant: 6),
             notNow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
             notNow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
             notNow.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
         ])
+        if block.isHidden {
+            // A single answer that goes ahead, across the whole width.
+            allow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12).isActive = true
+        } else {
+            NSLayoutConstraint.activate([
+                block.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+                block.topAnchor.constraint(equalTo: allow.topAnchor),
+                allow.leadingAnchor.constraint(equalTo: block.trailingAnchor, constant: 8),
+                allow.widthAnchor.constraint(equalTo: block.widthAnchor),
+            ])
+        }
         view.setAccessibilityElement(true)
         view.setAccessibilityRole(.group)
         view.setAccessibilityLabel(question.stringValue)

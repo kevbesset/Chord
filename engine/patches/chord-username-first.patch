@@ -1,0 +1,68 @@
+Chord: username-first sign-ins whose first step asks for an email get the saved usernames, without Chrome's crowdsourcing server.
+--- a/components/password_manager/core/common/password_manager_util.h
++++ b/components/password_manager/core/common/password_manager_util.h
+@@ -23,6 +23,11 @@
+ // with autocomplete="username", or a textfield with autocomplete="webauthn".
+ bool IsRendererRecognizedCredentialForm(const autofill::FormData& form);
+ 
++// Chord: whether the form's only visible text field asks for an email
++// (autocomplete="email"): the first step of a username-first sign-in, which
++// Chrome knows from its crowdsourcing server, left out of ungoogled-chromium.
++bool IsLoneEmailForm(const autofill::FormData& form);
++
+ // Returns whether field attributes allow to consider it as a single
+ // username field (e.g. don't indicate it's a search field).
+ bool CanFieldBeConsideredAsSingleUsername(
+--- a/components/password_manager/core/common/password_manager_util.cc
++++ b/components/password_manager/core/common/password_manager_util.cc
+@@ -74,9 +74,25 @@
+                    std::string::npos ||
+                IsLikelyPasswordField(field.name_attribute(),
+                                      field.id_attribute());
+-      });
++      }) || IsLoneEmailForm(form);
+ }
+ 
++bool IsLoneEmailForm(const autofill::FormData& form) {
++  const autofill::FormFieldData* email = nullptr;
++  for (const autofill::FormFieldData& field : form.fields()) {
++    if (!field.is_focusable() || !field.IsTextInputElement()) {
++      continue;
++    }
++    if (email || field.IsPasswordInputElement() ||
++        base::ToLowerASCII(field.autocomplete_attribute()).find("email") ==
++            std::string::npos) {
++      return false;
++    }
++    email = &field;
++  }
++  return email;
++}
++
+ bool CanFieldBeConsideredAsSingleUsername(
+     const std::u16string& name,
+     const std::u16string& id,
+--- a/components/password_manager/core/browser/form_parsing/form_data_parser.cc
++++ b/components/password_manager/core/browser/form_parsing/form_data_parser.cc
+@@ -1465,6 +1465,21 @@
+     }
+   }
+ 
++  // Chord: the email of a username-first sign-in is its username (Chrome learns
++  // it from its server, which ungoogled-chromium leaves out).
++  if (!significant_fields.username && !significant_fields.HasPasswords() &&
++      util::IsLoneEmailForm(form_data)) {
++    for (const ProcessedField& field : processed_fields) {
++      if (field.field->is_focusable() && !field.is_password &&
++          field.field->IsTextInputElement()) {
++        significant_fields.username = field.field;
++        significant_fields.RecordMethodIfUsernameFound(
++            UsernameDetectionMethod::kAutocompleteAttribute);
++        break;
++      }
++    }
++  }
++
+   const bool username_found_before_heuristic = significant_fields.username;
+   const bool new_password_found_before_heuristic =
+       significant_fields.new_password;

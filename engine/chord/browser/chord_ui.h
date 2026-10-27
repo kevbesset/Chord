@@ -38,6 +38,10 @@
 - (void)page:(id<ChordWebPage>)page
        download:(NSString*)downloadID
     didFinishAt:(NSURL*)fileURL;
+- (void)page:(id<ChordWebPage>)page
+    didFindMatches:(NSInteger)count
+       activeMatch:(NSInteger)activeMatch
+           isFinal:(BOOL)isFinal;
 @end
 
 @protocol ChordWebPage <NSObject>
@@ -71,6 +75,19 @@
 - (id<ChordExtensionPopup>)runExtension:(NSString*)extensionID;
 - (void)setExtension:(NSString*)extensionID pinned:(BOOL)pinned;
 - (void)uninstallExtension:(NSString*)extensionID;
+- (void)find:(NSString*)text forward:(BOOL)forward;
+- (void)stopFinding;
+- (void)zoom:(NSInteger)direction;
+@property(nonatomic, readonly) NSInteger zoomPercent;
+- (void)printPage;
+@property(nonatomic, readonly) BOOL isAudible;
+@property(nonatomic, readonly) BOOL isMuted;
+- (void)setMuted:(BOOL)muted;
+@property(nonatomic, readonly) BOOL isCapturingMedia;
+- (BOOL)sleep;
+@property(nonatomic, readonly) BOOL isAsleep;
+- (void)wake;
+- (void)evaluateJavaScript:(NSString*)script completion:(void (^)(id))completion;
 @end
 
 @protocol ChordPermissionRequest <NSObject>
@@ -78,6 +95,13 @@
 @property(nonatomic, readonly, copy) NSArray<NSString*>* asks;
 @property(nonatomic, readonly, copy) NSString* symbol;
 @property(nonatomic, copy) void (^onCancel)(void);
+@optional
+@property(nonatomic, readonly, copy) NSString* question;
+@property(nonatomic, readonly, copy) NSString* detail;
+@property(nonatomic, readonly, copy) NSString* allowTitle;
+@property(nonatomic, readonly, copy) NSString* blockTitle;
+@property(nonatomic, readonly, copy) NSString* dismissTitle;
+@required
 - (void)allow;
 - (void)block;
 - (void)dismiss;

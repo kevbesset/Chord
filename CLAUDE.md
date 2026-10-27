@@ -109,8 +109,25 @@ errors before handing back.
 - After a crash, the next launch writes a readable report to
   `~/Library/Logs/Chord/latest-crash.md` (stack of the faulting thread, Chromium's error
   message if there is one, caught by //chord in `last-fatal.txt`) and offers it.
+- Find in page (⌘F, a glass bar at the top right of the page, Chromium's search), zoom
+  per site (⌘+ / ⌘- / ⌘0), the Mac's print dialog (⌘P), view source (⌥⌘U).
+- Passwords: "Save password?" and "Update password?" in Chord's prompt (routed from
+  `ManagePasswordsUIController`, chord-password-prompt.patch); saving and form
+  autocomplete are on by default (ungoogled-chromium turns them off); Chromium's
+  suggestion list fills the fields; email-first sign-ins get the saved usernames
+  without Google's server (chord-username-first.patch). The Arc import also brings
+  the values typed in forms.
+- Translation with Apple's on-device Translation framework (macOS 26), in ChordUI
+  (`PageTranslator`), paragraph by paragraph with tagged pieces, on-screen content
+  first, the rest on scroll (it takes seconds per paragraph): a page in a language the
+  Mac does not list is offered a
+  translation; View › Translate Page / Show Original, and a switch in the site settings
+  card. No Google service.
+- Sleeping tabs keep their history, scroll position and forms (Chromium's tab
+  discarding, woken when shown); tabs playing sound or using the camera, microphone or
+  screen stay awake. A speaker in the sidebar mutes a tab playing sound.
 - Not yet on the Chromium side: Peek on ⇧-click, downloads in Chord's panel, video full
-  screen in the interface, find in page.
+  screen in the interface.
 - Sharing: Chord signed with the Mac's best certificate (`engine/scripts/sign.sh`), data
   in `~/Library/Application Support/Chord` (older builds' data is moved there and
   re-encrypted with the keychain key), Chord's name and icon everywhere, Chrome Web

@@ -32,6 +32,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private let permissionPrompt = PermissionPromptController()
     private let extensionPopup = ExtensionPopupController()
     private let toast = ToastView()
+    /// The page searched with ⌘F while the find bar is up.
+    private weak var findPage: ChordWebPage?
+    /// Apple's on-device translation of the pages of this window.
+    private lazy var translation = PageTranslator()
     /// True while a swipe hands its Space to the state, which needs no slide of its own.
     private var isEndingSwipe = false
     private lazy var peek = makePeek()
@@ -145,6 +149,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         edgeHover.onExit = { [weak self] in self?.pendingReveal?.cancel() }
         pageArea.onAction = { [weak self] action in self?.handle(action) }
         pageArea.moreMenu = { [weak self] in self?.moreMenu() ?? NSMenu() }
+        setUpFindBar()
         pageArea.home.onSearch = { [weak self] in self?.newTab(nil) }
         pageArea.home.onOpen = { [weak self] tab in self?.sidebarSelect(tab) }
 
@@ -440,6 +445,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             if let selected = state.selectedTab, selected.id == id {
                 sidebar.updateNavigation(tab: selected)
                 window?.title = selected.displayTitle
+                offerTranslation(for: selected)
             }
         case .downloadStarted:
             // Like Arc, a new download shows itself.
@@ -453,6 +459,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             siteControls.refresh()
         case .addressBar:
             updateAddressBarPosition(animated: true)
+        case .findResult(let result):
+            if result.page === findPage, !pageArea.findBar.isHidden {
+                pageArea.findBar.showResult(count: result.count, activeMatch: result.activeMatch)
+            }
         }
     }
 
@@ -487,6 +497,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         updatePictureInPicture(showing: tabs.compactMap(\.page))
         // The site controls belong to the page they were opened on.
         if siteControls.isVisible, siteControlsTabID != selected?.id { siteControls.dismiss() }
+        // So do the find bar and the offer to translate.
+        if !pageArea.findBar.isHidden, findPage !== selected?.page { closeFindBar(focusPage: false) }
+        if let offer = permissionPrompt.request as? TranslationOffer, permissionPrompt.page !== selected?.page { offer.withdraw() }
     }
 
     private func elsewhereView(at index: Int) -> PageElsewhereView {
@@ -1031,6 +1044,137 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         copy(state.selectedTab?.url)
     }
 
+    // MARK: - Find, zoom, print
+
+    private func setUpFindBar() {
+        let bar = pageArea.findBar
+        bar.onChange = { [weak self] text in self?.findPage?.find?(text, forward: true) }
+        bar.onNext = { [weak self] in self?.findNext(nil) }
+        bar.onPrevious = { [weak self] in self?.findPrevious(nil) }
+        bar.onClose = { [weak self] in self?.closeFindBar(focusPage: true) }
+    }
+
+    /// ⌘F: the find bar over the selected page, its text selected to type a new one.
+    /// The text stays from one search to the next, like Safari's.
+    @objc public func showFindBar(_ sender: Any?) {
+        guard let page = state.selectedTab?.page, page.find != nil else { return }
+        let interval = Perf.begin("find.open")
+        if commandBar.isVisible { commandBar.dismiss() }
+        let bar = pageArea.findBar
+        let wasHidden = bar.isHidden
+        if findPage !== page {
+            findPage?.stopFinding?()
+            findPage = page
+        }
+        if wasHidden {
+            bar.clearResult()
+            bar.isHidden = false
+            pageArea.needsLayout = true
+            pageArea.layoutSubtreeIfNeeded()
+            bar.alphaValue = 0
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.15
+                bar.animator().alphaValue = 1
+            }
+            // Searches the text left from the last time again.
+            if !bar.text.isEmpty { page.find?(bar.text, forward: true) }
+        }
+        bar.focus()
+        DispatchQueue.main.async { interval.end() }
+    }
+
+    /// ⌘G and ⇧⌘G: the next or previous match, opening the find bar if needed.
+    @objc public func findNext(_ sender: Any?) {
+        find(forward: true)
+    }
+
+    @objc public func findPrevious(_ sender: Any?) {
+        find(forward: false)
+    }
+
+    private func find(forward: Bool) {
+        let bar = pageArea.findBar
+        guard !bar.isHidden, let page = findPage else {
+            showFindBar(nil)
+            return
+        }
+        guard !bar.text.isEmpty else { return }
+        page.find?(bar.text, forward: forward)
+    }
+
+    private func closeFindBar(focusPage focus: Bool) {
+        let bar = pageArea.findBar
+        guard !bar.isHidden else { return }
+        findPage?.stopFinding?()
+        findPage = nil
+        bar.isHidden = true
+        if focus { focusPage() }
+    }
+
+    @objc public func zoomIn(_ sender: Any?) { zoom(1) }
+    @objc public func zoomOut(_ sender: Any?) { zoom(-1) }
+    @objc public func actualSize(_ sender: Any?) { zoom(0) }
+
+    /// The engine keeps the zoom per site; the toast says where it is now.
+    private func zoom(_ direction: Int) {
+        guard let page = state.selectedTab?.page, let zoomPage = page.zoom else { return }
+        zoomPage(direction)
+        let percent = page.zoomPercent ?? 100
+        let text = (Double(percent) / 100).formatted(.percent.locale(.chordUI))
+        let symbol = direction > 0 ? "plus.magnifyingglass" : direction < 0 ? "minus.magnifyingglass" : "1.magnifyingglass"
+        toast.show(text, detail: state.selectedTab?.url?.displayHost, symbol: symbol, in: rootView, over: pageArea, accent: state.activeSpace.accent)
+    }
+
+    @objc public func printPage(_ sender: Any?) {
+        state.selectedTab?.page?.printPage?()
+    }
+
+    /// ⌥⌘U: the page's source, in a new tab.
+    @objc public func viewSource(_ sender: Any?) {
+        guard let url = state.selectedTab?.url, !url.absoluteString.hasPrefix("view-source:"),
+              let source = URL(string: "view-source:" + url.absoluteString) else { return }
+        state.openTab(url: source)
+    }
+
+    @objc public func toggleMuteTab(_ sender: Any?) {
+        if let tab = state.selectedTab { state.toggleMute(tab) }
+    }
+
+    /// Translates the selected page into the Mac's language with Apple's on-device
+    /// translation, or shows its original text again.
+    @objc public func toggleTranslation(_ sender: Any?) {
+        guard let tab = state.selectedTab, let page = tab.page else { return }
+        if let offer = permissionPrompt.request as? TranslationOffer, permissionPrompt.page === page { offer.withdraw() }
+        if translation.isTranslated(page) {
+            translation.showOriginal(page)
+        } else {
+            translation.translate(page, in: window) { [weak self] message in
+                if let message { self?.showTranslationFailure(message) }
+            }
+        }
+    }
+
+    private func showTranslationFailure(_ message: String) {
+        toast.show(message, symbol: "exclamationmark.bubble", in: rootView, over: pageArea, accent: state.activeSpace.accent)
+    }
+
+    /// Once the selected page has loaded, a page in another language is offered a
+    /// translation, like a site's question.
+    private func offerTranslation(for tab: Tab) {
+        // An offer for a page that has gone elsewhere since goes.
+        if let offer = permissionPrompt.request as? TranslationOffer, permissionPrompt.page === tab.page, offer.url != tab.page?.url {
+            offer.withdraw()
+        }
+        guard tab === state.selectedTab, let page = tab.page, !page.isLoading, window?.isKeyWindow == true,
+              !permissionPrompt.isVisible, page.view.window === window else { return }
+        translation.offerIfForeign(page, settings: settings, ask: { [weak self, weak page] request in
+            guard let self, let page, page === self.state.selectedTab?.page, !self.permissionPrompt.isVisible else { return }
+            self.presentPermission(PermissionAsk(page: page, request: request))
+        }, failed: { [weak self] message in
+            self?.showTranslationFailure(message)
+        })
+    }
+
     /// One of Chromium's internal pages (chord://settings…), in a new tab.
     private func openInternalPage(_ path: String) {
         guard let url = URL(string: "chrome://\(path)") else { return }
@@ -1045,6 +1189,16 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         siteControls.isGlass = settings.commandBarGlass
         siteControls.onCopy = { [weak self] in self?.copy(url) }
         siteControls.onOpen = { [weak self] url in self?.state.openTab(url: url) }
+        siteControls.translation = nil
+        if PageTranslator.canTranslate(page) {
+            let translator = translation
+            let isOn: () -> Bool = { [weak page] in
+                guard let page else { return false }
+                return translator.isTranslated(page)
+            }
+            let toggle: () -> Void = { [weak self] in self?.toggleTranslation(nil) }
+            siteControls.translation = (target: PageTranslator.targetName, isOn: isOn, toggle: toggle)
+        }
         siteControls.onDismiss = { [weak self] in
             self?.focusPage()
             self?.resumePermissionPrompt()
@@ -1213,6 +1367,23 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return state.selectedTab?.page?.isLoading ?? false
         case #selector(reloadPage(_:)), #selector(reloadPageIgnoringCache(_:)), #selector(copyURL(_:)):
             return state.selectedTab != nil
+        case #selector(showFindBar(_:)), #selector(findNext(_:)), #selector(findPrevious(_:)):
+            return state.selectedTab?.page?.find != nil
+        case #selector(zoomIn(_:)), #selector(zoomOut(_:)), #selector(actualSize(_:)):
+            return state.selectedTab?.page?.zoom != nil
+        case #selector(printPage(_:)):
+            return state.selectedTab?.page?.printPage != nil
+        case #selector(viewSource(_:)):
+            guard let url = state.selectedTab?.url else { return false }
+            return !url.absoluteString.hasPrefix("view-source:") && url.scheme != "chrome"
+        case #selector(toggleMuteTab(_:)):
+            let page = state.selectedTab?.page
+            menuItem.title = page?.isMuted == true ? String(localized: "Unmute Tab", bundle: .chordUI) : String(localized: "Mute Tab", bundle: .chordUI)
+            return page?.setMuted != nil
+        case #selector(toggleTranslation(_:)):
+            guard let page = state.selectedTab?.page else { return false }
+            menuItem.title = translation.isTranslated(page) ? String(localized: "Show Original", bundle: .chordUI) : String(localized: "Translate Page", bundle: .chordUI)
+            return PageTranslator.isAvailable && page.evaluateJavaScript != nil
         case #selector(closeTab(_:)):
             return state.selectedTab != nil || commandBar.isVisible || peek.isVisible
         default:
@@ -1246,6 +1417,7 @@ extension BrowserWindowController: SidebarDelegate {
     }
 
     func sidebarClose(_ tab: Tab) { state.close(tab) }
+    func sidebarToggleMute(_ tab: Tab) { state.toggleMute(tab) }
     func sidebarTogglePin(_ tab: Tab) { state.togglePin(tab) }
     func sidebarToggleFavorite(_ tab: Tab) { state.toggleFavorite(tab) }
     func sidebarSplit(_ tab: Tab) { state.addToSplit(tab) }

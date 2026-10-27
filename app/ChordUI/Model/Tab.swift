@@ -29,7 +29,8 @@ public final class Tab {
     /// moves the tab away from it, closing the tab brings it back there.
     public internal(set) var pinnedURL: URL?
     var pinnedTitle: String?
-    /// The live page, or nil when the tab is asleep.
+    /// The tab's page: nil when the tab has not loaded since launch, or was put to sleep
+    /// by an engine that cannot keep a sleeping page (see `isAwake`).
     var page: ChordWebPage?
     /// Used to decide which tabs go to sleep first.
     var lastSelected: Date
@@ -45,6 +46,14 @@ public final class Tab {
             self.pinnedURL = pinnedURL ?? url
             self.pinnedTitle = pinnedTitle ?? title
         }
+    }
+
+    /// The page is alive: loaded, and not asleep (put to sleep by Chord, or by the
+    /// engine when memory runs short). A sleeping page keeps its history and where it
+    /// was, and loads again when shown.
+    var isAwake: Bool {
+        guard let page else { return false }
+        return !(page.isAsleep ?? false)
     }
 
     public var isPinned: Bool { section == .pinned }

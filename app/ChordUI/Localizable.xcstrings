@@ -143,6 +143,28 @@
         }
       }
     },
+    "%lld of %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld of %2$lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld sur %2$lld"
+          }
+        }
+      }
+    },
     "1 extension installed from the Chrome Web Store.": {
       "localizations": {
         "es": {
@@ -235,6 +257,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Actions"
+          }
+        }
+      }
+    },
+    "Actual Size": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño real"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taille réelle"
           }
         }
       }
@@ -1301,6 +1339,22 @@
         }
       }
     },
+    "Done": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminé"
+          }
+        }
+      }
+    },
     "Download failed": {
       "localizations": {
         "es": {
@@ -1521,6 +1575,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fichier"
+          }
+        }
+      }
+    },
+    "Find": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher"
+          }
+        }
+      }
+    },
+    "Find Next": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar siguiente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher le suivant"
+          }
+        }
+      }
+    },
+    "Find Next (⌘G)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente (⌘G)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivant (⌘G)"
+          }
+        }
+      }
+    },
+    "Find Previous": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar anterior"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher le précédent"
+          }
+        }
+      }
+    },
+    "Find Previous (⇧⌘G)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anterior (⇧⌘G)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Précédent (⇧⌘G)"
+          }
+        }
+      }
+    },
+    "Find in page": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en la página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher dans la page"
+          }
+        }
+      }
+    },
+    "Find…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher…"
           }
         }
       }
@@ -2235,6 +2401,22 @@
         }
       }
     },
+    "Mute Tab": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silenciar pestaña"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couper le son de l'onglet"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "es": {
@@ -2247,6 +2429,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nom"
+          }
+        }
+      }
+    },
+    "Never": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jamais"
           }
         }
       }
@@ -2491,6 +2689,22 @@
         }
       }
     },
+    "No results": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin resultados"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun résultat"
+          }
+        }
+      }
+    },
     "Not Now": {
       "localizations": {
         "es": {
@@ -2535,6 +2749,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Non sécurisé. "
+          }
+        }
+      }
+    },
+    "Off": {
+      "comment": "The page's translation, in the site controls",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivée"
+          }
+        }
+      }
+    },
+    "On": {
+      "comment": "The page's translation, in the site controls",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activée"
           }
         }
       }
@@ -2747,6 +2995,22 @@
         }
       }
     },
+    "Page in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página en %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page en %@"
+          }
+        }
+      }
+    },
     "Page to show alongside": {
       "localizations": {
         "es": {
@@ -2903,6 +3167,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Onglet précédent"
+          }
+        }
+      }
+    },
+    "Print…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imprimir…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imprimer…"
           }
         }
       }
@@ -3563,6 +3843,22 @@
         }
       }
     },
+    "Show Original": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar original"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher l'original"
+          }
+        }
+      }
+    },
     "Show Sidebar": {
       "localizations": {
         "es": {
@@ -3979,6 +4275,54 @@
         }
       }
     },
+    "The page could not be translated.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido traducir la página."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La page n'a pas pu être traduite."
+          }
+        }
+      }
+    },
+    "The page is already in %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La página ya está en %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La page est déjà en %@."
+          }
+        }
+      }
+    },
+    "The page's language could not be recognised.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha reconocido el idioma de la página."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La langue de la page n'a pas été reconnue."
+          }
+        }
+      }
+    },
     "This is the last Space on its profile: the profile will be deleted too, with its logins, cookies, history, extensions and favorites.": {
       "localizations": {
         "es": {
@@ -3991,6 +4335,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "C'est le dernier Space de son profil : le profil sera supprimé aussi, avec ses connexions, cookies, historique, extensions et favoris."
+          }
+        }
+      }
+    },
+    "This page cannot be translated into %@ on this Mac.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta página no se puede traducir al %@ en este Mac."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette page ne peut pas être traduite en %@ sur ce Mac."
           }
         }
       }
@@ -4039,6 +4399,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meilleur résultat"
+          }
+        }
+      }
+    },
+    "Translate": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traducir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduire"
+          }
+        }
+      }
+    },
+    "Translate Page": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traducir página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduire la page"
+          }
+        }
+      }
+    },
+    "Translate into %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traducir al %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduire en %@"
+          }
+        }
+      }
+    },
+    "Translate this page into %@?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Traducir esta página al %@?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traduire cette page en %@ ?"
+          }
+        }
+      }
+    },
+    "Translating pages needs macOS 26 or later.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traducir páginas requiere macOS 26 o posterior."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La traduction des pages demande macOS 26 ou plus récent."
           }
         }
       }
@@ -4171,6 +4611,22 @@
         }
       }
     },
+    "Unmute Tab": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar sonido de la pestaña"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rétablir le son de l'onglet"
+          }
+        }
+      }
+    },
     "Unpin": {
       "localizations": {
         "es": {
@@ -4235,6 +4691,22 @@
         }
       }
     },
+    "View Source": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver código fuente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher le code source"
+          }
+        }
+      }
+    },
     "Violet": {
       "localizations": {
         "es": {
@@ -4279,6 +4751,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Agrandir"
+          }
+        }
+      }
+    },
+    "Zoom In": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ampliar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom avant"
+          }
+        }
+      }
+    },
+    "Zoom In (second shortcut)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ampliar (segundo atajo)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom avant (second raccourci)"
+          }
+        }
+      }
+    },
+    "Zoom Out": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reducir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom arrière"
           }
         }
       }
@@ -4423,6 +4943,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS n'a pas donné accès à la clé d'Arc : les connexions et les mots de passe sont restés dans Arc. %lld pages d'historique reprises."
+          }
+        }
+      }
+    },
+    "macOS's translation is not answering. Try again later, or after restarting the Mac.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La traducción de macOS no responde. Inténtalo más tarde o después de reiniciar el Mac."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La traduction de macOS ne répond pas. Réessayez plus tard, ou après avoir redémarré le Mac."
           }
         }
       }

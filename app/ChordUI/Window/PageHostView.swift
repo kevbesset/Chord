@@ -60,6 +60,10 @@ final class PageHostView: NSView {
             addSubview(pageView)
         }
         let tools = page.devToolsView ?? nil
+        // The engine may give the page a new view (put to sleep, the old one is gone).
+        for view in subviews where view !== pageView && view !== tools && view !== devTools {
+            view.removeFromSuperview()
+        }
         if tools !== devTools {
             if devTools?.superview === self { devTools?.removeFromSuperview() }
             if let tools {

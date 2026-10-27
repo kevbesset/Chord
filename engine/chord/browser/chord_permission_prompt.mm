@@ -45,24 +45,6 @@ NSString* SymbolFor(permissions::RequestType type) {
 }  // namespace
 }  // namespace chord
 
-// What ChordUI shows and answers. The answer goes back through `answer`, which does
-// nothing once the prompt is gone.
-@interface ChordPermissionRequestImpl : NSObject <ChordPermissionRequest>
-- (instancetype)initWithSite:(NSString*)site
-                        asks:(NSArray<NSString*>*)asks
-                      symbol:(NSString*)symbol
-                      answer:(void (^)(NSInteger answer))answer;
-// The prompt went away unanswered: ChordUI takes its question down.
-- (void)cancel;
-@end
-
-namespace chord {
-namespace {
-
-enum Answer : NSInteger { kAllow, kBlock, kDismiss };
-
-}  // namespace
-}  // namespace chord
 
 @implementation ChordPermissionRequestImpl {
   void (^_answer)(NSInteger);
@@ -72,6 +54,11 @@ enum Answer : NSInteger { kAllow, kBlock, kDismiss };
 @synthesize asks = _asks;
 @synthesize symbol = _symbol;
 @synthesize onCancel = _onCancel;
+@synthesize question = _question;
+@synthesize detail = _detail;
+@synthesize allowTitle = _allowTitle;
+@synthesize blockTitle = _blockTitle;
+@synthesize dismissTitle = _dismissTitle;
 
 - (instancetype)initWithSite:(NSString*)site
                         asks:(NSArray<NSString*>*)asks

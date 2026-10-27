@@ -173,6 +173,8 @@ final class FavoriteTileView: NSView, NSDraggingSource {
     weak var delegate: SidebarDelegate?
     private(set) var tab: Tab?
     private let icon = FaviconTileView(size: 20)
+    /// A speaker in the corner while the page plays sound or is muted.
+    private let audioBadge = NSImageView()
     private var isSelected = false
     private var isHovered = false
     private var accent = NSColor.controlAccentColor
@@ -183,9 +185,15 @@ final class FavoriteTileView: NSView, NSDraggingSource {
         super.init(frame: frameRect)
         wantsLayer = true
         addSubview(icon)
+        audioBadge.translatesAutoresizingMaskIntoConstraints = false
+        audioBadge.contentTintColor = .secondaryLabelColor
+        audioBadge.isHidden = true
+        addSubview(audioBadge)
         NSLayoutConstraint.activate([
             icon.centerXAnchor.constraint(equalTo: centerXAnchor),
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+            audioBadge.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            audioBadge.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5),
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
@@ -201,7 +209,10 @@ final class FavoriteTileView: NSView, NSDraggingSource {
         setAccessibilityLabel(String(localized: "Favorite: \(tab.displayTitle)", bundle: .chordUI))
         isSelected = selected
         // A sleeping favorite is a little dimmer, like Arc.
-        icon.alphaValue = tab.page == nil && !selected ? 0.85 : 1
+        icon.alphaValue = !tab.isAwake && !selected ? 0.85 : 1
+        let muted = tab.page?.isMuted == true
+        audioBadge.isHidden = !(muted || tab.page?.isAudible == true)
+        audioBadge.image = Theme.symbol(muted ? "speaker.slash.fill" : "speaker.wave.2.fill", size: 8)
         needsDisplay = true
     }
 
@@ -296,6 +307,11 @@ final class FavoriteTileView: NSView, NSDraggingSource {
         menu.addItem(closureItem(String(localized: "Remove from Favorites", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarToggleFavorite(tab) })
         menu.addItem(closureItem(String(localized: "Open in Split View", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarSplit(tab) })
         menu.addItem(closureItem(String(localized: "Copy URL", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
+        if let page = tab.page, page.setMuted != nil {
+            menu.addItem(closureItem(page.isMuted == true ? String(localized: "Unmute Tab", bundle: .chordUI) : String(localized: "Mute Tab", bundle: .chordUI)) { [weak self] in
+                self?.delegate?.sidebarToggleMute(tab)
+            })
+        }
         menu.addItem(.separator())
         menu.addItem(closureItem(String(localized: "Unload", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarClose(tab) })
         return menu

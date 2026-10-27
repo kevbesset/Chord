@@ -13,3 +13,5 @@ chord-product-icon.patch
 chord-own-data.patch
 chord-web-store.patch
 chord-components.patch
+chord-password-prompt.patch
+chord-username-first.patch

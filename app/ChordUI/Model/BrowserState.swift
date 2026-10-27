@@ -18,6 +18,8 @@ public enum StateChange: Equatable {
     case downloadStarted
     /// A page's site asks for permissions: the window showing the page asks the user.
     case permission(PermissionAsk)
+    /// What a search in a page found (⌘F).
+    case findResult(FindResult)
     /// Extensions were added, removed or pinned, or a badge or icon changed.
     case extensions
     /// A profile's address bar moved between the sidebar and the top of the page.
@@ -31,6 +33,17 @@ public struct PermissionAsk: Equatable {
 
     public static func == (lhs: PermissionAsk, rhs: PermissionAsk) -> Bool {
         lhs.page === rhs.page && lhs.request === rhs.request
+    }
+}
+
+/// What a search in a page found: `count` matches, the `activeMatch`th selected.
+public struct FindResult: Equatable {
+    public let page: ChordWebPage
+    public let count: Int
+    public let activeMatch: Int
+
+    public static func == (lhs: FindResult, rhs: FindResult) -> Bool {
+        lhs.page === rhs.page && lhs.count == rhs.count && lhs.activeMatch == rhs.activeMatch
     }
 }
 
@@ -360,7 +373,7 @@ public final class BrowserState: NSObject {
                 next = partner
             } else {
                 next = sidebarTabs(in: space)
-                    .filter { $0 !== tab && $0.page != nil }
+                    .filter { $0 !== tab && $0.isAwake }
                     .max { $0.lastSelected < $1.lastSelected }
             }
             space.selectedTabID = next?.id
@@ -793,10 +806,13 @@ public final class BrowserState: NSObject {
         return spaces.first { $0.profileID == profile } ?? activeSpace
     }
 
-    /// The tab's page, created and loaded on first use.
+    /// The tab's page, created and loaded on first use, woken up when it sleeps.
     @discardableResult
     func page(for tab: Tab) -> ChordWebPage {
-        if let page = tab.page { return page }
+        if let page = tab.page {
+            if page.isAsleep == true { page.wake?() }
+            return page
+        }
         let page = engine(forProfile: profileID(of: tab)).makePage()
         page.delegate = self
         tab.page = page
@@ -804,10 +820,12 @@ public final class BrowserState: NSObject {
         return page
     }
 
-    /// Keeps the visible tabs and the most recently used ones awake; the rest sleep.
+    /// Keeps the visible tabs and the most recently used ones awake; the rest sleep,
+    /// except those playing sound or using the camera, the microphone or the screen (a
+    /// call, music). A sleeping page keeps its history, scroll position and forms.
     func enforceSleepPolicy() {
         let awake = everyTab
-            .filter { $0.page != nil }
+            .filter(\.isAwake)
             .sorted { $0.lastSelected > $1.lastSelected }
         var keep = Set(awake.prefix(maxAwakeTabs).map(\.id))
         for visible in visibleTabs { keep.insert(visible.id) }
@@ -816,8 +834,21 @@ public final class BrowserState: NSObject {
             for visible in withWindow(window, { visibleTabs }) { keep.insert(visible.id) }
         }
         for tab in awake where !keep.contains(tab.id) {
-            tab.page = nil
+            guard let page = tab.page, page.isAudible != true, page.isCapturingMedia != true else { continue }
+            if let sleep = page.sleep {
+                // A page the engine cannot put to sleep (in picture in picture) stays awake.
+                _ = sleep()
+            } else {
+                tab.page = nil
+            }
         }
+    }
+
+    /// Mutes the tab's page, or gives it its sound back.
+    public func toggleMute(_ tab: Tab) {
+        guard let page = tab.page else { return }
+        page.setMuted?(!(page.isMuted ?? false))
+        changes.send(.tab(tab.id))
     }
 
     private func tab(owning page: ChordWebPage) -> Tab? {
@@ -887,6 +918,10 @@ extension BrowserState: ChordWebPageDelegate {
         }
         changes.send(.tab(tab.id))
         scheduleSave()
+    }
+
+    public func page(_ page: ChordWebPage, didFindMatches count: Int, activeMatch: Int, isFinal: Bool) {
+        changes.send(.findResult(FindResult(page: page, count: count, activeMatch: activeMatch)))
     }
 
     public func page(_ page: ChordWebPage, wantsNewTabWith url: URL) {
