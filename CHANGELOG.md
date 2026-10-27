@@ -6,6 +6,11 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+## 0.2.0 — 2026-10-27
+
+The browser basics (find, zoom, print, passwords, autofill, muting), Chord as the
+default browser, and an interface in English, French and Spanish.
+
 ### Added
 
 - Chord can become the Mac's default browser: Settings › General › Default browser,
