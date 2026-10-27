@@ -827,6 +827,22 @@
         }
       }
     },
+    "Chord is your default browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chord es tu navegador predeterminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chord est votre navigateur par défaut"
+          }
+        }
+      }
+    },
     "Chord quit unexpectedly": {
       "localizations": {
         "es": {
@@ -1175,6 +1191,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Barre d'adresse par défaut"
+          }
+        }
+      }
+    },
+    "Default browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navegador predeterminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navigateur par défaut"
           }
         }
       }
@@ -2273,6 +2305,54 @@
         }
       }
     },
+    "Links opened from other apps open in %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los enlaces abiertos desde otras apps se abren en %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les liens ouverts depuis d'autres apps s'ouvrent dans %@."
+          }
+        }
+      }
+    },
+    "Links opened from other apps open in Chord.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los enlaces abiertos desde otras apps se abren en Chord."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les liens ouverts depuis d'autres apps s'ouvrent dans Chord."
+          }
+        }
+      }
+    },
+    "Links opened from other apps open in another browser.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los enlaces abiertos desde otras apps se abren en otro navegador."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les liens ouverts depuis d'autres apps s'ouvrent dans un autre navigateur."
+          }
+        }
+      }
+    },
     "Little Window": {
       "localizations": {
         "es": {
@@ -2285,6 +2365,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Petite fenêtre"
+          }
+        }
+      }
+    },
+    "Make %@ the Default Browser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hacer de %@ el navegador predeterminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faire de %@ le navigateur par défaut"
+          }
+        }
+      }
+    },
+    "Make Default": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Establecer como predeterminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Définir par défaut"
           }
         }
       }

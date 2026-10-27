@@ -19,6 +19,8 @@ public enum MainMenu {
             item(String(localized: "Check for Updates…", bundle: .chordUI), Selector(("checkForUpdates:"))),
             .separator(),
             item(String(localized: "Settings…", bundle: .chordUI), #selector(C.showSettings(_:)), ","),
+            // Handled by ChordUIHost's app actions.
+            item(String(localized: "Make \(appName) the Default Browser", bundle: .chordUI), Selector(("makeDefaultBrowser:"))),
             .separator(),
             item(String(localized: "Hide \(appName)", bundle: .chordUI), #selector(NSApplication.hide(_:)), "h"),
             item(String(localized: "Hide Others", bundle: .chordUI), #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),

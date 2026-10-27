@@ -75,6 +75,9 @@ struct SettingsView: View {
 private struct GeneralPane: View {
     @ObservedObject var model: SettingsModel
     @State private var confirmingReset = false
+    @State private var isDefaultBrowser = DefaultBrowser.isChord
+    @State private var otherBrowser = DefaultBrowser.currentName
+    @State private var askingDefault = false
 
     static let engines: [(String, String)] = [
         ("DuckDuckGo", "https://duckduckgo.com/?q=%s"),
@@ -89,6 +92,32 @@ private struct GeneralPane: View {
 
     var body: some View {
         Form {
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "Default browser", bundle: .chordUI))
+                        Text(isDefaultBrowser
+                             ? String(localized: "Links opened from other apps open in Chord.", bundle: .chordUI)
+                             : otherBrowser.map { String(localized: "Links opened from other apps open in \($0).", bundle: .chordUI) }
+                                ?? String(localized: "Links opened from other apps open in another browser.", bundle: .chordUI))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if isDefaultBrowser {
+                        Label(String(localized: "Chord is your default browser", bundle: .chordUI), systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button(String(localized: "Make Default", bundle: .chordUI)) {
+                            askingDefault = true
+                            DefaultBrowser.makeChord { _ in
+                                askingDefault = false
+                                refreshDefaultBrowser()
+                            }
+                        }
+                        .disabled(askingDefault)
+                    }
+                }
+            }
             Picker(String(localized: "Search engine", bundle: .chordUI), selection: model.binding(\.searchTemplate)) {
                 ForEach(Self.engines, id: \.1) { engine in Text(engine.0).tag(engine.1) }
                 if !Self.engines.contains(where: { $0.1 == model.settings.searchTemplate }) {
@@ -125,6 +154,11 @@ private struct GeneralPane: View {
             }
         }
         .formStyle(.grouped)
+        // The default can change in System Settings or another browser while this is open.
+        .onAppear(perform: refreshDefaultBrowser)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshDefaultBrowser()
+        }
         .confirmationDialog(String(localized: "Reset Chord?", bundle: .chordUI), isPresented: $confirmingReset) {
             Button(String(localized: "Reset and Restart", bundle: .chordUI), role: .destructive) {
                 model.state.engine.resetAllDataAndRelaunch?()
@@ -133,6 +167,11 @@ private struct GeneralPane: View {
         } message: {
             Text(String(localized: "Spaces, tabs, favorites, logins, passwords, history, extensions and settings are deleted, and Chord restarts as on its first launch. Your downloaded files stay. This cannot be undone.", bundle: .chordUI))
         }
+    }
+
+    private func refreshDefaultBrowser() {
+        isDefaultBrowser = DefaultBrowser.isChord
+        otherBrowser = DefaultBrowser.currentName
     }
 }
 

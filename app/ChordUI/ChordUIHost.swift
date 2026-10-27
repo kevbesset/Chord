@@ -28,7 +28,8 @@ public final class ChordUIHost: NSObject {
         let launch = Perf.begin("app.launch")
         NSWindow.allowsAutomaticWindowTabbing = false
         let menu = MainMenu.build(appName: appName)
-        MainMenu.setTarget(appActions, for: [#selector(AppActions.newWindow(_:)), #selector(AppActions.newPrivateWindow(_:))], in: menu)
+        MainMenu.setTarget(appActions, for: [#selector(AppActions.newWindow(_:)), #selector(AppActions.newPrivateWindow(_:)),
+                                          #selector(AppActions.makeDefaultBrowser(_:))], in: menu)
         startUpdater(menu: menu)
         NSApp.mainMenu = menu
 
@@ -131,6 +132,9 @@ public final class ChordUIHost: NSObject {
 private final class AppActions: NSObject, NSMenuItemValidation {
     @objc func newWindow(_ sender: Any?) { ChordUIHost.openWindow() }
     @objc func newPrivateWindow(_ sender: Any?) { ChordUIHost.openPrivateWindow() }
+    @objc func makeDefaultBrowser(_ sender: Any?) { DefaultBrowser.makeChord { _ in } }
 
-    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool { true }
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action != #selector(makeDefaultBrowser(_:)) || !DefaultBrowser.isChord
+    }
 }

@@ -8,6 +8,8 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Added
 
+- Chord can become the Mac's default browser: Settings › General › Default browser,
+  or Chord › Make Chord the Default Browser (macOS asks to confirm).
 - The interface is in English, French and Spanish, following the Mac's language (or
   the language chosen for Chord in System Settings › General › Language & Region).
 - Shortcut search in the settings understands French and Spanish key names ("maj",
