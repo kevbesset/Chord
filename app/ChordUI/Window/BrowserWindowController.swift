@@ -63,6 +63,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// One per pane, for the pages another window shows.
     private var elsewhereViews: [PageElsewhereView] = []
     private var cancellables = Set<AnyCancellable>()
+    /// The title bar's views being watched, and a placing waiting for the next turn.
+    private var trafficLightObservers: [NSObjectProtocol] = []
+    private var trafficLightsPending = false
 
     private static let frameName = "ChordMainWindow"
 
@@ -301,11 +304,22 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// Moves the traffic lights down to the sidebar's first row, centred on it like Arc's,
     /// by making the title bar's container taller and centring the buttons in it (the way
     /// Electron's trafficLightPosition works). macOS lays the title bar out again on
-    /// resizes, key changes and full screen, so this runs after each of them.
+    /// resizes, key changes, full screen, and whenever the window's title changes (each
+    /// page title): the title bar's views are watched, and the lights go back as soon as
+    /// macOS moves them.
     private func positionTrafficLights() {
         guard let window, !window.styleMask.contains(.fullScreen),
               let close = window.standardWindowButton(.closeButton),
               let titlebar = close.superview, let container = titlebar.superview else { return }
+        if trafficLightObservers.isEmpty {
+            for view in [container, titlebar, close] {
+                view.postsFrameChangedNotifications = true
+                trafficLightObservers.append(NotificationCenter.default.addObserver(
+                    forName: NSView.frameDidChangeNotification, object: view, queue: .main) { [weak self] _ in
+                    self?.schedulePositionTrafficLights()
+                })
+            }
+        }
         let height = Theme.titleRowCenter * 2
         var frame = container.frame
         if frame.height != height || frame.maxY != window.frame.height {
@@ -320,6 +334,17 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             if button.frame.minY != y { button.setFrameOrigin(NSPoint(x: button.frame.minX, y: y)) }
         }
         sidebar.needsLayout = true
+    }
+
+    /// Once AppKit has finished laying the title bar out (moving the lights there would
+    /// be undone by the rest of its pass).
+    private func schedulePositionTrafficLights() {
+        guard !trafficLightsPending else { return }
+        trafficLightsPending = true
+        DispatchQueue.main.async { [weak self] in
+            self?.trafficLightsPending = false
+            self?.positionTrafficLights()
+        }
     }
 
     public func windowDidResize(_ notification: Notification) { positionTrafficLights() }
@@ -1343,6 +1368,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     // MARK: - Window
 
     public func windowWillClose(_ notification: Notification) {
+        trafficLightObservers.forEach(NotificationCenter.default.removeObserver)
+        trafficLightObservers = []
         state.saveNow()
         state.closeWindow(selection)
         onClose?(self)

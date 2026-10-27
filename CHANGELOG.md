@@ -45,6 +45,8 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- The traffic lights sometimes moved back above the sidebar's first row (macOS lays
+  the title bar out again when a page's title changes): they now stay level with it.
 - Chord could crash when a site's question was open and the sidebar or the address bar
   moved just as its page left the window.
 - A link opened in a new tab in the background (middle click, "Open Link in New Tab")
