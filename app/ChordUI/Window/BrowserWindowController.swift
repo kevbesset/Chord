@@ -55,6 +55,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private var lastSpaceIndex = 0
     /// The pages this window showed last, to know which ones just left the screen.
     private let shownPages = NSHashTable<AnyObject>.weakObjects()
+    /// The address bar's place as last laid out, to move it only when the Space's
+    /// profile wants another one.
+    private var shownAddressBarOnTop: Bool?
     private var cancellables = Set<AnyCancellable>()
 
     private static let frameName = "ChordMainWindow"
@@ -189,8 +192,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         cardLeadingFree.constant = inset
         sidebarWidth.constant = settings.sidebarWidth
         if sidebarMode == .hidden { sidebarLeading.constant = -(settings.sidebarWidth + 32) }
-        pageArea.setStyle(edgeless: edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.accent)
-        sidebar.setAddressBarOnTop(settings.addressBarOnTop)
+        let onTop = addressBarOnTop
+        shownAddressBarOnTop = onTop
+        pageArea.setStyle(edgeless: edgeless, toolbarOnTop: onTop, accent: state.activeSpace.accent)
+        sidebar.setAddressBarOnTop(onTop)
         commandBar.isGlass = settings.commandBarGlass
         let appearance = settings.appearance.nsAppearance
         // Private browsing is always dark, so that it is never mistaken for a normal window.
@@ -222,7 +227,24 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private func updateTint(animated: Bool) {
         setTint(state.activeSpace.color, duration: animated ? Theme.motionDuration : 0)
-        pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: settings.addressBarOnTop, accent: state.activeSpace.accent)
+        pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: addressBarOnTop, accent: state.activeSpace.accent)
+    }
+
+    /// Where the address bar sits in this window: the choice of its Space's profile, else
+    /// the default of the settings.
+    private var addressBarOnTop: Bool {
+        state.addressBarOnTop(for: state.activeSpace) ?? settings.addressBarOnTop
+    }
+
+    /// Moves the address bar when the Space now shown, or its profile, wants it elsewhere.
+    private func updateAddressBarPosition(animated: Bool) {
+        let onTop = addressBarOnTop
+        guard onTop != shownAddressBarOnTop else { return }
+        shownAddressBarOnTop = onTop
+        pageArea.setStyle(edgeless: settings.edgeless, toolbarOnTop: onTop, accent: state.activeSpace.accent)
+        sidebar.setAddressBarOnTop(onTop)
+        layoutChanges(animated: animated)
+        reanchorPermissionPrompt()
     }
 
     // MARK: - Sidebar modes
@@ -382,6 +404,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         switch change {
         case .spaces:
             updateTint(animated: true)
+            updateAddressBarPosition(animated: true)
             sidebar.update(state: state)
             showSelectedPage(focus: false)
         case .tabs:
@@ -394,6 +417,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             if index != lastSpaceIndex, !isEndingSwipe { sidebar.pager.slide(forward: index > lastSpaceIndex) }
             lastSpaceIndex = index
             updateTint(animated: true)
+            updateAddressBarPosition(animated: true)
             sidebar.update(state: state)
             showSelectedPage(focus: true)
             DispatchQueue.main.async { interval.end() }
@@ -422,11 +446,14 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case .extensions:
             updateExtensions()
             siteControls.refresh()
+        case .addressBar:
+            updateAddressBarPosition(animated: true)
         }
     }
 
     private func refreshAll() {
         updateTint(animated: false)
+        updateAddressBarPosition(animated: false)
         sidebar.update(state: state)
         showSelectedPage(focus: false)
     }
@@ -504,7 +531,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             self.openLittleWindow(url: url)
         })
         menu.addItem(.separator())
-        menu.addItem(closureItem(String(localized: "Address Bar in Sidebar", bundle: .chordUI)) { [weak self] in self?.settings.addressBarOnTop = false })
+        menu.addItem(closureItem(String(localized: "Address Bar in Sidebar", bundle: .chordUI)) { [weak self] in
+            guard let self else { return }
+            self.state.setAddressBarOnTop(false, for: self.state.activeSpace)
+        })
         menu.addItem(closureItem(settings.edgeless ? String(localized: "Turn Off Edgeless Mode", bundle: .chordUI) : String(localized: "Turn On Edgeless Mode", bundle: .chordUI)) { [weak self] in self?.toggleEdgeless(nil) })
         menu.addItem(.separator())
         menu.addItem(closureItem(String(localized: "Settings…", bundle: .chordUI)) { [weak self] in self?.showSettings(nil) })
@@ -523,7 +553,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// while the sidebar shows.
     private var visibleAddressField: NSView? {
         let toolbarAddress = pageArea.toolbar.addressAnchor
-        if settings.addressBarOnTop {
+        if addressBarOnTop {
             return toolbarAddress.window != nil && !toolbarAddress.isHiddenOrHasHiddenAncestor ? toolbarAddress : nil
         }
         return sidebarMode == .hidden ? nil : sidebar.addressAnchor
@@ -566,7 +596,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
                         action: .run { [weak self] in self?.renameSpace(nil) }),
             CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Next Space", bundle: .chordUI), symbol: "arrow.right.square", shortcut: "⌥⌘→",
                         action: .run { [weak self] in self?.nextSpace(nil) }),
-            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: settings.addressBarOnTop ? String(localized: "Address Bar in Sidebar", bundle: .chordUI) : String(localized: "Address Bar on Top", bundle: .chordUI),
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: addressBarOnTop ? String(localized: "Address Bar in Sidebar", bundle: .chordUI) : String(localized: "Address Bar on Top", bundle: .chordUI),
                         symbol: "menubar.rectangle", shortcut: "⇧⌘D", action: .run { [weak self] in self?.toggleAddressBarPosition(nil) }),
             CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: settings.edgeless ? String(localized: "Turn Off Edgeless Mode", bundle: .chordUI) : String(localized: "Turn On Edgeless Mode", bundle: .chordUI),
                         symbol: "rectangle.inset.filled", action: .run { [weak self] in self?.toggleEdgeless(nil) }),
@@ -615,7 +645,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return
         }
         guard let window, ask.page.view.window === window else { return }
-        if ask.page === state.selectedTab?.page, !settings.addressBarOnTop, sidebarMode == .hidden {
+        if ask.page === state.selectedTab?.page, !addressBarOnTop, sidebarMode == .hidden {
             setSidebarMode(.floating, animated: true)
             // Once the sidebar has slid in, so that the question appears where it stays.
             DispatchQueue.main.asyncAfter(deadline: .now() + Theme.motionDuration) { [weak self] in
@@ -634,7 +664,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// The selected page's site controls when they are on screen, else the top of the page.
     private func permissionAnchor(for page: ChordWebPage) -> (view: NSView, rect: NSRect?) {
         if page === state.selectedTab?.page {
-            if settings.addressBarOnTop {
+            if addressBarOnTop {
                 let button = pageArea.toolbar.siteControlsAnchor
                 if button.window != nil, !button.isHiddenOrHasHiddenAncestor { return (button, nil) }
             } else if sidebarMode != .hidden {
@@ -904,8 +934,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         settings.edgeless.toggle()
     }
 
+    /// Only for the profile of the Space shown: Spaces on other profiles keep theirs.
     @objc public func toggleAddressBarPosition(_ sender: Any?) {
-        settings.addressBarOnTop.toggle()
+        state.setAddressBarOnTop(!addressBarOnTop, for: state.activeSpace)
     }
 
     @objc public func togglePinTab(_ sender: Any?) {
@@ -1120,7 +1151,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             menuItem.state = settings.edgeless ? .on : .off
             return true
         case #selector(toggleAddressBarPosition(_:)):
-            menuItem.state = settings.addressBarOnTop ? .on : .off
+            menuItem.state = addressBarOnTop ? .on : .off
             return true
         case #selector(toggleSidebarVisibility(_:)):
             // The hidden ⌘B item keeps its own name in the shortcut settings.

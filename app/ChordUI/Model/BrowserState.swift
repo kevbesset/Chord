@@ -20,6 +20,8 @@ public enum StateChange: Equatable {
     case permission(PermissionAsk)
     /// Extensions were added, removed or pinned, or a badge or icon changed.
     case extensions
+    /// A profile's address bar moved between the sidebar and the top of the page.
+    case addressBar
 }
 
 /// A site's question, with the page it comes from.
@@ -69,6 +71,9 @@ public final class BrowserState: NSObject {
 
     /// Favorites by profile. Like Arc, Spaces that share a profile share favorites.
     private var favoritesByProfile: [String: [Tab]] = [:]
+    /// Where each profile's address bar sits: on top of the page or in the sidebar. A
+    /// profile missing here follows the default of the settings.
+    private var addressBarOnTopByProfile: [String: Bool] = [:]
     /// The engines of the profiles other than the default one, made on first use.
     private var profileEngines: [String: ChordWebEngine] = [:]
     /// How many pages stay alive besides the visible ones. Older tabs go to sleep.
@@ -105,6 +110,7 @@ public final class BrowserState: NSObject {
             } else if let shared = snapshot.favorites {
                 favoritesByProfile[Space.defaultProfile] = shared.map { Tab(snapshot: $0, section: .favorites) }
             }
+            addressBarOnTopByProfile = snapshot.profileAddressBarOnTop ?? [:]
             fromVersion = snapshot.version
             readSession = true
         } else {
@@ -682,6 +688,20 @@ public final class BrowserState: NSObject {
         return order.map { id in (id, spaces.filter { $0.profileID == id }) }
     }
 
+    /// Whether the address bar of the Space's profile sits on top of the page, or nil
+    /// when the profile follows the default.
+    public func addressBarOnTop(for space: Space) -> Bool? {
+        addressBarOnTopByProfile[space.profileID]
+    }
+
+    /// Moves the address bar of the Space's profile, and so of every Space sharing it.
+    public func setAddressBarOnTop(_ onTop: Bool, for space: Space) {
+        guard addressBarOnTopByProfile[space.profileID] != onTop else { return }
+        addressBarOnTopByProfile[space.profileID] = onTop
+        changes.send(.addressBar)
+        scheduleSave()
+    }
+
     /// Moves a Space to another profile: it then shows that profile's favorites, and its
     /// tabs load again in that profile's session. A new id gives the Space a profile
     /// of its own.
@@ -736,6 +756,7 @@ public final class BrowserState: NSObject {
             for tab in tabs { tab.page = nil }
             favoritesByProfile[profile] = nil
         }
+        addressBarOnTopByProfile = addressBarOnTopByProfile.filter { used.contains($0.key) }
         guard !isPrivate else { return }
         for profile in previouslyUsed.subtracting(used) where profile != Space.defaultProfile {
             profileEngines[profile] = nil
@@ -814,7 +835,8 @@ public final class BrowserState: NSObject {
         pendingSave?.cancel()
         pendingSave = nil
         store?.save(SessionSnapshot(spaces: spaces.map(\.snapshot), activeSpaceID: activeSpaceID,
-                                    profileFavorites: favoritesByProfile.mapValues { $0.map(\.snapshot) }))
+                                    profileFavorites: favoritesByProfile.mapValues { $0.map(\.snapshot) },
+                                    profileAddressBarOnTop: addressBarOnTopByProfile.isEmpty ? nil : addressBarOnTopByProfile))
     }
 
     /// Adds Spaces and favorites made elsewhere (the Arc import). A Space with the same

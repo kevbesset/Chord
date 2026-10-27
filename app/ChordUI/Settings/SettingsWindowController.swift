@@ -149,9 +149,13 @@ private struct AppearancePane: View {
                 Text(String(localized: "Dark", bundle: .chordUI)).tag(ChordSettings.Appearance.dark)
             }
             .pickerStyle(.segmented)
-            Picker(String(localized: "Address bar", bundle: .chordUI), selection: model.binding(\.addressBarOnTop)) {
+            // Each profile can choose its own place (⇧⌘D in a Space); this is the rest's.
+            Picker(selection: model.binding(\.addressBarOnTop)) {
                 Text(String(localized: "In the sidebar", bundle: .chordUI)).tag(false)
                 Text(String(localized: "Above the page", bundle: .chordUI)).tag(true)
+            } label: {
+                Text(String(localized: "Default address bar", bundle: .chordUI))
+                Text(String(localized: "For Spaces whose profile has not chosen its own.", bundle: .chordUI))
             }
             Toggle(String(localized: "Edgeless: the page touches the window's edges", bundle: .chordUI), isOn: model.binding(\.edgeless))
             LabeledContent(String(localized: "Sidebar width", bundle: .chordUI)) {

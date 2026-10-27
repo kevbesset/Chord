@@ -44,6 +44,8 @@ struct SessionSnapshot: Codable {
     var favorites: [TabSnapshot]?
     /// Added in version 3: favorites by profile.
     var profileFavorites: [String: [TabSnapshot]]?
+    /// Added in version 4: where each profile's address bar sits, when it chose.
+    var profileAddressBarOnTop: [String: Bool]?
 }
 
 /// Saves and restores Spaces and tabs as a small JSON file.

@@ -53,7 +53,8 @@ public final class ChordSettings {
     }
 
     /// The address and navigation buttons sit in a 32 px bar on top of the page
-    /// (Safari style) instead of the sidebar (Arc style).
+    /// (Safari style) instead of the sidebar (Arc style). The default: a profile can
+    /// choose its own place (`BrowserState.setAddressBarOnTop(_:for:)`).
     public var addressBarOnTop: Bool {
         get { defaults.bool(forKey: "addressBarOnTop") }
         set { set(newValue, "addressBarOnTop", .addressBar) }

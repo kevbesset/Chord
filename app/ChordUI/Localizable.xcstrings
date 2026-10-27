@@ -303,22 +303,6 @@
         }
       }
     },
-    "Address bar": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Barra de direcciones"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Barre d'adresse"
-          }
-        }
-      }
-    },
     "Address: %@": {
       "localizations": {
         "es": {
@@ -1125,6 +1109,22 @@
         }
       }
     },
+    "Default address bar": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de direcciones predeterminada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barre d'adresse par défaut"
+          }
+        }
+      }
+    },
     "Delete": {
       "localizations": {
         "es": {
@@ -1537,6 +1537,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dossier %@"
+          }
+        }
+      }
+    },
+    "For Spaces whose profile has not chosen its own.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para los Spaces cuyo perfil no ha elegido la suya."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour les Spaces dont le profil n'a pas choisi la sienne."
           }
         }
       }

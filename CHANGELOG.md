@@ -20,6 +20,9 @@ What changes in Chord, version by version. Each change adds a line under
 - English is the default language of the interface, the documentation and the scripts
   (it was French).
 - The home page greets with the time of day: morning, afternoon or evening.
+- The address bar's place (on top of the page or in the sidebar, ⇧⌘D) belongs to the
+  Space's profile: moving it changes only the Spaces on that profile. The setting in
+  Settings › Appearance is the default for profiles that have not chosen.
 
 ### Fixed
 
