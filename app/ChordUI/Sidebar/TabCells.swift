@@ -71,7 +71,7 @@ final class TabCellView: SidebarRowCellView {
     private let tile = FaviconTileView(size: 16)
     private let titleLabel = NSTextField(labelWithString: "")
     private let splitIcon = NSImageView(image: Theme.symbol("rectangle.split.2x1", size: 10) ?? NSImage())
-    private lazy var closeButton = IconButton(symbol: "xmark", label: "Close Tab (⌘W)", target: self, action: #selector(closeClicked), size: 20, pointSize: 9)
+    private lazy var closeButton = IconButton(symbol: "xmark", label: String(localized: "Close Tab (⌘W)", bundle: .chordUI), target: self, action: #selector(closeClicked), size: 20, pointSize: 9)
 
     init() {
         super.init(frame: .zero)
@@ -80,7 +80,7 @@ final class TabCellView: SidebarRowCellView {
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         splitIcon.contentTintColor = .tertiaryLabelColor
-        splitIcon.toolTip = "Split View"
+        splitIcon.toolTip = String(localized: "Split View", bundle: .chordUI)
         for view in [tile, titleLabel, splitIcon, closeButton] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
@@ -128,7 +128,7 @@ final class NewTabCellView: SidebarRowCellView {
         identifier = Self.reuseID
         let icon = NSImageView(image: Theme.symbol("plus", size: 12, weight: .semibold) ?? NSImage())
         icon.contentTintColor = .secondaryLabelColor
-        let label = NSTextField(labelWithString: "New Tab")
+        let label = NSTextField(labelWithString: String(localized: "New Tab", bundle: .chordUI))
         label.font = .systemFont(ofSize: 13)
         label.textColor = .secondaryLabelColor
         let shortcut = NSTextField(labelWithString: "⌘T")
@@ -147,7 +147,7 @@ final class NewTabCellView: SidebarRowCellView {
             shortcut.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             shortcut.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
-        setAccessibilityLabel("New Tab")
+        setAccessibilityLabel(String(localized: "New Tab", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -244,7 +244,7 @@ final class FolderCellView: SidebarRowCellView {
     func configure(folder: Folder, expanded: Bool) {
         nameLabel.stringValue = folder.name
         toolTip = folder.name
-        setAccessibilityLabel("Folder \(folder.name)")
+        setAccessibilityLabel(String(localized: "Folder \(folder.name)", bundle: .chordUI))
         setExpanded(expanded)
     }
 

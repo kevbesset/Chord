@@ -198,7 +198,7 @@ final class FavoriteTileView: NSView, NSDraggingSource {
         self.accent = accent
         icon.configure(url: tab.url, fallback: tab.displayTitle)
         toolTip = tab.displayTitle
-        setAccessibilityLabel("Favorite: \(tab.displayTitle)")
+        setAccessibilityLabel(String(localized: "Favorite: \(tab.displayTitle)", bundle: .chordUI))
         isSelected = selected
         // A sleeping favorite is a little dimmer, like Arc.
         icon.alphaValue = tab.page == nil && !selected ? 0.85 : 1
@@ -293,11 +293,11 @@ final class FavoriteTileView: NSView, NSDraggingSource {
     override func menu(for event: NSEvent) -> NSMenu? {
         guard let tab else { return nil }
         let menu = NSMenu()
-        menu.addItem(closureItem("Remove from Favorites") { [weak self] in self?.delegate?.sidebarToggleFavorite(tab) })
-        menu.addItem(closureItem("Open in Split View") { [weak self] in self?.delegate?.sidebarSplit(tab) })
-        menu.addItem(closureItem("Copy URL") { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
+        menu.addItem(closureItem(String(localized: "Remove from Favorites", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarToggleFavorite(tab) })
+        menu.addItem(closureItem(String(localized: "Open in Split View", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarSplit(tab) })
+        menu.addItem(closureItem(String(localized: "Copy URL", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarCopyURL(tab) })
         menu.addItem(.separator())
-        menu.addItem(closureItem("Unload") { [weak self] in self?.delegate?.sidebarClose(tab) })
+        menu.addItem(closureItem(String(localized: "Unload", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarClose(tab) })
         return menu
     }
 

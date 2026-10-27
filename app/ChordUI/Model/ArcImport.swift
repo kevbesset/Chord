@@ -75,7 +75,7 @@ public enum ArcImport {
                 if let tab = tab(from: item, section: .pinned) { return .tab(tab) }
                 guard let data = item["data"] as? [String: Any], data["list"] != nil else { return nil }
                 folderCount += 1
-                let name = (item["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Folder"
+                let name = (item["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Folder", bundle: .chordUI)
                 return .folder(Folder(name: name, isExpanded: false, items: pinnedItems(under: childID)))
             }
         }
@@ -94,7 +94,7 @@ public enum ArcImport {
             let ids = containerIDs(object["containerIDs"])
             let pinned = ids["pinned"].map(pinnedItems(under:)) ?? []
             let today = ids["unpinned"].map { tabs(under: $0, section: .today) } ?? []
-            let name = (object["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Space \(index + 1)"
+            let name = (object["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Space \(index + 1)", bundle: .chordUI)
             let profile = profile(object["profile"])
             profilesUsed[profile.id] = profile.directory
             let space = Space(name: name, colorHex: color(of: object) ?? Theme.spacePalette[index % Theme.spacePalette.count],

@@ -241,7 +241,7 @@ final class SplitDividerView: NSView {
         layer?.addSublayer(grip)
         setAccessibilityElement(true)
         setAccessibilityRole(.splitter)
-        setAccessibilityLabel("Resize panes")
+        setAccessibilityLabel(String(localized: "Resize panes", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

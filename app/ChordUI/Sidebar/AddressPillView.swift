@@ -27,10 +27,10 @@ final class AddressPillView: NSView {
 
     private let icon = NSImageView()
     /// Shown only for a site without encryption that is not local.
-    private let insecureLabel = NSTextField(labelWithString: "Not Secure")
+    private let insecureLabel = NSTextField(labelWithString: String(localized: "Not Secure", bundle: .chordUI))
     private let addressLabel = NSTextField(labelWithString: "")
-    private lazy var copyButton = IconButton(symbol: "link", label: "Copy URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
-    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: "Site Settings", target: self, action: #selector(siteControlsClicked), size: 24, pointSize: 14)
+    private lazy var copyButton = IconButton(symbol: "link", label: String(localized: "Copy URL (⇧⌘C)", bundle: .chordUI), target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
+    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: String(localized: "Site Settings", bundle: .chordUI), target: self, action: #selector(siteControlsClicked), size: 24, pointSize: 14)
     private lazy var buttons = NSStackView(views: [copyButton, siteControlsButton])
     private var hasURL = false
     private var addressToEdge: NSLayoutConstraint!
@@ -84,9 +84,9 @@ final class AddressPillView: NSView {
             icon.image = Theme.symbol("magnifyingglass", size: 11)
             icon.isHidden = false
             insecureLabel.isHidden = true
-            addressLabel.stringValue = "Search or enter URL"
+            addressLabel.stringValue = String(localized: "Search or enter URL", bundle: .chordUI)
             addressLabel.textColor = .secondaryLabelColor
-            setAccessibilityLabel("Search or enter URL")
+            setAccessibilityLabel(String(localized: "Search or enter URL", bundle: .chordUI))
             hasURL = false
             refreshButtons()
             return
@@ -95,7 +95,7 @@ final class AddressPillView: NSView {
         icon.image = Theme.symbol("lock.slash", size: 11)
         icon.isHidden = !url.isInsecure
         insecureLabel.isHidden = !url.isInsecure
-        setAccessibilityLabel((url.isInsecure ? "Not secure. " : "") + "Address: \(url.absoluteString)")
+        setAccessibilityLabel((url.isInsecure ? String(localized: "Not secure. ", bundle: .chordUI) : "") + String(localized: "Address: \(url.absoluteString)", bundle: .chordUI))
         hasURL = true
         refreshButtons()
     }

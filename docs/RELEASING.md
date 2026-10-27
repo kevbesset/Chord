@@ -17,11 +17,15 @@ that installed Chords read (decision 0005).
 ## For each version
 
 ```bash
-# 1. the number in VERSION (0.1.0 → 0.2.0), commit, push
+# 1. the number in VERSION (0.1.0 → 0.2.0), "Unreleased" in CHANGELOG.md renamed
+#    "<version> — <date>" (with a new empty "Unreleased" above), commit, push
 engine/scripts/build.sh --release   # optimized Chromium (LTO): long the first time
 engine/scripts/package.sh           # dist/Chord-<version>.dmg, signed (notarized when possible)
 engine/scripts/release.sh           # signed appcast, then asks before publishing
 ```
+
+The release notes are that version's section of `CHANGELOG.md`: save it to a file and
+pass it with `release.sh --notes <file>`.
 
 `package.sh --dev` packages the development build, to try the chain without waiting
 for a release build.

@@ -78,7 +78,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         // would only add its "reopen windows?" alert after a crash.
         window.isRestorable = false
         window.minSize = NSSize(width: 720, height: 480)
-        window.title = state.isPrivate ? "Private Browsing" : "Chord"
+        window.title = state.isPrivate ? String(localized: "Private Browsing", bundle: .chordUI) : "Chord"
         // No system shadow: macOS draws its dark outline as part of the shadow, a black
         // line all around the glass. Without it the glass meets the desktop cleanly.
         window.hasShadow = false
@@ -437,7 +437,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         let selected = state.selectedTab
         if tabs.isEmpty { pageArea.home.update(space: state.activeSpace, favorites: state.favorites) }
         pageArea.show(tabs: tabs, views: views, activeID: selected?.id)
-        window?.title = selected?.displayTitle ?? (state.isPrivate ? "Private Browsing" : "Chord")
+        window?.title = selected?.displayTitle ?? (state.isPrivate ? String(localized: "Private Browsing", bundle: .chordUI) : "Chord")
         if focus, let view = selected?.page?.view, !commandBar.isVisible, !peek.isVisible {
             window?.makeFirstResponder(view)
         }
@@ -479,7 +479,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard let url else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
-        toast.show("URL copied", detail: url.displayHost, symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
+        toast.show(String(localized: "URL copied", bundle: .chordUI), detail: url.displayHost, symbol: "checkmark.circle.fill", in: rootView, over: pageArea, accent: state.activeSpace.accent)
     }
 
     private func handle(_ action: PageBarAction) {
@@ -498,16 +498,16 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
 
     private func moreMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(closureItem("Copy URL") { [weak self] in self?.copyURL(nil) })
-        menu.addItem(closureItem("Open in Little Window") { [weak self] in
+        menu.addItem(closureItem(String(localized: "Copy URL", bundle: .chordUI)) { [weak self] in self?.copyURL(nil) })
+        menu.addItem(closureItem(String(localized: "Open in Little Window", bundle: .chordUI)) { [weak self] in
             guard let self, let url = self.state.selectedTab?.url else { return }
             self.openLittleWindow(url: url)
         })
         menu.addItem(.separator())
-        menu.addItem(closureItem("Address Bar in Sidebar") { [weak self] in self?.settings.addressBarOnTop = false })
-        menu.addItem(closureItem(settings.edgeless ? "Turn Off Edgeless Mode" : "Turn On Edgeless Mode") { [weak self] in self?.toggleEdgeless(nil) })
+        menu.addItem(closureItem(String(localized: "Address Bar in Sidebar", bundle: .chordUI)) { [weak self] in self?.settings.addressBarOnTop = false })
+        menu.addItem(closureItem(settings.edgeless ? String(localized: "Turn Off Edgeless Mode", bundle: .chordUI) : String(localized: "Turn On Edgeless Mode", bundle: .chordUI)) { [weak self] in self?.toggleEdgeless(nil) })
         menu.addItem(.separator())
-        menu.addItem(closureItem("Settings…") { [weak self] in self?.showSettings(nil) })
+        menu.addItem(closureItem(String(localized: "Settings…", bundle: .chordUI)) { [weak self] in self?.showSettings(nil) })
         return menu
     }
 
@@ -532,49 +532,49 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func commandActions() -> [CommandItem] {
         let selected = state.selectedTab
         var actions = [
-            CommandItem(section: "Actions", title: state.isSplit ? "Exit Split View" : "Open in Split View",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: state.isSplit ? String(localized: "Exit Split View", bundle: .chordUI) : String(localized: "Open in Split View", bundle: .chordUI),
                         symbol: "rectangle.split.2x1", shortcut: "⌃⇧=", action: .run { [weak self] in self?.toggleSplitView(nil) }),
-            CommandItem(section: "Actions", title: "Open in Little Window", symbol: "macwindow.on.rectangle", shortcut: "⌥⌘N",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Open in Little Window", bundle: .chordUI), symbol: "macwindow.on.rectangle", shortcut: "⌥⌘N",
                         action: .run { [weak self] in self?.openLittleWindow(url: self?.state.selectedTab?.url) }),
-            CommandItem(section: "Actions", title: "New Tab in Space \(state.activeSpace.name)", symbol: "plus", shortcut: "⌘T",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "New Tab in Space \(state.activeSpace.name)", bundle: .chordUI), symbol: "plus", shortcut: "⌘T",
                         action: .run { [weak self] in self?.newTab(nil) }),
-            CommandItem(section: "Actions", title: sidebarMode == .docked ? "Hide Sidebar" : "Show Sidebar",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: sidebarMode == .docked ? String(localized: "Hide Sidebar", bundle: .chordUI) : String(localized: "Show Sidebar", bundle: .chordUI),
                         symbol: "sidebar.left", shortcut: "⌘S", action: .run { [weak self] in self?.toggleSidebarVisibility(nil) }),
-            CommandItem(section: "Actions", title: "Copy URL", symbol: "link", shortcut: "⇧⌘C",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Copy URL", bundle: .chordUI), symbol: "link", shortcut: "⇧⌘C",
                         action: .run { [weak self] in self?.copyURL(nil) }),
         ]
         if let selected {
             actions += [
-                CommandItem(section: "Actions", title: selected.isPinned ? "Unpin Tab" : "Pin Tab", symbol: "pin",
+                CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: selected.isPinned ? String(localized: "Unpin Tab", bundle: .chordUI) : String(localized: "Pin Tab", bundle: .chordUI), symbol: "pin",
                             shortcut: "⌘D", action: .run { [weak self] in self?.togglePinTab(nil) }),
-                CommandItem(section: "Actions", title: selected.isFavorite ? "Remove from Favorites" : "Add to Favorites", symbol: "star",
+                CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: selected.isFavorite ? String(localized: "Remove from Favorites", bundle: .chordUI) : String(localized: "Add to Favorites", bundle: .chordUI), symbol: "star",
                             action: .run { [weak self] in self?.toggleFavoriteTab(nil) }),
             ]
         }
         actions += [
-            CommandItem(section: "Actions", title: "Reopen Closed Tab", symbol: "arrow.uturn.backward", shortcut: "⇧⌘T",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Reopen Closed Tab", bundle: .chordUI), symbol: "arrow.uturn.backward", shortcut: "⇧⌘T",
                         action: .run { [weak self] in self?.reopenClosedTab(nil) }),
-            CommandItem(section: "Actions", title: "Browser Settings", subtitle: "chord://settings", symbol: "gearshape",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Browser Settings", bundle: .chordUI), subtitle: "chord://settings", symbol: "gearshape",
                         action: .run { [weak self] in self?.openInternalPage("settings") }),
-            CommandItem(section: "Actions", title: "Extensions", subtitle: "chord://extensions", symbol: "puzzlepiece.extension",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Extensions", bundle: .chordUI), subtitle: "chord://extensions", symbol: "puzzlepiece.extension",
                         action: .run { [weak self] in self?.openInternalPage("extensions") }),
-            CommandItem(section: "Actions", title: "New Folder", symbol: "folder.badge.plus",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "New Folder", bundle: .chordUI), symbol: "folder.badge.plus",
                         action: .run { [weak self] in self?.newFolder(nil) }),
-            CommandItem(section: "Actions", title: "New Space", symbol: "square.stack",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "New Space", bundle: .chordUI), symbol: "square.stack",
                         action: .run { [weak self] in self?.newSpace(nil) }),
-            CommandItem(section: "Actions", title: "Rename Space", symbol: "pencil",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Rename Space", bundle: .chordUI), symbol: "pencil",
                         action: .run { [weak self] in self?.renameSpace(nil) }),
-            CommandItem(section: "Actions", title: "Next Space", symbol: "arrow.right.square", shortcut: "⌥⌘→",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Next Space", bundle: .chordUI), symbol: "arrow.right.square", shortcut: "⌥⌘→",
                         action: .run { [weak self] in self?.nextSpace(nil) }),
-            CommandItem(section: "Actions", title: settings.addressBarOnTop ? "Address Bar in Sidebar" : "Address Bar on Top",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: settings.addressBarOnTop ? String(localized: "Address Bar in Sidebar", bundle: .chordUI) : String(localized: "Address Bar on Top", bundle: .chordUI),
                         symbol: "menubar.rectangle", shortcut: "⇧⌘D", action: .run { [weak self] in self?.toggleAddressBarPosition(nil) }),
-            CommandItem(section: "Actions", title: settings.edgeless ? "Turn Off Edgeless Mode" : "Turn On Edgeless Mode",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: settings.edgeless ? String(localized: "Turn Off Edgeless Mode", bundle: .chordUI) : String(localized: "Turn On Edgeless Mode", bundle: .chordUI),
                         symbol: "rectangle.inset.filled", action: .run { [weak self] in self?.toggleEdgeless(nil) }),
-            CommandItem(section: "Actions", title: "Import from Arc", symbol: "square.and.arrow.down",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Import from Arc", bundle: .chordUI), symbol: "square.and.arrow.down",
                         action: .run { [weak self] in self?.importFromArc(nil) }),
-            CommandItem(section: "Actions", title: "Import Logins from Arc", symbol: "key",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Import Logins from Arc", bundle: .chordUI), symbol: "key",
                         action: .run { [weak self] in self?.importArcLogins(nil) }),
-            CommandItem(section: "Actions", title: "Settings", symbol: "gearshape", shortcut: "⌘,",
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Settings", bundle: .chordUI), symbol: "gearshape", shortcut: "⌘,",
                         action: .run { [weak self] in self?.showSettings(nil) }),
         ]
         return actions
@@ -715,10 +715,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func confirmUninstall(_ item: PageExtension) {
         guard let window, let page = state.selectedTab?.page else { return }
         let alert = NSAlert()
-        alert.messageText = "Remove “\(item.name)”?"
-        alert.informativeText = "The extension and its data are removed from this profile."
-        alert.addButton(withTitle: "Remove")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "Remove “\(item.name)”?", bundle: .chordUI)
+        alert.informativeText = String(localized: "The extension and its data are removed from this profile.", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Remove", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn else { return }
@@ -755,10 +755,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         guard let window else { return }
         settings.arcImportOffered = true
         let alert = NSAlert()
-        alert.messageText = "Bring over your Arc sidebar?"
-        alert.informativeText = "Chord found Arc on this Mac. Your Spaces, favorites and pinned tabs can come over as they are. Arc is left unchanged."
-        alert.addButton(withTitle: "Import")
-        alert.addButton(withTitle: "Later")
+        alert.messageText = String(localized: "Bring over your Arc sidebar?", bundle: .chordUI)
+        alert.informativeText = String(localized: "Chord found Arc on this Mac. Your Spaces, favorites and pinned tabs can come over as they are. Arc is left unchanged.", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Import", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Later", bundle: .chordUI))
         alert.beginSheetModal(for: window) { [weak self] response in
             guard let self else { return }
             if response == .alertFirstButtonReturn {
@@ -774,9 +774,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func promptRename(_ space: Space) {
         guard let window else { return }
         let alert = NSAlert()
-        alert.messageText = "Rename Space"
-        alert.addButton(withTitle: "Rename")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "Rename Space", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Rename", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
         let field = NSTextField(string: space.name)
         field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
         alert.accessoryView = field
@@ -790,9 +790,9 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     private func promptRename(_ folder: Folder) {
         guard let window else { return }
         let alert = NSAlert()
-        alert.messageText = "Rename Folder"
-        alert.addButton(withTitle: "Rename")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "Rename Folder", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Rename", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
         let field = NSTextField(string: folder.name)
         field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
         alert.accessoryView = field
@@ -811,10 +811,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return
         }
         let alert = NSAlert()
-        alert.messageText = "Delete the folder “\(folder.name)”?"
-        alert.informativeText = count == 1 ? "Its tab will be closed." : "Its \(count) tabs will be closed. “Ungroup” keeps the tabs."
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "Delete the folder “\(folder.name)”?", bundle: .chordUI)
+        alert.informativeText = count == 1 ? String(localized: "Its tab will be closed.", bundle: .chordUI) : String(localized: "Its \(count) tabs will be closed. “Ungroup” keeps the tabs.", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Delete", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
@@ -832,15 +832,15 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             return
         }
         var details: [String] = []
-        if count > 0 { details.append(count == 1 ? "Its tab will be closed." : "Its \(count) tabs will be closed.") }
+        if count > 0 { details.append(count == 1 ? String(localized: "Its tab will be closed.", bundle: .chordUI) : String(localized: "Its \(count) tabs will be closed.", bundle: .chordUI)) }
         if deletesProfile { details.append(BrowserState.profileDeletionWarning) }
         let alert = NSAlert()
         alert.messageText = deletesProfile
-            ? "Delete the Space “\(space.name)” and its profile?"
-            : "Delete the Space “\(space.name)”?"
+            ? String(localized: "Delete the Space “\(space.name)” and its profile?", bundle: .chordUI)
+            : String(localized: "Delete the Space “\(space.name)”?", bundle: .chordUI)
         alert.informativeText = details.joined(separator: " ")
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: String(localized: "Delete", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
@@ -1040,19 +1040,19 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             let result = try ArcImport.load()
             let count = state.importFromArc(result)
             let favorites = result.favorites.values.reduce(0) { $0 + $1.count }
-            sidebar = "\(result.spaces.count) Spaces, \(result.folderCount) folders, \(favorites) favorites, \(count) tabs in all, with Arc's icons. A Space imported before is updated rather than duplicated."
+            sidebar = String(localized: "\(result.spaces.count) Spaces, \(result.folderCount) folders, \(favorites) favorites, \(count) tabs in all, with Arc's icons. A Space imported before is updated rather than duplicated.", bundle: .chordUI)
         } catch {
             let alert = NSAlert()
             alert.alertStyle = .warning
-            alert.messageText = "Couldn't import from Arc"
+            alert.messageText = String(localized: "Couldn't import from Arc", bundle: .chordUI)
             alert.informativeText = (error as? ArcImport.Failure) == .notFound
-                ? "Arc's sidebar can't be found on this Mac."
-                : "Arc's sidebar file couldn't be read."
+                ? String(localized: "Arc's sidebar can't be found on this Mac.", bundle: .chordUI)
+                : String(localized: "Arc's sidebar file couldn't be read.", bundle: .chordUI)
             alert.beginSheetModal(for: window)
             return
         }
         state.importArcData { [weak self] data in
-            self?.showArcImport(title: "Arc imported", sidebar: sidebar, data: data)
+            self?.showArcImport(title: String(localized: "Arc imported", bundle: .chordUI), sidebar: sidebar, data: data)
         }
     }
 
@@ -1060,7 +1060,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// the Spaces that came from them, without touching the sidebar.
     @objc public func importArcLogins(_ sender: Any?) {
         state.importArcData { [weak self] data in
-            self?.showArcImport(title: "Arc logins imported", sidebar: nil, data: data)
+            self?.showArcImport(title: String(localized: "Arc logins imported", bundle: .chordUI), sidebar: nil, data: data)
         }
     }
 
@@ -1070,18 +1070,18 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         alert.messageText = title
         var lines: [String] = sidebar.map { [$0] } ?? []
         if data.profiles == 0 {
-            lines.append("No Space comes from an Arc profile: nothing else to bring over.")
+            lines.append(String(localized: "No Space comes from an Arc profile: nothing else to bring over.", bundle: .chordUI))
         } else if data.keyDenied {
             alert.alertStyle = .warning
-            lines.append("macOS didn't give access to Arc's key: logins and passwords stayed in Arc. \(data.pages) history pages imported.")
+            lines.append(String(localized: "macOS didn't give access to Arc's key: logins and passwords stayed in Arc. \(data.pages) history pages imported.", bundle: .chordUI))
         } else {
-            lines.append("\(data.cookies) login cookies, \(data.passwords) passwords and \(data.pages) history pages imported, each into the profile of its Spaces. What was already in Chord is kept.")
+            lines.append(String(localized: "\(data.cookies) login cookies, \(data.passwords) passwords and \(data.pages) history pages imported, each into the profile of its Spaces. What was already in Chord is kept.", bundle: .chordUI))
         }
         if data.extensions > 0 {
-            lines.append(data.extensions == 1 ? "1 extension installed from the Chrome Web Store." : "\(data.extensions) extensions installed from the Chrome Web Store.")
+            lines.append(data.extensions == 1 ? String(localized: "1 extension installed from the Chrome Web Store.", bundle: .chordUI) : String(localized: "\(data.extensions) extensions installed from the Chrome Web Store.", bundle: .chordUI))
         }
         if data.siteStorage || data.extensions > 0 {
-            lines.append("Site and extension data arrive at Chord's next launch.")
+            lines.append(String(localized: "Site and extension data arrive at Chord's next launch.", bundle: .chordUI))
         }
         alert.informativeText = lines.joined(separator: "\n\n")
         alert.beginSheetModal(for: window)
@@ -1125,17 +1125,17 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         case #selector(toggleSidebarVisibility(_:)):
             // The hidden ⌘B item keeps its own name in the shortcut settings.
             if menuItem.tag == 0 {
-                menuItem.title = sidebarMode == .docked ? "Hide Sidebar" : "Show Sidebar"
+                menuItem.title = sidebarMode == .docked ? String(localized: "Hide Sidebar", bundle: .chordUI) : String(localized: "Show Sidebar", bundle: .chordUI)
             }
             return true
         case #selector(toggleSplitView(_:)):
-            menuItem.title = state.isSplit ? "Exit Split View" : "Split View"
+            menuItem.title = state.isSplit ? String(localized: "Exit Split View", bundle: .chordUI) : String(localized: "Split View", bundle: .chordUI)
             return state.selectedTab != nil
         case #selector(togglePinTab(_:)):
-            menuItem.title = state.selectedTab?.isPinned == true ? "Unpin Tab" : "Pin Tab"
+            menuItem.title = state.selectedTab?.isPinned == true ? String(localized: "Unpin Tab", bundle: .chordUI) : String(localized: "Pin Tab", bundle: .chordUI)
             return state.selectedTab != nil
         case #selector(toggleFavoriteTab(_:)):
-            menuItem.title = state.selectedTab?.isFavorite == true ? "Remove from Favorites" : "Add to Favorites"
+            menuItem.title = state.selectedTab?.isFavorite == true ? String(localized: "Remove from Favorites", bundle: .chordUI) : String(localized: "Add to Favorites", bundle: .chordUI)
             return state.selectedTab != nil
         case #selector(reopenClosedTab(_:)):
             return state.canReopenClosedTab

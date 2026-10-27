@@ -113,12 +113,12 @@ final class SiteControlsController: NSObject {
 
         var sections: [(view: NSView, gap: CGFloat)] = [(actions(), 0)]
         if let extensionActions {
-            sections.append((SectionTitle("Extensions"), 14))
+            sections.append((SectionTitle(String(localized: "Extensions", bundle: .chordUI)), 14))
             sections.append((extensionsGrid(PageExtension.all(of: page), actions: extensionActions), 6))
         }
         let permissions = page.sitePermissions ?? []
         if !permissions.isEmpty {
-            sections.append((SectionTitle("Permissions"), 14))
+            sections.append((SectionTitle(String(localized: "Permissions", bundle: .chordUI)), 14))
             for (index, permission) in permissions.enumerated() {
                 guard let id = permission["id"], let state = permission["state"] else { continue }
                 let row = PermissionRow(title: permission["title"] ?? id, symbol: Self.symbol(for: id), state: state) { [weak self] in
@@ -199,15 +199,15 @@ final class SiteControlsController: NSObject {
 
     /// Quick actions, as Arc's: icon tiles, named on hover.
     private func actions() -> NSView {
-        let share = ActionTile(symbol: "square.and.arrow.up", title: "Share") { [weak self] tile in
+        let share = ActionTile(symbol: "square.and.arrow.up", title: String(localized: "Share", bundle: .chordUI)) { [weak self] tile in
             guard let url = self?.url else { return }
             NSSharingServicePicker(items: [url]).show(relativeTo: tile.bounds, of: tile, preferredEdge: .minY)
         }
-        let copy = ActionTile(symbol: "link", title: "Copy Link") { [weak self] _ in
+        let copy = ActionTile(symbol: "link", title: String(localized: "Copy Link", bundle: .chordUI)) { [weak self] _ in
             self?.dismiss()
             self?.onCopy?()
         }
-        let devTools = ActionTile(symbol: "hammer", title: "Developer Tools (⌥⌘I)") { [weak self] _ in
+        let devTools = ActionTile(symbol: "hammer", title: String(localized: "Developer Tools (⌥⌘I)", bundle: .chordUI)) { [weak self] _ in
             let page = self?.page
             self?.dismiss()
             page?.toggleDevTools?()
@@ -228,7 +228,7 @@ final class SiteControlsController: NSObject {
                 actions.run(item, anchor)
             }
         }
-        tiles.append(ExtensionTile(symbol: "plus", title: "Manage Extensions") { [weak self] in
+        tiles.append(ExtensionTile(symbol: "plus", title: String(localized: "Manage Extensions", bundle: .chordUI)) { [weak self] in
             self?.dismiss()
             if let url = URL(string: "chrome://extensions") { actions.open(url) }
         })
@@ -254,11 +254,11 @@ final class SiteControlsController: NSObject {
     private func footer(for url: URL) -> NSView {
         let connection: (symbol: String, title: String)
         if url.scheme == "https" {
-            connection = ("lock.fill", "Secure")
+            connection = ("lock.fill", String(localized: "connection.secure", defaultValue: "Secure", bundle: .chordUI, comment: "The connection to the site"))
         } else if url.isLocal {
-            connection = ("desktopcomputer", "Local")
+            connection = ("desktopcomputer", String(localized: "connection.local", defaultValue: "Local", bundle: .chordUI, comment: "The connection to the site"))
         } else {
-            connection = ("lock.open.fill", "Not Secure")
+            connection = ("lock.open.fill", String(localized: "connection.notSecure", defaultValue: "Not Secure", bundle: .chordUI, comment: "The connection to the site"))
         }
         let pill = ConnectionPill(symbol: connection.symbol, title: connection.title)
         let view = NSView()
@@ -270,7 +270,7 @@ final class SiteControlsController: NSObject {
             pill.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ]
         if let settingsURL = Self.siteSettingsURL(for: url) {
-            let more = RoundButton(symbol: "ellipsis", title: "All Site Settings") { [weak self] in
+            let more = RoundButton(symbol: "ellipsis", title: String(localized: "All Site Settings", bundle: .chordUI)) { [weak self] in
                 self?.dismiss()
                 self?.onOpen?(settingsURL)
             }
@@ -524,7 +524,7 @@ private final class PinMark: NSView {
 private final class PermissionRow: HoverRow {
     private let onToggle: () -> Void
 
-    private static let names = ["allow": "Allowed", "block": "Blocked", "ask": "Ask"]
+    private static let names = ["allow": String(localized: "Allowed", bundle: .chordUI), "block": String(localized: "Blocked", bundle: .chordUI), "ask": String(localized: "Ask", bundle: .chordUI)]
 
     init(title: String, symbol: String, state: String, onToggle: @escaping () -> Void) {
         self.onToggle = onToggle
@@ -554,7 +554,7 @@ private final class PermissionRow: HoverRow {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("\(title): \(Self.names[state] ?? state)")
+        setAccessibilityLabel(String(localized: "\(title): \(Self.names[state] ?? state)", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -626,7 +626,7 @@ private final class ConnectionPill: NSView {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.staticText)
-        setAccessibilityLabel("Connection: \(title)")
+        setAccessibilityLabel(String(localized: "Connection: \(title)", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

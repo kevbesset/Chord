@@ -9,7 +9,7 @@ final class ContentCardView: NSView {
     private var hostedConstraints: [NSLayoutConstraint] = []
     private let loadingBar = LoadingBarView()
     private var loadingBarTop: NSLayoutConstraint?
-    private let emptyLabel = NSTextField(labelWithString: "⌘T to open a tab")
+    private let emptyLabel = NSTextField(labelWithString: String(localized: "⌘T to open a tab", bundle: .chordUI))
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

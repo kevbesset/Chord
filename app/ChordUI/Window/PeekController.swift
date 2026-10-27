@@ -254,12 +254,12 @@ final class PeekPanelView: NSView {
 final class PeekHeaderView: NSView {
     var onSplit: (() -> Void)?
     var onClose: (() -> Void)?
-    let openButton = AccentPillButton(title: "Open as Tab", shortcut: "⌘ ↩")
+    let openButton = AccentPillButton(title: String(localized: "Open as Tab", bundle: .chordUI), shortcut: "⌘ ↩")
     private let tile = FaviconTileView(size: 16)
     private let titleLabel = NSTextField(labelWithString: "")
     private let urlLabel = NSTextField(labelWithString: "")
-    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split View with Current Page (⌃⇧=)", target: self, action: #selector(splitClicked), size: 28, pointSize: 13)
-    private lazy var closeButton = IconButton(symbol: "xmark", label: "Close (esc)", target: self, action: #selector(closeClicked), size: 28, pointSize: 12)
+    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: String(localized: "Split View with Current Page (⌃⇧=)", bundle: .chordUI), target: self, action: #selector(splitClicked), size: 28, pointSize: 13)
+    private lazy var closeButton = IconButton(symbol: "xmark", label: String(localized: "Close (esc)", bundle: .chordUI), target: self, action: #selector(closeClicked), size: 28, pointSize: 12)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

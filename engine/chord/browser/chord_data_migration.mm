@@ -132,15 +132,30 @@ bool IsInUse(const base::FilePath& folder) {
 }
 
 // The development build that still uses the old folder is open: moving its data now
-// would split it in two. Chord asks to quit that one first, and stops.
+// would split it in two. Chord asks to quit that one first, and stops. This runs
+// before Chromium's resources load, so the text is here in ChordUI's languages.
 [[noreturn]] void AskToQuitOldChord() {
+  NSString* language =
+      [NSBundle preferredLocalizationsFromArray:@[ @"en", @"fr", @"es" ]]
+          .firstObject;
+  NSString* title = @"Another version of Chord is open";
+  NSString* message = @"Chord now keeps its data in a folder of its own. Quit "
+                      @"the version that is already open, then open Chord "
+                      @"again: your Spaces, tabs and logins will come along.";
+  if ([language isEqualToString:@"fr"]) {
+    title = @"Une autre version de Chord est ouverte";
+    message = @"Chord range maintenant ses données dans son propre dossier. "
+              @"Quittez la version déjà ouverte, puis relancez Chord : vos "
+              @"Spaces, onglets et connexions suivront.";
+  } else if ([language isEqualToString:@"es"]) {
+    title = @"Hay otra versión de Chord abierta";
+    message = @"Chord guarda ahora sus datos en su propia carpeta. Cierra la "
+              @"versión que ya está abierta y vuelve a abrir Chord: tus "
+              @"Spaces, pestañas e inicios de sesión te seguirán.";
+  }
   CFUserNotificationDisplayAlert(
       0, kCFUserNotificationCautionAlertLevel, nullptr, nullptr, nullptr,
-      (__bridge CFStringRef) @"Another version of Chord is open",
-      (__bridge CFStringRef) @"Chord now keeps its data in a folder of its "
-                             @"own. Quit the version that is already open, "
-                             @"then open Chord again: your Spaces, tabs and "
-                             @"logins will come along.",
+      (__bridge CFStringRef)title, (__bridge CFStringRef)message,
       (__bridge CFStringRef) @"OK", nullptr, nullptr, nullptr);
   base::Process::TerminateCurrentProcessImmediately(0);
 }

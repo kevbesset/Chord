@@ -57,8 +57,13 @@ errors before handing back.
 - **Shortcuts**: all declared in `app/ChordUI/Menu/MainMenu.swift`.
 - **Concurrency**: Swift 5, `SWIFT_STRICT_CONCURRENCY = minimal`. No explicit
   `@MainActor` annotations on ChordUI types for now.
-- Everything in English: code, comments, interface text and documentation
-  (localization planned later).
+- Code, comments and documentation in English. The interface is localized in English,
+  French and Spanish: every visible string goes through
+  `String(localized: "…", bundle: .chordUI)` and gets its French and Spanish in
+  `app/ChordUI/Localizable.xcstrings` (Xcode's string catalog editor, or by hand). A
+  new string without its translations is not done.
+- **Changelog**: every change visible to users (feature, fix, behavior, language) adds
+  a line under "Unreleased" in `CHANGELOG.md`, in the same commit.
 - On the Chromium side: Chord's code lives in `//chord`, patches stay tiny and isolated
   (`engine/patches/README.md`), to absorb a major version every four weeks.
 
@@ -112,6 +117,8 @@ errors before handing back.
   Store and components (Widevine) restored, Sparkle updates, `package.sh` (disk image)
   and `release.sh` (GitHub release), see `docs/RELEASING.md`. No Developer ID yet: no
   notarization. Version 0.1.0 is published.
-- Interface in English. Chromium's own parts (internal pages, page context menus,
-  permission wording) follow the system language.
+- Interface in English, French and Spanish, following the Mac's languages (or the
+  per-app language in System Settings). Chromium's own parts (internal pages, page
+  context menus, permission wording) follow the same setting with Chromium's own
+  translations.
 - License: GPL-3.0 (`LICENSE`, decision 0005).

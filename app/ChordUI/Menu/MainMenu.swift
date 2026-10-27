@@ -14,108 +14,108 @@ public enum MainMenu {
         typealias C = BrowserWindowController
 
         main.addItem(submenu(appName, [
-            item("About \(appName)", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+            item(String(localized: "About \(appName)", bundle: .chordUI), #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
             // Handled by ChordUIHost's updater (Sparkle).
-            item("Check for Updates…", Selector(("checkForUpdates:"))),
+            item(String(localized: "Check for Updates…", bundle: .chordUI), Selector(("checkForUpdates:"))),
             .separator(),
-            item("Settings…", #selector(C.showSettings(_:)), ","),
+            item(String(localized: "Settings…", bundle: .chordUI), #selector(C.showSettings(_:)), ","),
             .separator(),
-            item("Hide \(appName)", #selector(NSApplication.hide(_:)), "h"),
-            item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
-            item("Show All", #selector(NSApplication.unhideAllApplications(_:))),
+            item(String(localized: "Hide \(appName)", bundle: .chordUI), #selector(NSApplication.hide(_:)), "h"),
+            item(String(localized: "Hide Others", bundle: .chordUI), #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
+            item(String(localized: "Show All", bundle: .chordUI), #selector(NSApplication.unhideAllApplications(_:))),
             .separator(),
-            item("Quit \(appName)", #selector(NSApplication.terminate(_:)), "q"),
+            item(String(localized: "Quit \(appName)", bundle: .chordUI), #selector(NSApplication.terminate(_:)), "q"),
         ]))
 
-        main.addItem(submenu("File", [
-            item("New Tab", #selector(C.newTab(_:)), "t"),
+        main.addItem(submenu(String(localized: "File", bundle: .chordUI), [
+            item(String(localized: "New Tab", bundle: .chordUI), #selector(C.newTab(_:)), "t"),
             // Handled by ChordUIHost's app actions, so that they work with no window open.
-            item("New Window", Selector(("newWindow:")), "n"),
-            item("New Private Window", Selector(("newPrivateWindow:")), "n", [.command, .shift]),
-            item("New Little Window", #selector(C.newLittleWindow(_:)), "n", [.command, .option]),
-            item("Open Location", #selector(C.openLocation(_:)), "l"),
+            item(String(localized: "New Window", bundle: .chordUI), Selector(("newWindow:")), "n"),
+            item(String(localized: "New Private Window", bundle: .chordUI), Selector(("newPrivateWindow:")), "n", [.command, .shift]),
+            item(String(localized: "New Little Window", bundle: .chordUI), #selector(C.newLittleWindow(_:)), "n", [.command, .option]),
+            item(String(localized: "Open Location", bundle: .chordUI), #selector(C.openLocation(_:)), "l"),
             .separator(),
-            item("Close Tab", #selector(C.closeTab(_:)), "w"),
-            item("Reopen Closed Tab", #selector(C.reopenClosedTab(_:)), "t", [.command, .shift]),
-            item("Close Window", #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
+            item(String(localized: "Close Tab", bundle: .chordUI), #selector(C.closeTab(_:)), "w"),
+            item(String(localized: "Reopen Closed Tab", bundle: .chordUI), #selector(C.reopenClosedTab(_:)), "t", [.command, .shift]),
+            item(String(localized: "Close Window", bundle: .chordUI), #selector(NSWindow.performClose(_:)), "w", [.command, .shift]),
             .separator(),
-            item("Import from Arc…", #selector(C.importFromArc(_:))),
-            item("Import Logins from Arc…", #selector(C.importArcLogins(_:))),
+            item(String(localized: "Import from Arc…", bundle: .chordUI), #selector(C.importFromArc(_:))),
+            item(String(localized: "Import Logins from Arc…", bundle: .chordUI), #selector(C.importArcLogins(_:))),
         ]))
 
-        main.addItem(submenu("Edit", [
-            item("Undo", Selector(("undo:")), "z"),
-            item("Redo", Selector(("redo:")), "z", [.command, .shift]),
+        main.addItem(submenu(String(localized: "Edit", bundle: .chordUI), [
+            item(String(localized: "Undo", bundle: .chordUI), Selector(("undo:")), "z"),
+            item(String(localized: "Redo", bundle: .chordUI), Selector(("redo:")), "z", [.command, .shift]),
             .separator(),
-            item("Cut", #selector(NSText.cut(_:)), "x"),
-            item("Copy", #selector(NSText.copy(_:)), "c"),
-            item("Paste", #selector(NSText.paste(_:)), "v"),
-            item("Select All", #selector(NSText.selectAll(_:)), "a"),
+            item(String(localized: "Cut", bundle: .chordUI), #selector(NSText.cut(_:)), "x"),
+            item(String(localized: "Copy", bundle: .chordUI), #selector(NSText.copy(_:)), "c"),
+            item(String(localized: "Paste", bundle: .chordUI), #selector(NSText.paste(_:)), "v"),
+            item(String(localized: "Select All", bundle: .chordUI), #selector(NSText.selectAll(_:)), "a"),
             .separator(),
-            item("Copy URL", #selector(C.copyURL(_:)), "c", [.command, .shift]),
+            item(String(localized: "Copy URL", bundle: .chordUI), #selector(C.copyURL(_:)), "c", [.command, .shift]),
         ]))
 
-        main.addItem(submenu("View", [
-            item("Hide Sidebar", #selector(C.toggleSidebarVisibility(_:)), "s"),
-            hidden(item("Sidebar (second shortcut)", #selector(C.toggleSidebarVisibility(_:)), "b", tag: 2)),
+        main.addItem(submenu(String(localized: "View", bundle: .chordUI), [
+            item(String(localized: "Hide Sidebar", bundle: .chordUI), #selector(C.toggleSidebarVisibility(_:)), "s"),
+            hidden(item(String(localized: "Sidebar (second shortcut)", bundle: .chordUI), #selector(C.toggleSidebarVisibility(_:)), "b", tag: 2)),
             // Arc's shortcuts: ⌃⇧= for the split view, ⇧⌘D for the address bar's place.
-            item("Split View", #selector(C.toggleSplitView(_:)), "=", [.control, .shift]),
-            item("Address Bar on Top", #selector(C.toggleAddressBarPosition(_:)), "d", [.command, .shift]),
-            item("Edgeless Mode", #selector(C.toggleEdgeless(_:))),
+            item(String(localized: "Split View", bundle: .chordUI), #selector(C.toggleSplitView(_:)), "=", [.control, .shift]),
+            item(String(localized: "Address Bar on Top", bundle: .chordUI), #selector(C.toggleAddressBarPosition(_:)), "d", [.command, .shift]),
+            item(String(localized: "Edgeless Mode", bundle: .chordUI), #selector(C.toggleEdgeless(_:))),
             .separator(),
-            item("Reload Page", #selector(C.reloadPage(_:)), "r"),
-            item("Reload Ignoring Cache", #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
-            item("Stop Loading", #selector(C.stopLoading(_:)), "."),
+            item(String(localized: "Reload Page", bundle: .chordUI), #selector(C.reloadPage(_:)), "r"),
+            item(String(localized: "Reload Ignoring Cache", bundle: .chordUI), #selector(C.reloadPageIgnoringCache(_:)), "r", [.command, .shift]),
+            item(String(localized: "Stop Loading", bundle: .chordUI), #selector(C.stopLoading(_:)), "."),
             .separator(),
-            item("Developer Tools", #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
-            item("Picture in Picture", #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),
+            item(String(localized: "Developer Tools", bundle: .chordUI), #selector(C.toggleDevTools(_:)), "i", [.command, .option]),
+            item(String(localized: "Picture in Picture", bundle: .chordUI), #selector(C.togglePictureInPicture(_:)), "p", [.command, .control]),
             .separator(),
-            item("Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
+            item(String(localized: "Full Screen", bundle: .chordUI), #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
         ]))
 
-        main.addItem(submenu("History", [
-            item("Back", #selector(C.goBack(_:)), "["),
-            item("Forward", #selector(C.goForward(_:)), "]"),
+        main.addItem(submenu(String(localized: "History", bundle: .chordUI), [
+            item(String(localized: "Back", bundle: .chordUI), #selector(C.goBack(_:)), "["),
+            item(String(localized: "Forward", bundle: .chordUI), #selector(C.goForward(_:)), "]"),
             // ⌘← and ⌘→ too, like Arc and Chrome; off while typing, where they move the caret.
-            hidden(item("Back (arrow)", #selector(C.goBack(_:)), arrow(NSLeftArrowFunctionKey), tag: 2)),
-            hidden(item("Forward (arrow)", #selector(C.goForward(_:)), arrow(NSRightArrowFunctionKey), tag: 2)),
+            hidden(item(String(localized: "Back (arrow)", bundle: .chordUI), #selector(C.goBack(_:)), arrow(NSLeftArrowFunctionKey), tag: 2)),
+            hidden(item(String(localized: "Forward (arrow)", bundle: .chordUI), #selector(C.goForward(_:)), arrow(NSRightArrowFunctionKey), tag: 2)),
         ]))
 
         var tabItems: [NSMenuItem] = [
-            item("Next Tab", #selector(C.nextTab(_:)), "\t", [.control]),
-            item("Previous Tab", #selector(C.previousTab(_:)), "\t", [.control, .shift]),
+            item(String(localized: "Next Tab", bundle: .chordUI), #selector(C.nextTab(_:)), "\t", [.control]),
+            item(String(localized: "Previous Tab", bundle: .chordUI), #selector(C.previousTab(_:)), "\t", [.control, .shift]),
             .separator(),
-            item("Pin Tab", #selector(C.togglePinTab(_:)), "d"),
-            item("Add to Favorites", #selector(C.toggleFavoriteTab(_:))),
-            item("New Folder", #selector(C.newFolder(_:))),
+            item(String(localized: "Pin Tab", bundle: .chordUI), #selector(C.togglePinTab(_:)), "d"),
+            item(String(localized: "Add to Favorites", bundle: .chordUI), #selector(C.toggleFavoriteTab(_:))),
+            item(String(localized: "New Folder", bundle: .chordUI), #selector(C.newFolder(_:))),
             .separator(),
         ]
         for number in 1...9 {
-            let title = number == 9 ? "Last Tab" : "Tab \(number)"
+            let title = number == 9 ? String(localized: "Last Tab", bundle: .chordUI) : String(localized: "Tab \(number)", bundle: .chordUI)
             tabItems.append(item(title, #selector(C.selectTabByNumber(_:)), "\(number)", tag: number))
         }
-        main.addItem(submenu("Tabs", tabItems))
+        main.addItem(submenu(String(localized: "Tabs", bundle: .chordUI), tabItems))
 
         var spaceItems: [NSMenuItem] = [
-            item("Next Space", #selector(C.nextSpace(_:)), arrow(NSRightArrowFunctionKey), [.command, .option]),
-            item("Previous Space", #selector(C.previousSpace(_:)), arrow(NSLeftArrowFunctionKey), [.command, .option]),
+            item(String(localized: "Next Space", bundle: .chordUI), #selector(C.nextSpace(_:)), arrow(NSRightArrowFunctionKey), [.command, .option]),
+            item(String(localized: "Previous Space", bundle: .chordUI), #selector(C.previousSpace(_:)), arrow(NSLeftArrowFunctionKey), [.command, .option]),
             .separator(),
         ]
         for number in 1...9 {
-            spaceItems.append(item("Space \(number)", #selector(C.selectSpaceByNumber(_:)), "\(number)", [.control], tag: number))
+            spaceItems.append(item(String(localized: "Space \(number)", bundle: .chordUI), #selector(C.selectSpaceByNumber(_:)), "\(number)", [.control], tag: number))
         }
         spaceItems += [
             .separator(),
-            item("New Space", #selector(C.newSpace(_:))),
-            item("Rename Space…", #selector(C.renameSpace(_:))),
+            item(String(localized: "New Space", bundle: .chordUI), #selector(C.newSpace(_:))),
+            item(String(localized: "Rename Space…", bundle: .chordUI), #selector(C.renameSpace(_:))),
         ]
-        main.addItem(submenu("Spaces", spaceItems))
+        main.addItem(submenu(String(localized: "Spaces", bundle: .chordUI), spaceItems))
 
-        let windowMenu = submenu("Window", [
-            item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"),
-            item("Zoom", #selector(NSWindow.performZoom(_:))),
+        let windowMenu = submenu(String(localized: "Window", bundle: .chordUI), [
+            item(String(localized: "Minimize", bundle: .chordUI), #selector(NSWindow.performMiniaturize(_:)), "m"),
+            item(String(localized: "Zoom", bundle: .chordUI), #selector(NSWindow.performZoom(_:))),
             .separator(),
-            item("Downloads", #selector(C.showDownloads(_:)), "j", [.command, .shift]),
+            item(String(localized: "Downloads", bundle: .chordUI), #selector(C.showDownloads(_:)), "j", [.command, .shift]),
         ])
         main.addItem(windowMenu)
         NSApp.windowsMenu = windowMenu.submenu
@@ -156,13 +156,17 @@ public enum MainMenu {
             if modifiers.contains(.shift) { text += "⇧" }
             if modifiers.contains(.command) { text += "⌘" }
             let names: [String: String] = [
-                "\t": "⇥", "\r": "↩", " ": "Space", "\u{1b}": "⎋",
+                "\t": "⇥", "\r": "↩", " ": MainMenu.spaceKeyName, "\u{1b}": "⎋",
                 MainMenu.arrow(NSLeftArrowFunctionKey): "←", MainMenu.arrow(NSRightArrowFunctionKey): "→",
                 MainMenu.arrow(NSUpArrowFunctionKey): "↑", MainMenu.arrow(NSDownArrowFunctionKey): "↓",
             ]
             return text + (names[key] ?? key.uppercased())
         }
     }
+
+    /// The space bar's name in a shortcut ("⌃Space").
+    static let spaceKeyName = String(localized: "key.space", defaultValue: "Space", bundle: .chordUI,
+                                     comment: "The space bar, in a shortcut such as ⌃Space")
 
     /// Shortcuts every Mac app shares, which stay as they are: editing (⌘Z, ⌘X, ⌘C, ⌘V,
     /// ⌘A) and the app menu (⌘, ⌘H ⌘Q).

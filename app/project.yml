@@ -16,6 +16,10 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
+    # The interface's languages live in ChordUI/Localizable.xcstrings; building
+    # extracts every String(localized:) into it.
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
     # Local, unsigned development builds. Real signing comes with distribution.
     CODE_SIGN_IDENTITY: "-"
     CODE_SIGN_STYLE: Manual

@@ -10,7 +10,7 @@ final class DownloadsPanelController: NSViewController {
 
     private let downloads: Downloads
     private let list = NSStackView()
-    private let emptyLabel = NSTextField(labelWithString: "No downloads")
+    private let emptyLabel = NSTextField(labelWithString: String(localized: "No downloads", bundle: .chordUI))
     private var rows: [URL: DownloadRowView] = [:]
     private var cancellable: AnyCancellable?
 
@@ -24,9 +24,9 @@ final class DownloadsPanelController: NSViewController {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     override func loadView() {
-        let title = NSTextField(labelWithString: "Downloads")
+        let title = NSTextField(labelWithString: String(localized: "Downloads", bundle: .chordUI))
         title.font = .systemFont(ofSize: 13, weight: .semibold)
-        let showAll = NSButton(title: "Show in Finder", target: self, action: #selector(openFolder))
+        let showAll = NSButton(title: String(localized: "Show in Finder", bundle: .chordUI), target: self, action: #selector(openFolder))
         showAll.isBordered = false
         showAll.font = .systemFont(ofSize: 12)
         showAll.contentTintColor = .controlAccentColor
@@ -110,8 +110,8 @@ final class DownloadRowView: NSView, NSDraggingSource {
     private let name = NSTextField(labelWithString: "")
     private let detail = NSTextField(labelWithString: "")
     private let progress = NSProgressIndicator()
-    private lazy var revealButton = IconButton(symbol: "magnifyingglass", label: "Show in Finder", target: self, action: #selector(reveal), size: 24, pointSize: 11)
-    private lazy var cancelButton = IconButton(symbol: "xmark", label: "Cancel download", target: self, action: #selector(cancel), size: 24, pointSize: 10)
+    private lazy var revealButton = IconButton(symbol: "magnifyingglass", label: String(localized: "Show in Finder", bundle: .chordUI), target: self, action: #selector(reveal), size: 24, pointSize: 11)
+    private lazy var cancelButton = IconButton(symbol: "xmark", label: String(localized: "Cancel download", bundle: .chordUI), target: self, action: #selector(cancel), size: 24, pointSize: 10)
     private var isHovered = false
     private var mouseDownEvent: NSEvent?
 
@@ -123,7 +123,7 @@ final class DownloadRowView: NSView, NSDraggingSource {
 
     private static let ageFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "en_US")
+        formatter.locale = .chordUI
         formatter.unitsStyle = .short
         return formatter
     }()
@@ -188,12 +188,12 @@ final class DownloadRowView: NSView, NSDraggingSource {
         case .done:
             progress.isHidden = true
             let size = (try? item.url.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }
-            let age = Date().timeIntervalSince(item.date) < 60 ? "just now" : Self.ageFormatter.localizedString(for: item.date, relativeTo: Date())
+            let age = Date().timeIntervalSince(item.date) < 60 ? String(localized: "just now", bundle: .chordUI) : Self.ageFormatter.localizedString(for: item.date, relativeTo: Date())
             detail.stringValue = [size.map { Self.sizeFormatter.string(fromByteCount: Int64($0)) }, age].compactMap { $0 }.joined(separator: " · ")
             name.textColor = .labelColor
         case .failed:
             progress.isHidden = true
-            detail.stringValue = "Download failed"
+            detail.stringValue = String(localized: "Download failed", bundle: .chordUI)
             name.textColor = .secondaryLabelColor
         }
         refreshButtons()
@@ -207,7 +207,7 @@ final class DownloadRowView: NSView, NSDraggingSource {
     private func refreshButtons() {
         // Cancel while running, dismiss a failure; the magnifier on hover once it exists.
         cancelButton.isHidden = !(isRunning || item?.state == .failed)
-        cancelButton.toolTip = isRunning ? "Cancel download" : "Remove from list"
+        cancelButton.toolTip = isRunning ? String(localized: "Cancel download", bundle: .chordUI) : String(localized: "Remove from list", bundle: .chordUI)
         revealButton.isHidden = !(isHovered && item?.state == .done)
         layer?.backgroundColor = isHovered
             ? (isDarkAppearance ? NSColor.white.withAlphaComponent(0.08) : NSColor.black.withAlphaComponent(0.05)).cgColor

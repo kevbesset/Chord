@@ -73,7 +73,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         place(in: host, anchoredTo: anchor)
         self.mode = mode
         self.accent = accent
-        field.placeholderString = mode == .split ? "Page to show alongside" : "Search or enter URL"
+        field.placeholderString = mode == .split ? String(localized: "Page to show alongside", bundle: .chordUI) : String(localized: "Search or enter URL", bundle: .chordUI)
         field.stringValue = text
         scrim.isHidden = false
         panelHost.isHidden = false
@@ -126,7 +126,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         field.drawsBackground = false
         field.focusRingType = .none
         field.font = .systemFont(ofSize: 20)
-        field.placeholderString = "Search or enter URL"
+        field.placeholderString = String(localized: "Search or enter URL", bundle: .chordUI)
         field.lineBreakMode = .byTruncatingTail
         field.cell?.usesSingleLineMode = true
         field.delegate = self
@@ -142,8 +142,8 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         results.edgeInsets = NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
 
         // Mockup: navigation hints on the left, "esc to close" on the right.
-        let hints = NSTextField(labelWithString: "↑ ↓ navigate      ↩ open      ⌘↩ new tab")
-        let escape = NSTextField(labelWithString: "esc to close")
+        let hints = NSTextField(labelWithString: String(localized: "↑ ↓ navigate      ↩ open      ⌘↩ new tab", bundle: .chordUI))
+        let escape = NSTextField(labelWithString: String(localized: "esc to close", bundle: .chordUI))
         let footer = NSView()
         for label in [hints, escape] {
             label.font = .systemFont(ofSize: 11)
@@ -310,25 +310,25 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         var shown = tabs.compactMap { $0.tab.url }
 
         let typedURL = URLInput.url(from: query)
-        let search = query.isEmpty ? nil : CommandItem(section: "Search", title: "“\(query)” on the web",
+        let search = query.isEmpty ? nil : CommandItem(section: String(localized: "Search", bundle: .chordUI), title: String(localized: "“\(query)” on the web", bundle: .chordUI),
                                                        symbol: "magnifyingglass", action: .search(query))
         if let url = typedURL {
-            result.append(CommandItem(section: "Go To", title: url.editableString, tileURL: url, shortcut: "↩", action: .open(url)))
+            result.append(CommandItem(section: String(localized: "Go To", bundle: .chordUI), title: url.editableString, tileURL: url, shortcut: "↩", action: .open(url)))
             shown.append(url)
         } else if let top = history.first(where: { $0.isTopHit && !Self.contains(shown, $0.url) }) {
-            result.append(historyItem(top, section: "Top Hit"))
+            result.append(historyItem(top, section: String(localized: "Top Hit", bundle: .chordUI)))
             shown.append(top.url)
         } else if let search {
             result.append(search)
         }
 
         for entry in tabs {
-            result.append(CommandItem(section: "Open Tabs", title: entry.tab.displayTitle, subtitle: entry.tab.url?.host ?? "",
+            result.append(CommandItem(section: String(localized: "Open Tabs", bundle: .chordUI), title: entry.tab.displayTitle, subtitle: entry.tab.url?.host ?? "",
                                       tileURL: entry.tab.url, action: .switchTab(entry.tab)))
         }
 
         let pages = history.filter { !Self.contains(shown, $0.url) }.prefix(Self.maxHistory)
-        result += pages.map { historyItem($0, section: "History") }
+        result += pages.map { historyItem($0, section: String(localized: "History", bundle: .chordUI)) }
 
         // Picking a page for a split: only pages, no actions.
         if mode != .split {
@@ -338,7 +338,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             result += actions.prefix(query.isEmpty ? 3 : 4)
         }
 
-        if let search, result.first?.section != "Search" {
+        if let search, result.first?.section != String(localized: "Search", bundle: .chordUI) {
             result.append(search)
         }
         return result
@@ -380,7 +380,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             rows.append(row)
         }
         if items.isEmpty {
-            addFullWidth(sectionLabel("No Results"))
+            addFullWidth(sectionLabel(String(localized: "No Results", bundle: .chordUI)))
         }
         updateSelection()
     }

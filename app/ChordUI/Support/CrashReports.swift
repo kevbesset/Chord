@@ -67,6 +67,7 @@ enum CrashReports {
             return String(format: "%2d  %@  %@", index, image, symbol)
         }
 
+        // The report stays in English: it is meant to be pasted into a bug report.
         var text = "# \(header["app_name"] as? String ?? "Chord") crash\n\n"
         text += "- Date: \(header["timestamp"] as? String ?? "?")\n"
         text += "- Version: \(header["app_version"] as? String ?? "?") (\(header["bundleID"] as? String ?? "?"))\n"
@@ -99,11 +100,12 @@ enum CrashReports {
 
     private static func offer(_ summary: Summary, file: URL, over window: NSWindow?) {
         let alert = NSAlert()
-        alert.messageText = "Chord quit unexpectedly"
-        alert.informativeText = "A report was saved in \(file.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")).\n\n\(summary.headline)"
-        alert.addButton(withTitle: "Copy Report")
-        alert.addButton(withTitle: "Show in Finder")
-        alert.addButton(withTitle: "Close")
+        alert.messageText = String(localized: "Chord quit unexpectedly", bundle: .chordUI)
+        let path = file.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+        alert.informativeText = String(localized: "A report was saved in \(path).", bundle: .chordUI) + "\n\n\(summary.headline)"
+        alert.addButton(withTitle: String(localized: "Copy Report", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Show in Finder", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Close", bundle: .chordUI))
         let handle: (NSApplication.ModalResponse) -> Void = { response in
             switch response {
             case .alertFirstButtonReturn:

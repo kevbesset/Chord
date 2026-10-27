@@ -58,6 +58,20 @@ the interface, `engine/scripts/run.sh` recompiles ChordUI alone and relaunches C
 | `Menu/` | Main menu and keyboard shortcuts |
 | `Support/` | Theme, performance measurements, settings, shared components |
 
+## Languages
+
+ChordUI's interface is in English, French and Spanish. Every visible string is a
+`String(localized: "…", bundle: .chordUI)`: the key is the English text, and the
+translations live in `app/ChordUI/Localizable.xcstrings`, compiled into the framework's
+`fr.lproj` and `es.lproj`. `bundle: .chordUI` matters: the main bundle is Chromium's.
+The language follows the Mac's preferred languages, like Chromium's, which has its own
+translations for its pages and menus. Formatters that show words (dates, lists) use
+`Locale.chordUI`, the interface's language, rather than the Mac's region.
+
+When building in Xcode, new strings are added to the catalog on their own. Outside
+Xcode: `xcodebuild` emits `.stringsdata` files, and
+`xcrun xcstringstool sync app/ChordUI/Localizable.xcstrings --stringsdata …` merges them.
+
 ## Why AppKit rather than SwiftUI
 
 See `docs/decisions/0002-appkit.md`. In short: the sidebar must stay smooth with more

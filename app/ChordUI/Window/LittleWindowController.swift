@@ -18,7 +18,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
     private let addressPill = NSView()
     private let addressField = NSTextField()
     private let openButton = OpenInSpaceButton()
-    private lazy var backButton = IconButton(symbol: "arrow.left", label: "Back (⌘[)", target: self, action: #selector(goBack(_:)), size: 26, pointSize: 13)
+    private lazy var backButton = IconButton(symbol: "arrow.left", label: String(localized: "Back (⌘[)", bundle: .chordUI), target: self, action: #selector(goBack(_:)), size: 26, pointSize: 13)
     private let spaces: () -> [Space]
     private(set) var targetSpace: Space
     private let permissionPrompt = PermissionPromptController()
@@ -43,7 +43,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         window.minSize = NSSize(width: 420, height: 300)
         // Like the main window: no shadow, so no dark outline around the glass.
         window.hasShadow = false
-        window.title = "Little Window"
+        window.title = String(localized: "Little Window", bundle: .chordUI)
         // A compact toolbar makes the title bar 46 px tall, so the traffic lights sit
         // centred in the same row as the address.
         let toolbar = NSToolbar(identifier: "app.chord.little")
@@ -105,7 +105,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         addressField.drawsBackground = false
         addressField.focusRingType = .none
         addressField.font = .systemFont(ofSize: 13)
-        addressField.placeholderString = "Search or enter URL"
+        addressField.placeholderString = String(localized: "Search or enter URL", bundle: .chordUI)
         addressField.lineBreakMode = .byTruncatingTail
         addressField.cell?.usesSingleLineMode = true
         addressField.delegate = self
@@ -198,7 +198,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
 
     private func showSpaceMenu(from anchor: NSView) {
         let menu = NSMenu()
-        let header = NSMenuItem(title: "Open in Space", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: String(localized: "Open in Space", bundle: .chordUI), action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
         for space in spaces() {
@@ -246,7 +246,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(url.absoluteString, forType: .string)
         if let root = window?.contentView {
-            toast.show("URL copied", detail: url.displayHost, symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
+            toast.show(String(localized: "URL copied", bundle: .chordUI), detail: url.displayHost, symbol: "checkmark.circle.fill", in: root, over: card, accent: targetSpace.accent)
         }
     }
 
@@ -262,7 +262,7 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         guard page === self.page else { return }
         updateAddress(url: page.url)
         card.setLoading(page.isLoading, accent: targetSpace.accent)
-        window?.title = page.title ?? "Little Window"
+        window?.title = page.title ?? String(localized: "Little Window", bundle: .chordUI)
     }
 
     func page(_ page: ChordWebPage, wantsNewTabWith url: URL) {
@@ -304,7 +304,7 @@ final class OpenInSpaceButton: NSView {
         super.init(frame: frameRect)
         wantsLayer = true
         translatesAutoresizingMaskIntoConstraints = false
-        let label = NSTextField(labelWithString: "Open in")
+        let label = NSTextField(labelWithString: String(localized: "Open in", bundle: .chordUI))
         label.font = .systemFont(ofSize: 12, weight: .medium)
         nameLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         nameLabel.lineBreakMode = .byTruncatingTail
@@ -355,8 +355,8 @@ final class OpenInSpaceButton: NSView {
         accent = space.accent
         nameLabel.stringValue = space.name
         dot.layer?.backgroundColor = space.color.cgColor
-        toolTip = "Open the page in Space \(space.name) (⌘O)"
-        setAccessibilityLabel("Open in Space \(space.name)")
+        toolTip = String(localized: "Open the page in Space \(space.name) (⌘O)", bundle: .chordUI)
+        setAccessibilityLabel(String(localized: "Open in Space \(space.name)", bundle: .chordUI))
         needsDisplay = true
     }
 

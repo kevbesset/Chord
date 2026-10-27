@@ -117,12 +117,15 @@ final class PermissionPromptController: NSObject, NSPopoverDelegate {
     }
 
     /// The question, from what the engine says is asked: "Allow webcamtoy.com to use
-    /// your cameras?"
+    /// your cameras?" The engine words what is asked in its own language, which follows
+    /// the Mac's languages like the interface.
     static func question(site: String, asks: [String]) -> String {
         let parts = asks.map { $0.prefix(1).lowercased() + $0.dropFirst() }
-        guard let last = parts.last else { return "\(site) asks for a permission." }
-        let what = parts.count == 1 ? last : parts.dropLast().joined(separator: ", ") + " and " + last
-        return "Allow \(site) to \(what)?"
+        guard !parts.isEmpty else { return String(localized: "\(site) asks for a permission.", bundle: .chordUI) }
+        let list = ListFormatter()
+        list.locale = .chordUI
+        let what = list.string(from: parts) ?? parts.joined(separator: ", ")
+        return String(localized: "Allow \(site) to \(what)?", bundle: .chordUI)
     }
 }
 
@@ -144,9 +147,9 @@ private final class PermissionPromptViewController: NSViewController {
         question.font = .systemFont(ofSize: 15, weight: .medium)
         question.textColor = .labelColor
         question.preferredMaxLayoutWidth = 214
-        let block = PromptButton(title: "Block", style: .secondary) { [weak self] in self?.onAnswer(.block) }
-        let allow = PromptButton(title: "Allow", style: .primary) { [weak self] in self?.onAnswer(.allow) }
-        let notNow = PromptButton(title: "Not Now", style: .quiet) { [weak self] in self?.onAnswer(.notNow) }
+        let block = PromptButton(title: String(localized: "Block", bundle: .chordUI), style: .secondary) { [weak self] in self?.onAnswer(.block) }
+        let allow = PromptButton(title: String(localized: "Allow", bundle: .chordUI), style: .primary) { [weak self] in self?.onAnswer(.allow) }
+        let notNow = PromptButton(title: String(localized: "Not Now", bundle: .chordUI), style: .quiet) { [weak self] in self?.onAnswer(.notNow) }
 
         let view = NSView()
         for subview in [badge, question, block, allow, notNow] as [NSView] {

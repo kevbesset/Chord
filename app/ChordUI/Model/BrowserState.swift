@@ -93,7 +93,7 @@ public final class BrowserState: NSObject {
         var fromVersion = SessionSnapshot.currentVersion
         var readSession = false
         if isPrivate {
-            let space = Space(name: "Private Browsing", colorHex: Theme.privateSpaceColor)
+            let space = Space(name: String(localized: "Private Browsing", bundle: .chordUI), colorHex: Theme.privateSpaceColor)
             spaces = [space]
             activeSpaceID = space.id
         } else if let snapshot = store?.load(), !snapshot.spaces.isEmpty {
@@ -109,7 +109,7 @@ public final class BrowserState: NSObject {
             readSession = true
         } else {
             let first = Space(name: "Chord", colorHex: Theme.spacePalette[0])
-            spaces = [first, Space(name: "Personal", colorHex: Theme.spacePalette[1], profileID: UUID().uuidString)]
+            spaces = [first, Space(name: String(localized: "Personal", bundle: .chordUI), colorHex: Theme.spacePalette[1], profileID: UUID().uuidString)]
             activeSpaceID = first.id
         }
         super.init()
@@ -503,7 +503,7 @@ public final class BrowserState: NSObject {
     @discardableResult
     public func newFolder(with tab: Tab? = nil) -> Folder {
         let space = tab.flatMap { self.space(containing: $0) } ?? activeSpace
-        let folder = Folder(name: "New Folder")
+        let folder = Folder(name: String(localized: "New Folder", bundle: .chordUI))
         if let tab, tab.isPinned, let place = space.removePinned(tab) {
             space.insertPinned(.folder(folder), in: place.parent, at: place.index)
             folder.items = [.tab(tab)]
@@ -653,7 +653,7 @@ public final class BrowserState: NSObject {
     @discardableResult
     public func addSpace(name: String? = nil, colorHex: String? = nil) -> Space {
         let color = colorHex ?? Theme.spacePalette[spaces.count % Theme.spacePalette.count]
-        let space = Space(name: name ?? "Space \(spaces.count + 1)", colorHex: color, profileID: UUID().uuidString)
+        let space = Space(name: name ?? String(localized: "Space \(spaces.count + 1)", bundle: .chordUI), colorHex: color, profileID: UUID().uuidString)
         spaces.append(space)
         changes.send(.spaces)
         selectSpace(space)
@@ -718,7 +718,7 @@ public final class BrowserState: NSObject {
     }
 
     /// What goes with a profile, for the alerts that come before.
-    public static let profileDeletionWarning = "This is the last Space on its profile: the profile will be deleted too, with its logins, cookies, history, extensions and favorites."
+    public static let profileDeletionWarning = String(localized: "This is the last Space on its profile: the profile will be deleted too, with its logins, cookies, history, extensions and favorites.", bundle: .chordUI)
 
     /// Whether the Space is the last one on its profile, which then goes with it (see
     /// `dropUnusedProfiles`). The default profile always stays.

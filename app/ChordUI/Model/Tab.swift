@@ -33,6 +33,6 @@ public final class Tab {
     public var displayTitle: String {
         if !title.isEmpty { return title }
         if let host = url?.host, !host.isEmpty { return host }
-        return url?.absoluteString ?? "New Tab"
+        return url?.absoluteString ?? String(localized: "New Tab", bundle: .chordUI)
     }
 }

@@ -11,12 +11,12 @@ final class PageToolbarView: NSView {
     var onAction: ((PageBarAction) -> Void)?
     var moreMenu: (() -> NSMenu)?
 
-    private lazy var backButton = IconButton(symbol: "chevron.left", label: "Back (⌘[)", target: self, action: #selector(backClicked), size: 24, pointSize: 12)
-    private lazy var forwardButton = IconButton(symbol: "chevron.right", label: "Forward (⌘])", target: self, action: #selector(forwardClicked), size: 24, pointSize: 12)
-    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: "Reload (⌘R)", target: self, action: #selector(reloadClicked), size: 24, pointSize: 12)
-    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: "Split View (⌃⇧=)", target: self, action: #selector(splitClicked), size: 24, pointSize: 12)
-    private lazy var copyButton = IconButton(symbol: "link", label: "Copy URL (⇧⌘C)", target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
-    private lazy var moreButton = IconButton(symbol: "ellipsis", label: "More actions", target: self, action: #selector(moreClicked), size: 24, pointSize: 12)
+    private lazy var backButton = IconButton(symbol: "chevron.left", label: String(localized: "Back (⌘[)", bundle: .chordUI), target: self, action: #selector(backClicked), size: 24, pointSize: 12)
+    private lazy var forwardButton = IconButton(symbol: "chevron.right", label: String(localized: "Forward (⌘])", bundle: .chordUI), target: self, action: #selector(forwardClicked), size: 24, pointSize: 12)
+    private lazy var reloadButton = IconButton(symbol: "arrow.clockwise", label: String(localized: "Reload (⌘R)", bundle: .chordUI), target: self, action: #selector(reloadClicked), size: 24, pointSize: 12)
+    private lazy var splitButton = IconButton(symbol: "rectangle.split.2x1", label: String(localized: "Split View (⌃⇧=)", bundle: .chordUI), target: self, action: #selector(splitClicked), size: 24, pointSize: 12)
+    private lazy var copyButton = IconButton(symbol: "link", label: String(localized: "Copy URL (⇧⌘C)", bundle: .chordUI), target: self, action: #selector(copyClicked), size: 24, pointSize: 12)
+    private lazy var moreButton = IconButton(symbol: "ellipsis", label: String(localized: "More actions", bundle: .chordUI), target: self, action: #selector(moreClicked), size: 24, pointSize: 12)
     private let address = ToolbarAddressView()
     /// Where the compact command bar opens, over the address.
     var addressAnchor: NSView { address }
@@ -109,14 +109,14 @@ final class PageToolbarView: NSView {
 final class ToolbarAddressView: NSView {
     var onClick: (() -> Void)?
     var onSiteControls: ((NSView) -> Void)?
-    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: "Site Settings", target: self, action: #selector(siteControlsClicked), size: 20, pointSize: 13)
+    private lazy var siteControlsButton = IconButton(symbol: "slider.horizontal.2.square", label: String(localized: "Site Settings", bundle: .chordUI), target: self, action: #selector(siteControlsClicked), size: 20, pointSize: 13)
     var siteControlsAnchor: NSView { siteControlsButton }
     var extensionActions: ExtensionActions?
     /// The pinned extensions, before the site controls.
     private let extensionsStack = NSStackView()
     private let icon = NSImageView()
     /// Shown only for a site without encryption that is not local.
-    private let insecureLabel = NSTextField(labelWithString: "Not Secure")
+    private let insecureLabel = NSTextField(labelWithString: String(localized: "Not Secure", bundle: .chordUI))
     private let addressLabel = NSTextField(labelWithString: "")
 
     override init(frame frameRect: NSRect) {
@@ -161,9 +161,9 @@ final class ToolbarAddressView: NSView {
             icon.image = Theme.symbol("magnifyingglass", size: 10)
             icon.isHidden = false
             insecureLabel.isHidden = true
-            addressLabel.stringValue = "Search or enter URL"
+            addressLabel.stringValue = String(localized: "Search or enter URL", bundle: .chordUI)
             addressLabel.textColor = .secondaryLabelColor
-            setAccessibilityLabel("Search or enter URL")
+            setAccessibilityLabel(String(localized: "Search or enter URL", bundle: .chordUI))
             siteControlsButton.isHidden = true
             return
         }
@@ -171,7 +171,7 @@ final class ToolbarAddressView: NSView {
         icon.image = Theme.symbol("lock.slash", size: 10)
         icon.isHidden = !url.isInsecure
         insecureLabel.isHidden = !url.isInsecure
-        setAccessibilityLabel((url.isInsecure ? "Not secure. " : "") + "Address: \(url.absoluteString)")
+        setAccessibilityLabel((url.isInsecure ? String(localized: "Not secure. ", bundle: .chordUI) : "") + String(localized: "Address: \(url.absoluteString)", bundle: .chordUI))
         siteControlsButton.isHidden = false
     }
 
@@ -213,7 +213,7 @@ final class PaneHeaderView: NSView {
     private var tab: Tab?
     private let tile = FaviconTileView(size: 14)
     private let urlLabel = NSTextField(labelWithString: "")
-    private lazy var closeButton = IconButton(symbol: "xmark", label: "Close this pane", target: self, action: #selector(closeClicked), size: 22, pointSize: 9)
+    private lazy var closeButton = IconButton(symbol: "xmark", label: String(localized: "Close this pane", bundle: .chordUI), target: self, action: #selector(closeClicked), size: 22, pointSize: 9)
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

@@ -42,10 +42,10 @@ final class HomeView: NSView {
         quickGrid.alignment = .top
         shortcuts.orientation = .horizontal
         shortcuts.spacing = 22
-        for (keys, label) in [("⌘T", "New Tab"), ("⌘L", "Address"), ("⌃⇧=", "Split View"), ("⌘S", "Sidebar"), ("⌥⌘N", "Little Window")] {
+        for (keys, label) in [("⌘T", String(localized: "New Tab", bundle: .chordUI)), ("⌘L", String(localized: "Address", bundle: .chordUI)), ("⌃⇧=", String(localized: "Split View", bundle: .chordUI)), ("⌘S", String(localized: "Sidebar", bundle: .chordUI)), ("⌥⌘N", String(localized: "Little Window", bundle: .chordUI))] {
             shortcuts.addArrangedSubview(Self.shortcut(keys, label))
         }
-        shortcutsTitle.stringValue = "SHORTCUTS"
+        shortcutsTitle.stringValue = String(localized: "SHORTCUTS", bundle: .chordUI)
 
         let column = NSStackView(views: [mark, greeting, subtitle, search, quickTitle, quickGrid, shortcutsTitle, shortcuts])
         column.orientation = .vertical
@@ -72,7 +72,7 @@ final class HomeView: NSView {
             search.widthAnchor.constraint(equalToConstant: 480),
             search.heightAnchor.constraint(equalToConstant: 46),
         ])
-        setAccessibilityLabel("Chord home")
+        setAccessibilityLabel(String(localized: "Chord home", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -105,7 +105,7 @@ final class HomeView: NSView {
     func update(space: Space, favorites: [Tab]) {
         accent = space.accent
         greeting.stringValue = Self.greeting()
-        subtitle.stringValue = "Space \(space.name) · no open tabs"
+        subtitle.stringValue = String(localized: "Space \(space.name) · no open tabs", bundle: .chordUI)
         needsDisplay = true
 
         let quick = Array((favorites + space.pinned).prefix(Self.maxQuickTiles))
@@ -115,7 +115,7 @@ final class HomeView: NSView {
             tile.onClick = { [weak self] in self?.onOpen?(tab) }
             quickGrid.addArrangedSubview(tile)
         }
-        quickTitle.stringValue = favorites.isEmpty ? "PINNED" : "FAVORITES AND PINNED"
+        quickTitle.stringValue = favorites.isEmpty ? String(localized: "PINNED", bundle: .chordUI) : String(localized: "FAVORITES AND PINNED", bundle: .chordUI)
         quickTitle.isHidden = quick.isEmpty
         quickGrid.isHidden = quick.isEmpty
     }
@@ -123,9 +123,18 @@ final class HomeView: NSView {
     /// "Good morning, Kevin", "Good evening, Kevin": the macOS account's first name, when there is one.
     private static func greeting() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
-        let hello = hour >= 18 || hour < 5 ? "Good evening" : hour < 12 ? "Good morning" : "Good afternoon"
         let first = NSFullUserName().split(separator: " ").first.map(String.init) ?? ""
-        return first.isEmpty ? hello : "\(hello), \(first)"
+        switch hour {
+        case 5..<12:
+            return first.isEmpty ? String(localized: "Good morning", bundle: .chordUI)
+                                 : String(localized: "Good morning, \(first)", bundle: .chordUI)
+        case 12..<18:
+            return first.isEmpty ? String(localized: "Good afternoon", bundle: .chordUI)
+                                 : String(localized: "Good afternoon, \(first)", bundle: .chordUI)
+        default:
+            return first.isEmpty ? String(localized: "Good evening", bundle: .chordUI)
+                                 : String(localized: "Good evening, \(first)", bundle: .chordUI)
+        }
     }
 
     private static func shortcut(_ keys: String, _ label: String) -> NSView {
@@ -153,7 +162,7 @@ final class HomeSearchView: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         let icon = NSImageView(image: Theme.symbol("magnifyingglass", size: 15) ?? NSImage())
         icon.contentTintColor = .secondaryLabelColor
-        let placeholder = NSTextField(labelWithString: "Search or enter URL")
+        let placeholder = NSTextField(labelWithString: String(localized: "Search or enter URL", bundle: .chordUI))
         placeholder.font = .systemFont(ofSize: 15)
         placeholder.textColor = .secondaryLabelColor
         let key = NSTextField(labelWithString: "⌘T")
@@ -173,7 +182,7 @@ final class HomeSearchView: NSView {
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("Search or enter URL")
+        setAccessibilityLabel(String(localized: "Search or enter URL", bundle: .chordUI))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }

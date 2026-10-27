@@ -31,6 +31,7 @@ xattr -dr com.apple.quarantine /Applications/Chord.app
 - Chrome extensions, pinnable in the address bar; docked DevTools (⌥⌘I)
 - Automatic picture in picture, discreet permission requests, site settings
 - Private browsing, multiple windows, light / dark mode, remappable shortcuts
+- In English, French and Spanish, following the Mac's language
 
 ## Build
 

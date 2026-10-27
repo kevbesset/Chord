@@ -10,7 +10,7 @@ final class SettingsWindowController: NSWindowController {
         model = SettingsModel(state: state, settings: settings, onImportArc: onImportArc)
         let hosting = NSHostingController(rootView: SettingsView(model: model))
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Settings"
+        window.title = String(localized: "Settings", bundle: .chordUI)
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.tabbingMode = .disallowed
         window.isRestorable = false
@@ -60,10 +60,10 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            GeneralPane(model: model).tabItem { Label("General", systemImage: "gearshape") }
-            AppearancePane(model: model).tabItem { Label("Appearance", systemImage: "paintbrush") }
-            SpacesPane(model: model).tabItem { Label("Spaces", systemImage: "square.stack") }
-            ShortcutsPane(model: model).tabItem { Label("Shortcuts", systemImage: "command") }
+            GeneralPane(model: model).tabItem { Label(String(localized: "General", bundle: .chordUI), systemImage: "gearshape") }
+            AppearancePane(model: model).tabItem { Label(String(localized: "Appearance", bundle: .chordUI), systemImage: "paintbrush") }
+            SpacesPane(model: model).tabItem { Label(String(localized: "Spaces", bundle: .chordUI), systemImage: "square.stack") }
+            ShortcutsPane(model: model).tabItem { Label(String(localized: "Shortcuts", bundle: .chordUI), systemImage: "command") }
         }
         .padding(20)
         .frame(width: 620, height: 480)
@@ -88,25 +88,25 @@ private struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Picker("Search engine", selection: model.binding(\.searchTemplate)) {
+            Picker(String(localized: "Search engine", bundle: .chordUI), selection: model.binding(\.searchTemplate)) {
                 ForEach(Self.engines, id: \.1) { engine in Text(engine.0).tag(engine.1) }
                 if !Self.engines.contains(where: { $0.1 == model.settings.searchTemplate }) {
-                    Text("Custom").tag(model.settings.searchTemplate)
+                    Text(String(localized: "Custom", bundle: .chordUI)).tag(model.settings.searchTemplate)
                 }
             }
             Toggle(isOn: model.binding(\.autoPictureInPicture)) {
-                Text("Automatic picture in picture")
-                Text("A playing video carries on in a floating window when you switch tabs or Spaces, and goes back to its page when you return.")
+                Text(String(localized: "Automatic picture in picture", bundle: .chordUI))
+                Text(String(localized: "A playing video carries on in a floating window when you switch tabs or Spaces, and goes back to its page when you return.", bundle: .chordUI))
             }
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Import from Arc")
-                        Text("Spaces, favorites and pinned tabs, as they are.")
+                        Text(String(localized: "Import from Arc", bundle: .chordUI))
+                        Text(String(localized: "Spaces, favorites and pinned tabs, as they are.", bundle: .chordUI))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Import…") { model.onImportArc() }
+                    Button(String(localized: "Import…", bundle: .chordUI)) { model.onImportArc() }
                         .disabled(!ArcImport.isAvailable)
                 }
             }
@@ -122,26 +122,26 @@ private struct AppearancePane: View {
 
     var body: some View {
         Form {
-            Picker("Mode", selection: model.binding(\.appearance)) {
-                Text("Automatic").tag(ChordSettings.Appearance.automatic)
-                Text("Light").tag(ChordSettings.Appearance.light)
-                Text("Dark").tag(ChordSettings.Appearance.dark)
+            Picker(String(localized: "Mode", bundle: .chordUI), selection: model.binding(\.appearance)) {
+                Text(String(localized: "Automatic", bundle: .chordUI)).tag(ChordSettings.Appearance.automatic)
+                Text(String(localized: "Light", bundle: .chordUI)).tag(ChordSettings.Appearance.light)
+                Text(String(localized: "Dark", bundle: .chordUI)).tag(ChordSettings.Appearance.dark)
             }
             .pickerStyle(.segmented)
-            Picker("Address bar", selection: model.binding(\.addressBarOnTop)) {
-                Text("In the sidebar").tag(false)
-                Text("Above the page").tag(true)
+            Picker(String(localized: "Address bar", bundle: .chordUI), selection: model.binding(\.addressBarOnTop)) {
+                Text(String(localized: "In the sidebar", bundle: .chordUI)).tag(false)
+                Text(String(localized: "Above the page", bundle: .chordUI)).tag(true)
             }
-            Toggle("Edgeless: the page touches the window's edges", isOn: model.binding(\.edgeless))
-            LabeledContent("Sidebar width") {
+            Toggle(String(localized: "Edgeless: the page touches the window's edges", bundle: .chordUI), isOn: model.binding(\.edgeless))
+            LabeledContent(String(localized: "Sidebar width", bundle: .chordUI)) {
                 Slider(value: Binding(get: { Double(model.settings.sidebarWidth) },
                                       set: { model.settings.sidebarWidth = CGFloat($0).rounded() }),
                        in: Double(ChordSettings.sidebarWidthRange.lowerBound)...Double(ChordSettings.sidebarWidthRange.upperBound))
                     .frame(width: 220)
             }
-            Picker("Command bar", selection: model.binding(\.commandBarGlass)) {
-                Text("Glass").tag(true)
-                Text("Opaque").tag(false)
+            Picker(String(localized: "Command bar", bundle: .chordUI), selection: model.binding(\.commandBarGlass)) {
+                Text(String(localized: "Glass", bundle: .chordUI)).tag(true)
+                Text(String(localized: "Opaque", bundle: .chordUI)).tag(false)
             }
             .pickerStyle(.segmented)
         }
@@ -164,9 +164,9 @@ private struct SpacesPane: View {
             }
             .listStyle(.inset(alternatesRowBackgrounds: false))
             HStack {
-                Button("New Space") { model.state.addSpace() }
+                Button(String(localized: "New Space", bundle: .chordUI)) { model.state.addSpace() }
                 Spacer()
-                Text("Spaces on the same profile share their favorites and their session.")
+                Text(String(localized: "Spaces on the same profile share their favorites and their session.", bundle: .chordUI))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -196,13 +196,13 @@ private struct SpaceRow: View {
                         .accessibilityAddTraits(.isButton)
                 }
             }
-            TextField("Name", text: $name)
+            TextField(String(localized: "Name", bundle: .chordUI), text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { model.state.rename(space, to: name) }
                 .onAppear { name = space.name }
             // Like Arc's profiles: Spaces in the same profile share their favorites and
             // their session (logins, cookies, extensions).
-            Picker("Profile", selection: Binding(
+            Picker(String(localized: "Profile", bundle: .chordUI), selection: Binding(
                 get: { space.profileID },
                 set: { choice in
                     let profile = choice == Self.separate ? UUID().uuidString : choice
@@ -217,11 +217,11 @@ private struct SpaceRow: View {
                     Text(profile.spaces.map(\.name).joined(separator: ", ")).tag(profile.id)
                 }
                 Divider()
-                Text("New profile").tag(Self.separate)
+                Text(String(localized: "New profile", bundle: .chordUI)).tag(Self.separate)
             }
             .labelsHidden()
             .frame(width: 150)
-            .help("Spaces on the same profile share their favorites and their session (logins, cookies, extensions), like Arc's profiles.")
+            .help(String(localized: "Spaces on the same profile share their favorites and their session (logins, cookies, extensions), like Arc's profiles.", bundle: .chordUI))
             Button(role: .destructive) {
                 if model.state.isLastSpace(ofItsProfile: space) || !space.allTabs.isEmpty {
                     confirmingDelete = true
@@ -231,26 +231,26 @@ private struct SpaceRow: View {
             } label: { Image(systemName: "trash") }
                 .buttonStyle(.borderless)
                 .disabled(model.state.spaces.count < 2)
-                .help("Delete the Space and its tabs")
+                .help(String(localized: "Delete the Space and its tabs", bundle: .chordUI))
         }
         .padding(.vertical, 4)
-        .alert("Change the profile of “\(space.name)”?", isPresented: Binding(
+        .alert(String(localized: "Change the profile of “\(space.name)”?", bundle: .chordUI), isPresented: Binding(
             get: { pendingProfile != nil },
             set: { if !$0 { pendingProfile = nil } }
         )) {
-            Button("Change and Delete the Old Profile", role: .destructive) {
+            Button(String(localized: "Change and Delete the Old Profile", bundle: .chordUI), role: .destructive) {
                 if let profile = pendingProfile { model.state.setProfile(space, to: profile) }
                 pendingProfile = nil
             }
-            Button("Cancel", role: .cancel) { pendingProfile = nil }
+            Button(String(localized: "Cancel", bundle: .chordUI), role: .cancel) { pendingProfile = nil }
         } message: {
-            Text("No other Space uses its current profile: it will be deleted, with its logins, cookies, history, extensions and favorites.")
+            Text(String(localized: "No other Space uses its current profile: it will be deleted, with its logins, cookies, history, extensions and favorites.", bundle: .chordUI))
         }
         .alert(model.state.isLastSpace(ofItsProfile: space)
-               ? "Delete the Space “\(space.name)” and its profile?"
-               : "Delete the Space “\(space.name)”?", isPresented: $confirmingDelete) {
-            Button("Delete", role: .destructive) { model.state.delete(space) }
-            Button("Cancel", role: .cancel) {}
+               ? String(localized: "Delete the Space “\(space.name)” and its profile?", bundle: .chordUI)
+               : String(localized: "Delete the Space “\(space.name)”?", bundle: .chordUI), isPresented: $confirmingDelete) {
+            Button(String(localized: "Delete", bundle: .chordUI), role: .destructive) { model.state.delete(space) }
+            Button(String(localized: "Cancel", bundle: .chordUI), role: .cancel) {}
         } message: {
             Text(deleteDetails)
         }
@@ -259,7 +259,7 @@ private struct SpaceRow: View {
     private var deleteDetails: String {
         var details: [String] = []
         let count = space.allTabs.count
-        if count > 0 { details.append(count == 1 ? "Its tab will be closed." : "Its \(count) tabs will be closed.") }
+        if count > 0 { details.append(count == 1 ? String(localized: "Its tab will be closed.", bundle: .chordUI) : String(localized: "Its \(count) tabs will be closed.", bundle: .chordUI)) }
         if model.state.isLastSpace(ofItsProfile: space) { details.append(BrowserState.profileDeletionWarning) }
         return details.joined(separator: " ")
     }
@@ -281,7 +281,7 @@ private struct ShortcutsPane: View {
         }
         let menus = items.reduce(into: [String]()) { if !$0.contains($1.menu) { $0.append($1.menu) } }
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Search a command or a shortcut (⌘T, cmd shift c…)", text: $search)
+            TextField(String(localized: "Search a command or a shortcut (⌘T, cmd shift c…)", bundle: .chordUI), text: $search)
                 .textFieldStyle(.roundedBorder)
             List {
                 ForEach(menus, id: \.self) { menu in
@@ -292,7 +292,7 @@ private struct ShortcutsPane: View {
                                 Text(entry.title)
                                 if modified {
                                     Circle().fill(Color.accentColor).frame(width: 6, height: 6)
-                                        .help("Changed")
+                                        .help(String(localized: "Changed", bundle: .chordUI))
                                 }
                                 Spacer()
                                 ShortcutField(model: model, id: entry.id, title: entry.title)
@@ -300,7 +300,7 @@ private struct ShortcutsPane: View {
                                     model.setShortcut(nil, for: entry.id)
                                 } label: { Image(systemName: "arrow.uturn.backward") }
                                     .buttonStyle(.borderless)
-                                    .help("Restore \(MainMenu.defaultShortcut(for: entry.id)?.display ?? "—")")
+                                    .help(String(localized: "Restore \(MainMenu.defaultShortcut(for: entry.id)?.display ?? "—")", bundle: .chordUI))
                                     .disabled(!modified)
                             }
                         }
@@ -308,19 +308,21 @@ private struct ShortcutsPane: View {
                 }
             }
             HStack(alignment: .firstTextBaseline) {
-                Text("Click a shortcut, then type the new combination. ⌫ removes it, esc cancels.")
+                Text(String(localized: "Click a shortcut, then type the new combination. ⌫ removes it, esc cancels.", bundle: .chordUI))
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Reset All Shortcuts…") { confirmingReset = true }
+                Button(String(localized: "Reset All Shortcuts…", bundle: .chordUI)) { confirmingReset = true }
                     .disabled(overrides.isEmpty)
             }
         }
         .onDisappear { model.stopRecording() }
-        .confirmationDialog("Reset all shortcuts?", isPresented: $confirmingReset) {
-            Button("Reset", role: .destructive) { model.settings.shortcutOverrides = [:] }
-            Button("Cancel", role: .cancel) {}
+        .confirmationDialog(String(localized: "Reset all shortcuts?", bundle: .chordUI), isPresented: $confirmingReset) {
+            Button(String(localized: "Reset", bundle: .chordUI), role: .destructive) { model.settings.shortcutOverrides = [:] }
+            Button(String(localized: "Cancel", bundle: .chordUI), role: .cancel) {}
         } message: {
-            Text("Every command gets its original shortcut back. Your \(overrides.count) change\(overrides.count > 1 ? "s" : "") will be lost.")
+            Text(overrides.count == 1
+                 ? String(localized: "Every command gets its original shortcut back. Your change will be lost.", bundle: .chordUI)
+                 : String(localized: "Every command gets its original shortcut back. Your \(overrides.count) changes will be lost.", bundle: .chordUI))
         }
     }
 }
@@ -391,16 +393,16 @@ extension SettingsModel {
         }
         let alert = NSAlert()
         if owner.reserved {
-            alert.messageText = "\(shortcut.display) is reserved for “\(owner.title)”"
-            alert.informativeText = "Every Mac app shares this shortcut. Choose another one for “\(title)”."
+            alert.messageText = String(localized: "\(shortcut.display) is reserved for “\(owner.title)”", bundle: .chordUI)
+            alert.informativeText = String(localized: "Every Mac app shares this shortcut. Choose another one for “\(title)”.", bundle: .chordUI)
             alert.addButton(withTitle: "OK")
             if let window { alert.beginSheetModal(for: window) } else { alert.runModal() }
             return
         }
-        alert.messageText = "\(shortcut.display) is already used by “\(owner.title)”"
-        alert.informativeText = "Give it to “\(title)”? “\(owner.title)” will no longer have a shortcut."
-        alert.addButton(withTitle: "Replace")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "\(shortcut.display) is already used by “\(owner.title)”", bundle: .chordUI)
+        alert.informativeText = String(localized: "Give it to “\(title)”? “\(owner.title)” will no longer have a shortcut.", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Replace", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
         let apply: (NSApplication.ModalResponse) -> Void = { [weak self] response in
             guard let self, response == .alertFirstButtonReturn else { return }
             var overrides = self.settings.shortcutOverrides
@@ -425,7 +427,7 @@ private struct ShortcutField: View {
         Button {
             if recording { model.stopRecording() } else { model.startRecording(id, title: title) }
         } label: {
-            Text(recording ? "Type…" : (shortcut?.display ?? "—"))
+            Text(recording ? String(localized: "Type…", bundle: .chordUI) : (shortcut?.display ?? "—"))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(recording ? Color.accentColor : Color.primary)
                 .frame(width: 104, height: 20)
@@ -440,21 +442,27 @@ private struct ShortcutField: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(recording ? "Type the combination, ⌫ to remove it, esc to cancel" : "Change shortcut")
+        .help(recording ? String(localized: "Type the combination, ⌫ to remove it, esc to cancel", bundle: .chordUI) : String(localized: "Change shortcut", bundle: .chordUI))
     }
 }
 
 /// Searching the shortcuts by command, by menu, or by the keys themselves: "⌘T",
-/// "cmd t", "shift cmd c", "ctrl tab".
+/// "cmd t", "shift cmd c", "ctrl tab", and the key names of the interface's languages
+/// ("maj cmd c", "mayús cmd c").
 enum ShortcutSearch {
-    private static let words: [String: String] = [
-        "cmd": "⌘", "command": "⌘",
-        "shift": "⇧",
-        "opt": "⌥", "option": "⌥", "alt": "⌥",
-        "ctrl": "⌃", "control": "⌃",
-        "tab": "⇥", "return": "↩", "enter": "↩", "esc": "⎋", "space": "Space",
-        "left": "←", "right": "→", "up": "↑", "down": "↓",
-    ]
+    private static let words: [String: String] = {
+        let space = MainMenu.spaceKeyName.uppercased()
+        return [
+            "cmd": "⌘", "command": "⌘", "commande": "⌘", "comando": "⌘",
+            "shift": "⇧", "maj": "⇧", "majuscule": "⇧", "mayús": "⇧", "mayúsculas": "⇧",
+            "opt": "⌥", "option": "⌥", "opción": "⌥", "alt": "⌥",
+            "ctrl": "⌃", "control": "⌃", "contrôle": "⌃",
+            "tab": "⇥", "return": "↩", "enter": "↩", "entrée": "↩", "intro": "↩", "esc": "⎋",
+            "space": space, "espace": space, "espacio": space,
+            "left": "←", "gauche": "←", "izquierda": "←", "right": "→", "droite": "→", "derecha": "→",
+            "up": "↑", "haut": "↑", "arriba": "↑", "down": "↓", "bas": "↓", "abajo": "↓",
+        ]
+    }()
 
     static func matches(_ query: String, title: String, menu: String, shortcut: MainMenu.Shortcut?) -> Bool {
         let query = query.trimmingCharacters(in: .whitespaces)

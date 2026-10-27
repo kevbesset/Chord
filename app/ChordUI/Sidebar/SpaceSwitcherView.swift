@@ -40,7 +40,7 @@ final class SpaceChipView: NSView {
         toolTip = number <= 9 ? "\(space.name) (⌃\(number))" : space.name
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("Space \(space.name)")
+        setAccessibilityLabel(String(localized: "Space \(space.name)", bundle: .chordUI))
         registerForDraggedTypes([.chordTab])
 
         let dot = NSView()
@@ -118,8 +118,8 @@ final class SpaceChipView: NSView {
     override func menu(for event: NSEvent) -> NSMenu? {
         let space = space
         let menu = NSMenu()
-        menu.addItem(closureItem("Rename…") { [weak self] in self?.delegate?.sidebarRename(space) })
-        let colors = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
+        menu.addItem(closureItem(String(localized: "Rename…", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarRename(space) })
+        let colors = NSMenuItem(title: String(localized: "Color", bundle: .chordUI), action: nil, keyEquivalent: "")
         let palette = NSMenu()
         for hex in Theme.spacePalette {
             let entry = closureItem(Theme.colorName(hex)) { [weak self] in self?.delegate?.sidebarSetColor(space, hex: hex) }
@@ -130,7 +130,7 @@ final class SpaceChipView: NSView {
         colors.submenu = palette
         menu.addItem(colors)
         menu.addItem(.separator())
-        let delete = closureItem("Delete Space…") { [weak self] in self?.delegate?.sidebarDelete(space) }
+        let delete = closureItem(String(localized: "Delete Space…", bundle: .chordUI)) { [weak self] in self?.delegate?.sidebarDelete(space) }
         delete.isEnabled = canDelete
         menu.addItem(delete)
         menu.autoenablesItems = false
