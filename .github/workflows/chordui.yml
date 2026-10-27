@@ -1,0 +1,36 @@
+# Builds ChordUI, the interface, on every pull request and push to main, and checks
+# that every visible string has its French and Spanish. Chromium is far too big to
+# build here: ChordUI builds on its own, it knows no engine.
+name: ChordUI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chordui-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - run: brew install xcodegen
+      - name: Build
+        working-directory: app
+        run: |
+          xcodegen generate
+          xcodebuild -project Chord.xcodeproj -target ChordUI -configuration Debug \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/ChordUI" -quiet build
+      - name: Translations
+        run: app/scripts/check-localizations.py --build app/build/Chord.build

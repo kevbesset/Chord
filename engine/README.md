@@ -25,7 +25,8 @@ engine/scripts/run.sh          # day to day: ChordUI alone, put back into Chord.
 
 `build.sh` produces `engine/vendor/ungoogled-chromium-macos/build/src/out/Chord/Chord.app`,
 with ChordUI.framework in `Contents/Frameworks`. `run.sh` only recompiles ChordUI (a
-few seconds), replaces it in the app and relaunches Chord. Development settings
+few seconds), replaces it in the app and relaunches Chord; without a Chromium build, it
+uses a copy of the latest release instead (`CONTRIBUTING.md`). Development settings
 (`engine/chord.gn`): no LTO, no PGO, no symbols. The first build takes several hours;
 the next ones only recompile what changed.
 

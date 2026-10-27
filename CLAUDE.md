@@ -66,6 +66,9 @@ errors before handing back.
   a line under "Unreleased" in `CHANGELOG.md`, in the same commit.
 - On the Chromium side: Chord's code lives in `//chord`, patches stay tiny and isolated
   (`engine/patches/README.md`), to absorb a major version every four weeks.
+- Outside contributions: `CONTRIBUTING.md` (CLA signed in each first pull request, a
+  feature needs an agreed issue first). CI builds ChordUI and runs
+  `app/scripts/check-localizations.py`; check it locally before handing back.
 
 ## Current state
 

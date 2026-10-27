@@ -1,0 +1,31 @@
+name: Feature proposal
+description: Propose a change to how Chord works, before writing any code for it.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Chord follows a deliberate plan ([vision](https://github.com/kevbesset/Chord/blob/main/docs/VISION.md)):
+        Arc parity and smoothness first, no AI in the interface. A feature is built once
+        it has a yes here. For a loose idea, [Discussions](https://github.com/kevbesset/Chord/discussions)
+        are a better place.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+      description: How Chord would behave. If Arc does it, say how Arc does it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to build it myself, once it is agreed.

@@ -1,0 +1,49 @@
+name: Bug
+description: Something in Chord doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you did, what you expected, and what Chord did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      placeholder: |
+        1. Open a new tab (⌘T)
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: chord
+    attributes:
+      label: Chord version
+      description: Chord › About Chord.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "26.4"
+    validations:
+      required: true
+  - type: textarea
+    id: crash
+    attributes:
+      label: Crash report
+      description: >-
+        After a crash, Chord writes a readable report to
+        `~/Library/Logs/Chord/latest-crash.md` and offers it at the next launch. Paste it
+        here.
+      render: markdown
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Screenshots, a short video, the site involved, extensions installed…

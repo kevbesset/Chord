@@ -158,8 +158,16 @@ ship.
 ## Support
 
 Chord is free and made by one person. If it is useful to you, you can support its
-development on [Ko-fi](https://ko-fi.com/kevbesset). Bugs and ideas are welcome in the
-[issues](https://github.com/kevbesset/Chord/issues).
+development on [Ko-fi](https://ko-fi.com/kevbesset). Bugs are welcome in the
+[issues](https://github.com/kevbesset/Chord/issues), ideas and questions in the
+[discussions](https://github.com/kevbesset/Chord/discussions).
+
+## Contributing
+
+Fixes, translations and performance work are welcome; a new feature starts with an
+issue. Working on the interface doesn't require building Chromium: `engine/scripts/run.sh`
+puts your build of it into the latest release. Everything is in
+[`CONTRIBUTING.md`](CONTRIBUTING.md); security issues go through [`SECURITY.md`](SECURITY.md).
 
 ## Build
 
@@ -183,6 +191,7 @@ Details in [`engine/README.md`](engine/README.md). Publishing a version:
 app/                Native interface (Swift, AppKit)
   ChordUI/          framework: window, sidebar, Spaces, command bar.
                     Knows no engine, only the ChordWebEngine protocol.
+  scripts/          checks run by CI (every string in French and Spanish)
   project.yml       Xcode project definition (XcodeGen)
 engine/             Chromium: pinned version, //chord, patches, brand, scripts
 docs/               Product vision, architecture, performance budgets, decisions

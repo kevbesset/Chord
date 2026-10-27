@@ -96,6 +96,10 @@ if [ -d "$SPARKLE" ]; then
 fi
 [ -d "$FRAMEWORKS/ChordUI.framework" ] && sign "$FRAMEWORKS/ChordUI.framework"
 
-sign --options restrict,library,runtime,kill --entitlements "$ENTITLEMENTS/app-entitlements.plist" "$APP"
+# Without ungoogled-chromium's checkout (a release copy, run.sh without a Chromium
+# build), the app is signed ad hoc without hardened runtime, which needs no entitlements.
+APP_ENTITLEMENTS=()
+[ -f "$ENTITLEMENTS/app-entitlements.plist" ] && APP_ENTITLEMENTS=(--entitlements "$ENTITLEMENTS/app-entitlements.plist")
+sign --options restrict,library,runtime,kill ${APP_ENTITLEMENTS[@]+"${APP_ENTITLEMENTS[@]}"} "$APP"
 codesign --verify --deep --strict "$APP"
 echo "Signed: $([ "$ID" = "-" ] && echo "ad hoc" || echo "$ID")"

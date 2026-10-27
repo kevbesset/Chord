@@ -139,7 +139,7 @@ Chord is open source. That is the answer to Arc's problem: the code belongs to t
 **Business model:** free, funded by donations ([Ko-fi](https://ko-fi.com/kevbesset), linked from the site and the GitHub repository). If the project grows, the classic model for an open browser is to sell services, never the code: sync between devices, hosted Pro features, support for teams. No monetization of users or their data.
 
 - [x] Choose the license: GPL-3.0
-- [ ] Write the CLA, before the first outside contribution
+- [x] Write the CLA, before the first outside contribution ([`CLA.md`](../CLA.md), signed in each first pull request)
 - [ ] Check the name "Chord": domain, GitHub organization, trademarks (INPI, EUIPO)
 
 ## What we don't do, for now
