@@ -24,6 +24,8 @@ What changes in Chord, version by version. Each change adds a line under
 ### Fixed
 
 - Searching shortcuts for the space bar ("ctrl space") found nothing.
+- A long address no longer wraps onto several lines in the address bar: it stays on one
+  line, cut at the end, and scrolls with the cursor while you edit it.
 
 ## 0.1.0 — 2026-10-27
 

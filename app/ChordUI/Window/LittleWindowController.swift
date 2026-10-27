@@ -106,8 +106,11 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         addressField.focusRingType = .none
         addressField.font = .systemFont(ofSize: 13)
         addressField.placeholderString = String(localized: "Search or enter URL", bundle: .chordUI)
-        addressField.lineBreakMode = .byTruncatingTail
+        // One line that scrolls with the caret, however long the address.
+        addressField.cell?.wraps = false
+        addressField.cell?.isScrollable = true
         addressField.cell?.usesSingleLineMode = true
+        addressField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         addressField.delegate = self
         addressField.translatesAutoresizingMaskIntoConstraints = false
         addressPill.addSubview(addressField)

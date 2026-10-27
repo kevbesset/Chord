@@ -125,6 +125,11 @@ extension URL {
                 .foregroundColor: NSColor.secondaryLabelColor,
             ]))
         }
+        // One line cut at the end, however long the path: without a paragraph style the
+        // attributed text wraps, whatever the label's own line break mode.
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        text.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: text.length))
         return text
     }
 

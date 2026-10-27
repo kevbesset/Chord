@@ -47,6 +47,7 @@ final class AddressPillView: NSView {
         insecureLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         addressLabel.font = .systemFont(ofSize: 13, weight: .medium)
         addressLabel.lineBreakMode = .byTruncatingTail
+        addressLabel.maximumNumberOfLines = 1
         addressLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         buttons.spacing = 0

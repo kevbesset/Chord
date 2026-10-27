@@ -127,8 +127,13 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         field.focusRingType = .none
         field.font = .systemFont(ofSize: 20)
         field.placeholderString = String(localized: "Search or enter URL", bundle: .chordUI)
-        field.lineBreakMode = .byTruncatingTail
+        // One line that scrolls with the caret, however long the address: a truncating line
+        // break would let the field editor wrap it onto several lines, and a long address
+        // must not widen the bar either.
+        field.cell?.wraps = false
+        field.cell?.isScrollable = true
         field.cell?.usesSingleLineMode = true
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         field.delegate = self
 
         header.setViews([searchIcon, field], in: .leading)

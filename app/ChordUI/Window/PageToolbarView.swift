@@ -128,6 +128,7 @@ final class ToolbarAddressView: NSView {
         insecureLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         addressLabel.font = .systemFont(ofSize: 12, weight: .medium)
         addressLabel.lineBreakMode = .byTruncatingTail
+        addressLabel.maximumNumberOfLines = 1
         addressLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         let stack = NSStackView(views: [icon, insecureLabel, addressLabel])
         stack.spacing = 6
