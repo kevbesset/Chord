@@ -48,6 +48,14 @@ final class ContentCardView: NSView {
     override var wantsUpdateLayer: Bool { true }
     override var mouseDownCanMoveWindow: Bool { false }
 
+    /// The window is glass, which gives its views a vibrant appearance, and Chromium's
+    /// page view allows vibrancy: the page would blend with the glass, washed out in
+    /// light mode and dimmed in dark mode. What the card shows gets the same appearance
+    /// without vibrancy.
+    private var plainAppearance: NSAppearance? {
+        NSAppearance(named: isDarkAppearance ? .darkAqua : .aqua)
+    }
+
     override func updateLayer() {
         guard let layer else { return }
         layer.cornerRadius = edgeless ? 0 : Theme.cardRadius
@@ -58,6 +66,7 @@ final class ContentCardView: NSView {
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
+        hostedView?.appearance = plainAppearance
         needsDisplay = true
     }
 
@@ -92,6 +101,7 @@ final class ContentCardView: NSView {
         emptyLabel.isHidden = view != nil
         if let view {
             view.translatesAutoresizingMaskIntoConstraints = false
+            view.appearance = plainAppearance
             // Under the loading line, which must stay above the page.
             addSubview(view, positioned: .below, relativeTo: loadingBar)
         }

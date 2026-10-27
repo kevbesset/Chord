@@ -6,6 +6,11 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Fixed
+
+- Pages show their true colors: they no longer blend with the window's glass, which
+  washed them out (grey blacks, faded tints).
+
 ## 0.2.0 — 2026-10-27
 
 The browser basics (find, zoom, print, passwords, autofill, muting), Chord as the
