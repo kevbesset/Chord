@@ -161,8 +161,10 @@ kbd {
 .brand svg { width: 22px; height: 22px; }
 .brand span { font: 600 19px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; letter-spacing: -0.035em; }
 .nav-links { display: flex; gap: 22px; margin-left: 12px; }
-.nav-links a { text-decoration: none; font-size: 14px; color: var(--text-2); transition: color .15s; }
+.nav-links a { text-decoration: none; font-size: 14px; color: var(--text-2); transition: color .15s; white-space: nowrap; }
 .nav-links a:hover { color: var(--text); }
+.nav-links .nav-donate { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-ink); font-weight: 500; }
+.nav-links .nav-donate:hover { color: var(--accent-ink); text-decoration: underline; }
 .nav-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .lang {
   display: inline-flex; padding: 2px; border-radius: 9px;
@@ -181,6 +183,8 @@ kbd {
   background: var(--text); color: var(--bg);
 }
 .nav-dl[hidden] { display: none; }
+/* Narrower: the page's sections go first, GitHub and support stay. */
+@media (max-width: 960px) { .nav-links a[href^="#"] { display: none; } }
 @media (max-width: 760px) { .nav-links { display: none; } }
 @media (max-width: 420px) { .nav-dl { display: none; } }
 
@@ -469,7 +473,8 @@ section.block { padding: 120px 0 0; }
 .open-mark { position: absolute; right: 56px; bottom: 48px; width: 180px; height: 180px; opacity: .9; }
 .open ul { list-style: none; padding: 0; margin: 36px 0 0; display: flex; flex-wrap: wrap; gap: 10px; position: relative; z-index: 1; }
 .open li { font-size: 14px; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
-.open .ghost { margin-top: 32px; display: inline-flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; position: relative; z-index: 1; }
+.open .links { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 14px 32px; position: relative; z-index: 1; }
+.open .ghost { display: inline-flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; position: relative; z-index: 1; }
 .open .ghost:hover { text-decoration: underline; }
 @media (max-width: 760px) { .open { padding: 48px 24px; border-radius: 22px; } .open-mark { width: 110px; height: 110px; right: 20px; bottom: 20px; opacity: .35; } }
 
@@ -532,6 +537,7 @@ footer .lang { margin-left: auto; }
   <symbol id="i-next" viewBox="0 0 20 20"><path d="M4 10h11m-4-4.5L15.5 10 11 14.5" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-puzzle" viewBox="0 0 20 20"><path d="M8 3.5a1.75 1.75 0 013.5 0V5H15v3.5h-1.5a1.75 1.75 0 000 3.5H15v3.5h-3.5V14a1.75 1.75 0 00-3.5 0v1.5H4.5V12H6a1.75 1.75 0 000-3.5H4.5V5H8z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/></symbol>
   <symbol id="i-tools" viewBox="0 0 20 20"><path d="M7 6l-4 4 4 4M13 6l4 4-4 4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 20 20"><path d="M10 16.5s-6.5-3.9-6.5-8.4A3.6 3.6 0 0 1 10 6a3.6 3.6 0 0 1 6.5 2.1c0 4.5-6.5 8.4-6.5 8.4z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></symbol>
   <symbol id="i-shield" viewBox="0 0 20 20"><path d="M10 2.5l6 2.5v4.5c0 4-2.6 6.6-6 8-3.4-1.4-6-4-6-8V5z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></symbol>
   <symbol id="i-swift" viewBox="0 0 20 20"><path d="M3 10.5c2.5 2 5.5 3.3 8.5 2.8-2.6-1.7-5-4-6.7-6.6 2.2 1.9 4.4 3.3 6.4 4.3C9.8 9 8.3 6.8 7.3 4.6c3.2 2.6 6 4.7 7.6 5.2.4-1.7-.2-3.6-1.3-5 2.6 1.6 4 4.3 3.4 7 1 1.1 1.4 2.2 1.2 3-.4-.7-1.3-1-2.1-.7-2.7 2-7.6 1.7-13.1-3.6z" fill="currentColor"/></symbol>
 </svg>
@@ -546,6 +552,7 @@ footer .lang { margin-left: auto; }
       <a href="#developers" data-i18n="nav.developers"></a>
       <a href="#open" data-i18n="nav.open"></a>
       <a href="https://github.com/kevbesset/Chord">GitHub</a>
+      <a class="nav-donate" href="https://ko-fi.com/kevbesset"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20"><use href="#i-heart"/></svg><span data-i18n="nav.donate"></span></a>
     </nav>
     <div class="nav-end">
       <div class="lang" role="group" data-i18n-aria="lang.label"></div>
@@ -666,7 +673,10 @@ footer .lang { margin-left: auto; }
         <li data-i18n="open.p3"></li>
         <li data-i18n="open.p4"></li>
       </ul>
-      <a class="ghost" href="https://github.com/kevbesset/Chord"><svg width="16" height="16"><use href="#i-gh"/></svg><span data-i18n="open.cta"></span> →</a>
+      <div class="links">
+        <a class="ghost" href="https://github.com/kevbesset/Chord"><svg width="16" height="16"><use href="#i-gh"/></svg><span data-i18n="open.cta"></span> →</a>
+        <a class="ghost" href="https://ko-fi.com/kevbesset"><svg width="16" height="16" viewBox="0 0 20 20"><use href="#i-heart"/></svg><span data-i18n="open.donate"></span> →</a>
+      </div>
     </div>
   </div>
 
@@ -696,6 +706,7 @@ footer .lang { margin-left: auto; }
     <a href="https://github.com/kevbesset/Chord">GitHub</a>
     <a href="https://github.com/kevbesset/Chord/releases" data-i18n="foot.releases"></a>
     <a href="https://github.com/kevbesset/Chord/blob/main/CHANGELOG.md" data-i18n="foot.changelog"></a>
+    <a href="https://ko-fi.com/kevbesset" data-i18n="foot.donate"></a>
     <div class="lang" role="group" data-i18n-aria="lang.label"></div>
   </div>
 </footer>
@@ -727,6 +738,7 @@ const I18N = {
     'nav.features': 'Features',
     'nav.developers': 'For developers',
     'nav.open': 'Open source',
+    'nav.donate': 'Support',
     'nav.download': 'Download',
     'hero.badge': 'Preview',
     'hero.pill': 'Version {v} is out',
@@ -811,11 +823,13 @@ const I18N = {
     'open.p3': 'No account',
     'open.p4': 'No AI in your way',
     'open.cta': 'Read the code on GitHub',
+    'open.donate': 'Support Chord on Ko-fi',
     'final.title': 'Your sidebar is waiting.',
     'final.sub': 'Install Chord, import Arc, and pick up right where you left off.',
     'final.firstrun': '<b>First launch.</b> Chord isn’t notarized by Apple yet, so macOS asks for confirmation the first time: System Settings › Privacy & Security › <b>Open Anyway</b>. Chord then updates itself.',
     'foot.releases': 'Releases',
     'foot.changelog': 'Changelog',
+    'foot.donate': 'Donate',
   },
   fr: {
     'meta.title': 'Chord — Le navigateur qui referme l’arc',
@@ -824,6 +838,7 @@ const I18N = {
     'nav.features': 'Fonctionnalités',
     'nav.developers': 'Pour les développeurs',
     'nav.open': 'Open source',
+    'nav.donate': 'Soutenir',
     'nav.download': 'Télécharger',
     'hero.badge': 'Aperçu',
     'hero.pill': 'La version {v} est sortie',
@@ -908,11 +923,13 @@ const I18N = {
     'open.p3': 'Sans compte',
     'open.p4': 'Pas d’IA envahissante',
     'open.cta': 'Lire le code sur GitHub',
+    'open.donate': 'Soutenir Chord sur Ko-fi',
     'final.title': 'Votre barre latérale vous attend.',
     'final.sub': 'Installez Chord, importez Arc, et reprenez là où vous en étiez.',
     'final.firstrun': '<b>Premier lancement.</b> Chord n’est pas encore notarisé par Apple : la première fois, macOS demande une confirmation dans Réglages Système › Confidentialité et sécurité › <b>Ouvrir quand même</b>. Chord se met ensuite à jour tout seul.',
     'foot.releases': 'Versions',
     'foot.changelog': 'Nouveautés',
+    'foot.donate': 'Faire un don',
   },
   es: {
     'meta.title': 'Chord — El navegador que cierra el arco',
@@ -921,6 +938,7 @@ const I18N = {
     'nav.features': 'Funciones',
     'nav.developers': 'Para desarrolladores',
     'nav.open': 'Código abierto',
+    'nav.donate': 'Apoyar',
     'nav.download': 'Descargar',
     'hero.badge': 'Vista previa',
     'hero.pill': 'Ya está aquí la versión {v}',
@@ -1005,11 +1023,13 @@ const I18N = {
     'open.p3': 'Sin cuenta',
     'open.p4': 'Sin IA que estorbe',
     'open.cta': 'Leer el código en GitHub',
+    'open.donate': 'Apoyar Chord en Ko-fi',
     'final.title': 'Tu barra lateral te espera.',
     'final.sub': 'Instala Chord, importa Arc y sigue justo donde lo dejaste.',
     'final.firstrun': '<b>Primer arranque.</b> Chord aún no está notarizado por Apple, así que la primera vez macOS pide confirmación: Ajustes del Sistema › Privacidad y seguridad › <b>Abrir igualmente</b>. Después, Chord se actualiza solo.',
     'foot.releases': 'Versiones',
     'foot.changelog': 'Novedades',
+    'foot.donate': 'Donar',
   },
 };
 
@@ -1097,16 +1117,19 @@ async function macChip() {
 // ---------- Download call to action ----------
 const icon = id => `<svg aria-hidden="true" viewBox="0 0 20 20"><use href="#${id}"/></svg>`;
 const ghIcon = `<svg aria-hidden="true" width="14" height="14" style="vertical-align:-2px;margin-right:6px"><use href="#i-gh"/></svg>`;
+const heartIcon = `<svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" style="vertical-align:-2px;margin-right:6px"><use href="#i-heart"/></svg>`;
 const notesURL = () => `https://github.com/${REPO}/releases/tag/v${RELEASE.version}`;
 
 function ctaHTML() {
   const ghLink = `<a href="https://github.com/${REPO}">${ghIcon}${t('cta.follow')}</a>`;
+  const donateLink = `<a href="https://ko-fi.com/kevbesset">${heartIcon}${t('open.donate')}</a>`;
   if (platform === 'mac-arm' || platform === 'mac') {
     const meta = [t('cta.version', { v: RELEASE.version }), t('cta.silicon'), t('cta.macos'), t('cta.free')];
     return `
       <a class="btn" href="${RELEASE.url}">${icon('i-dl')}${t('cta.download')}</a>
       <div class="cta-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
-      ${platform === 'mac' ? `<p class="cta-note">${t('cta.checkChip')}</p>` : ''}`;
+      ${platform === 'mac' ? `<p class="cta-note">${t('cta.checkChip')}</p>` : ''}
+      <div class="cta-links">${donateLink}</div>`;
   }
   const off = {
     'mac-intel': ['cta.intel.btn', 'cta.intel.note'],
@@ -1118,7 +1141,7 @@ function ctaHTML() {
   return `
     <span class="btn off" role="status">${icon('i-clock')}${t(off[0])}</span>
     <p class="cta-note">${t(off[1])}</p>
-    <div class="cta-links">${ghLink}<a href="${RELEASE.url}">${t('cta.anyway')}</a></div>`;
+    <div class="cta-links">${ghLink}<a href="${RELEASE.url}">${t('cta.anyway')}</a>${donateLink}</div>`;
 }
 
 function renderCTA() {

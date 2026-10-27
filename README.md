@@ -33,6 +33,11 @@ xattr -dr com.apple.quarantine /Applications/Chord.app
 - Private browsing, multiple windows, light / dark mode, remappable shortcuts
 - In English, French and Spanish, following the Mac's language
 
+## Support
+
+Chord is free and made by one person. If it is useful to you, you can support its
+development on [Ko-fi](https://ko-fi.com/kevbesset).
+
 ## Build
 
 Requirements: Apple Silicon Mac, Xcode 16 or later, Homebrew, about 100 GB of free

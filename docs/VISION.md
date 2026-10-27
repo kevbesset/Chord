@@ -136,7 +136,7 @@ Chord is open source. That is the answer to Arc's problem: the code belongs to t
 
 **License: GPL-3.0** (decision 0005). Chord's code stays free, derivatives included; Chromium, ungoogled-chromium and Sparkle keep their licenses (BSD, MIT). As long as Kevin owns 100% of the code, he can still change the license. As soon as a contributor arrives, their contributions are under GPL-3.0 and their consent would be needed: a CLA (Contributor License Agreement) before the first outside contribution keeps the option to relicense, offer a commercial edition or accept an acquisition. What has been published stays open forever; only future versions can change.
 
-**Business model:** free, funded by donations (GitHub Sponsors, Open Collective). If the project grows, the classic model for an open browser is to sell services, never the code: sync between devices, hosted Pro features, support for teams. No monetization of users or their data.
+**Business model:** free, funded by donations ([Ko-fi](https://ko-fi.com/kevbesset), linked from the site and the GitHub repository). If the project grows, the classic model for an open browser is to sell services, never the code: sync between devices, hosted Pro features, support for teams. No monetization of users or their data.
 
 - [x] Choose the license: GPL-3.0
 - [ ] Write the CLA, before the first outside contribution
