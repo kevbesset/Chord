@@ -10,9 +10,14 @@ that installed Chords read (decision 0005).
   off the Mac: `engine/scripts/sparkle-tool.sh generate_keys -x sparkle-key` (ignored by
   git), then store the file somewhere safe (a password manager) and delete it.
 - `gh auth login` with an account that can publish on `kevbesset/Chord`.
-- Later, with an Apple Developer account: a "Developer ID Application" certificate in
-  the keychain, and `xcrun notarytool store-credentials chord-notary --apple-id …
-  --team-id …`. `package.sh` then notarizes on its own.
+- Notarization (already done, team FK3PG5SKWL): a "Developer ID Application"
+  certificate in the keychain (Xcode › Settings › Accounts › Manage Certificates), and
+  `xcrun notarytool store-credentials chord-notary --apple-id … --team-id …` with an
+  app-specific password from account.apple.com. `package.sh` then signs the image with
+  the Developer ID and notarizes it on its own; builds made on the Mac keep the Apple
+  Development certificate. The Developer ID certificate expires on February 1, 2027:
+  versions signed before stay valid (secure timestamp), a new one is needed to sign
+  after.
 
 ## For each version
 

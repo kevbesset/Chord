@@ -143,8 +143,9 @@ errors before handing back.
   in `~/Library/Application Support/Chord` (older builds' data is moved there and
   re-encrypted with the keychain key), Chord's name and icon everywhere, Chrome Web
   Store and components (Widevine) restored, Sparkle updates, `package.sh` (disk image)
-  and `release.sh` (GitHub release), see `docs/RELEASING.md`. No Developer ID yet: no
-  notarization. Version 0.1.0 is published.
+  and `release.sh` (GitHub release), see `docs/RELEASING.md`. Packages are signed with
+  Kevin's Developer ID and notarized (`package.sh`); builds on the Mac keep the Apple
+  Development certificate. Version 0.3.0 is published.
 - Interface in English, French and Spanish, following the Mac's languages (or the
   per-app language in System Settings). Chromium's own parts (internal pages, page
   context menus, permission wording) follow the same setting with Chromium's own

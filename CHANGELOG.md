@@ -19,6 +19,9 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Changed
 
+- Chord is signed with a Developer ID and notarized by Apple: macOS opens it on first
+  launch without a detour through Privacy & Security. Coming from an earlier version,
+  macOS may ask once to let Chord use its keychain item.
 - The archive no longer has a button at the bottom of the sidebar: it stays in
   File › Archived Tabs (⌥⌘A). The command bar's cheat sheet shows ⌘Y for the history
   in its place.

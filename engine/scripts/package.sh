@@ -50,7 +50,10 @@ plist SUPublicEDKey string "$PUBLIC_KEY"
 plist SUEnableAutomaticChecks bool true
 plist SUAutomaticallyUpdate bool true
 
-"$ENGINE_DIR/scripts/sign.sh" "$APP"
+# The copy others install is signed with the Developer ID when there is one: only it
+# can be notarized.
+DEVELOPER_ID="$(security find-identity -v -p codesigning 2>/dev/null | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)"
+CHORD_SIGN_IDENTITY="${CHORD_SIGN_IDENTITY:-$DEVELOPER_ID}" "$ENGINE_DIR/scripts/sign.sh" "$APP"
 IDENTITY="$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)"
 
 # The disk image: Chord and a link to Applications, to drag it into. APFS, as

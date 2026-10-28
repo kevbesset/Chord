@@ -6,11 +6,12 @@
 #   engine/scripts/sign.sh <Chord.app>           # every part (after a Chromium build)
 #   engine/scripts/sign.sh <Chord.app> --quick   # ChordUI, Sparkle and the app (run.sh)
 #
-# The identity: $CHORD_SIGN_IDENTITY, else a "Developer ID Application" certificate
-# (needed to notarize), else an "Apple Development" one, else ad hoc. A certificate
-# keeps Chord's signature the same from build to build: the keychain lets Chord in
-# without asking again, and Chord uses the real keychain. Ad hoc, Chord keeps its key
-# in Chromium's mock keychain.
+# The identity: $CHORD_SIGN_IDENTITY, else an "Apple Development" certificate, else a
+# "Developer ID Application" one, else ad hoc. Builds made here keep one identity, so
+# --quick never mixes two teams in one app; package.sh passes the Developer ID (needed
+# to notarize). A certificate keeps Chord's signature the same from build to build: the
+# keychain lets Chord in without asking again, and Chord uses the real keychain. Ad
+# hoc, Chord keeps its key in Chromium's mock keychain.
 set -euo pipefail
 
 APP="${1:?Chemin de Chord.app}"
@@ -25,7 +26,7 @@ identity() {
   fi
   local identities
   identities="$(security find-identity -v -p codesigning 2>/dev/null || true)"
-  for kind in "Developer ID Application" "Apple Development"; do
+  for kind in "Apple Development" "Developer ID Application"; do
     local found
     found="$(grep -o "\"$kind: [^\"]*\"" <<< "$identities" | head -1 | tr -d '"')"
     if [ -n "$found" ]; then
