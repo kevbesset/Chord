@@ -6,6 +6,11 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+## 0.3.1 — 2026-10-28
+
+Chord notarized by Apple, an Update button like Arc's, a question before quitting,
+and ⌘Y for the history.
+
 ### Added
 
 - When a new version of Chord is downloaded, an "Update Chord" button shows above the

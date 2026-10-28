@@ -42,14 +42,6 @@ Download `Chord-<version>.dmg` from the
 Applications. Chord then updates itself: it checks once a day and installs at the next
 launch; "Check for Updates…" in the Chord menu checks right away.
 
-> [!IMPORTANT]
-> Until Chord is notarized by Apple, macOS refuses to open it the first time:
-> System Settings › Privacy & Security › "Open Anyway". Or, in a terminal:
->
-> ```bash
-> xattr -dr com.apple.quarantine /Applications/Chord.app
-> ```
-
 ## Everything you loved in Arc, where you left it
 
 Same model, same shortcuts. Coming from Arc, there is nothing to relearn.

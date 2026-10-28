@@ -648,14 +648,6 @@ section.block { padding: 120px 0 0; }
 .final { text-align: center; padding: 140px 0 40px; }
 .final .h2 { margin: 0 auto; }
 .final .icon { width: 96px; height: 96px; margin: 0 auto 28px; display: block; filter: drop-shadow(0 12px 24px rgba(31,36,82,0.3)); }
-.firstrun {
-  margin: 40px auto 0; max-width: 560px; text-align: left; font-size: 14px; color: var(--text-2);
-  border-radius: 14px; padding: 16px 18px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
-  display: flex; gap: 12px;
-}
-.firstrun svg { flex-shrink: 0; color: var(--text-3); margin-top: 2px; }
-.firstrun b { color: var(--text); font-weight: 600; }
-.firstrun[hidden] { display: none; }
 
 footer {
   margin: 0 16px; border-top: 1px solid var(--line); padding: 28px 0 48px; font-size: 13px; color: var(--text-3);
@@ -904,10 +896,6 @@ footer .lang { margin-left: auto; }
       <h2 class="display h2" data-i18n="final.title"></h2>
       <p class="sub" style="margin-left:auto;margin-right:auto" data-i18n="final.sub"></p>
       <div class="cta" data-cta></div>
-      <div class="firstrun" id="firstrun">
-        <svg width="18" height="18" viewBox="0 0 20 20"><use href="#i-shield"/></svg>
-        <div data-i18n="final.firstrun"></div>
-      </div>
     </div>
   </section>
   </div>
@@ -1042,7 +1030,6 @@ const I18N = {
     'open.donate': 'Support Chord on Ko-fi',
     'final.title': 'Your sidebar is waiting.',
     'final.sub': 'Install Chord, import Arc, and pick up right where you left off.',
-    'final.firstrun': '<b>First launch.</b> Chord isn’t notarized by Apple yet, so macOS asks for confirmation the first time: System Settings › Privacy & Security › <b>Open Anyway</b>. Chord then updates itself.',
     'foot.releases': 'Releases',
     'foot.changelog': 'Changelog',
     'foot.donate': 'Donate',
@@ -1145,7 +1132,6 @@ const I18N = {
     'open.donate': 'Soutenir Chord sur Ko-fi',
     'final.title': 'Votre barre latérale vous attend.',
     'final.sub': 'Installez Chord, importez Arc, et reprenez là où vous en étiez.',
-    'final.firstrun': '<b>Premier lancement.</b> Chord n’est pas encore notarisé par Apple : la première fois, macOS demande une confirmation dans Réglages Système › Confidentialité et sécurité › <b>Ouvrir quand même</b>. Chord se met ensuite à jour tout seul.',
     'foot.releases': 'Versions',
     'foot.changelog': 'Nouveautés',
     'foot.donate': 'Faire un don',
@@ -1248,7 +1234,6 @@ const I18N = {
     'open.donate': 'Apoyar Chord en Ko-fi',
     'final.title': 'Tu barra lateral te espera.',
     'final.sub': 'Instala Chord, importa Arc y sigue justo donde lo dejaste.',
-    'final.firstrun': '<b>Primer arranque.</b> Chord aún no está notarizado por Apple, así que la primera vez macOS pide confirmación: Ajustes del Sistema › Privacidad y seguridad › <b>Abrir igualmente</b>. Después, Chord se actualiza solo.',
     'foot.releases': 'Versiones',
     'foot.changelog': 'Novedades',
     'foot.donate': 'Donar',
@@ -1370,7 +1355,6 @@ function renderCTA() {
   document.querySelectorAll('[data-cta]').forEach(el => { el.innerHTML = ctaHTML(); });
   const canDownload = platform === 'mac-arm' || platform === 'mac';
   document.getElementById('nav-dl').hidden = !canDownload;
-  document.getElementById('firstrun').hidden = !canDownload;
 }
 
 // The latest release, when GitHub answers; the version above otherwise.
