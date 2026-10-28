@@ -58,6 +58,8 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     var fullscreenTab: Tab?
     /// The first launch's welcome, while it shows.
     var welcomeView: WelcomeView?
+    /// ⌘Q's question, while it is on screen.
+    var quitConfirmation: QuitConfirmationView?
     var sidebarModeBeforeFullscreen: SidebarMode?
     var pendingReveal: DispatchWorkItem?
     var pendingHide: DispatchWorkItem?
@@ -423,6 +425,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         NotificationCenter.default.publisher(for: PageHostView.didMoveNotification)
             .sink { [weak self] _ in self?.pagesDidMove() }
             .store(in: &cancellables)
+        // A new version of Chord, downloaded: its button above the Spaces.
+        NotificationCenter.default.publisher(for: Updates.readyNotification)
+            .sink { [weak self] _ in self?.sidebar.updateAvailableVersion(Updates.shared.readyVersion) }
+            .store(in: &cancellables)
+        sidebar.updateAvailableVersion(Updates.shared.readyVersion)
         commandBar.actionsProvider = { [weak self] in self?.commandActions() ?? [] }
         commandBar.onDismiss = { [weak self] in self?.focusPage() }
         permissionPrompt.onClose = { [weak self] in self?.permissionPromptClosed() }
@@ -441,7 +448,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
             MainMenu.apply(settings.shortcutOverrides, to: NSApp.mainMenu)
         case .searchTemplate:
             break
-        case .pictureInPicture:
+        case .pictureInPicture, .quit:
             break
         case .archive:
             state.archiveIdleTabs()

@@ -763,6 +763,22 @@
         }
       }
     },
+    "Ask before quitting": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar antes de salir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander avant de quitter"
+          }
+        }
+      }
+    },
     "Automatic": {
       "localizations": {
         "es": {
@@ -4033,6 +4049,22 @@
         }
       }
     },
+    "Quit": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter"
+          }
+        }
+      }
+    },
     "Quit %@": {
       "localizations": {
         "es": {
@@ -4045,6 +4077,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quitter %@"
+          }
+        }
+      }
+    },
+    "Quit Chord?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Salir de Chord?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter Chord ?"
+          }
+        }
+      }
+    },
+    "Quit and Don't Ask Again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir y no volver a preguntar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter et ne plus demander"
           }
         }
       }
@@ -4465,6 +4529,22 @@
         }
       }
     },
+    "Restart Chord on the new version": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reiniciar Chord con la nueva versión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relancer Chord sur la nouvelle version"
+          }
+        }
+      }
+    },
     "Restore %@": {
       "localizations": {
         "es": {
@@ -4669,6 +4749,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tout afficher"
+          }
+        }
+      }
+    },
+    "Show All History": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar todo el historial"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher tout l’historique"
           }
         }
       }
@@ -5425,6 +5521,22 @@
         }
       }
     },
+    "Update Chord": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar Chord"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettre à jour Chord"
+          }
+        }
+      }
+    },
     "View": {
       "localizations": {
         "es": {
@@ -5501,6 +5613,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fenêtre"
+          }
+        }
+      }
+    },
+    "Your Spaces and tabs will be here when you come back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus Spaces y pestañas te esperarán cuando vuelvas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos Spaces et vos onglets vous attendront à votre retour."
           }
         }
       }
@@ -5673,6 +5801,30 @@
         }
       }
     },
+    "key.escape": {
+      "comment": "The Escape key, on a key cap",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "esc"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "esc"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "esc"
+          }
+        }
+      }
+    },
     "key.space": {
       "comment": "The space bar, in a shortcut such as ⌃Space",
       "extractionState": "extracted_with_value",
@@ -5789,6 +5941,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "⇧-clic"
+          }
+        }
+      }
+    },
+    "⌘Q asks first, like Arc.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘Q pregunta primero, como Arc."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘Q demande d’abord, comme Arc."
           }
         }
       }

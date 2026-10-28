@@ -90,7 +90,7 @@ extension BrowserWindowController: SidebarDelegate {
     }
 
     func sidebarShowDownloads() { showDownloads(nil) }
-    func sidebarShowArchive() { showArchive(nil) }
+    func sidebarInstallUpdate() { Updates.shared.installAndRelaunch() }
     func sidebarSetIcon(_ space: Space, icon: String?) { state.setIcon(space, icon: icon) }
     func sidebarChooseIcon(_ space: Space) { promptIcon(for: space) }
     func sidebarToggleMediaPlayback(_ tab: Tab) { state.toggleMediaPlayback(tab) }

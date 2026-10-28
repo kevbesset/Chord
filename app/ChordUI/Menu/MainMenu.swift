@@ -26,7 +26,8 @@ public enum MainMenu {
             item(String(localized: "Hide Others", bundle: .chordUI), #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
             item(String(localized: "Show All", bundle: .chordUI), #selector(NSApplication.unhideAllApplications(_:))),
             .separator(),
-            item(String(localized: "Quit \(appName)", bundle: .chordUI), #selector(NSApplication.terminate(_:)), "q"),
+            // Handled by ChordUIHost's app actions: it asks first, like Arc.
+            item(String(localized: "Quit \(appName)", bundle: .chordUI), Selector(("confirmQuit:")), "q"),
         ]))
 
         main.addItem(submenu(String(localized: "File", bundle: .chordUI), [
@@ -98,6 +99,8 @@ public enum MainMenu {
             // ⌘← and ⌘→ too, like Arc and Chrome; off while typing, where they move the caret.
             hidden(item(String(localized: "Back (arrow)", bundle: .chordUI), #selector(C.goBack(_:)), arrow(NSLeftArrowFunctionKey), tag: 2)),
             hidden(item(String(localized: "Forward (arrow)", bundle: .chordUI), #selector(C.goForward(_:)), arrow(NSRightArrowFunctionKey), tag: 2)),
+            .separator(),
+            item(String(localized: "Show All History", bundle: .chordUI), #selector(C.showHistory(_:)), "y"),
         ]))
 
         var tabItems: [NSMenuItem] = [

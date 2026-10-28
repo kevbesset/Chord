@@ -228,6 +228,11 @@ extension BrowserWindowController {
         if let tab = state.selectedTab { state.toggleMute(tab) }
     }
 
+    /// ⌘Y, like Arc: the browsing history (chord://history), in a new tab.
+    @objc public func showHistory(_ sender: Any?) {
+        openInternalPage("history")
+    }
+
     /// One of Chromium's internal pages (chord://settings…), in a new tab.
     func openInternalPage(_ path: String) {
         guard let url = URL(string: "chrome://\(path)") else { return }

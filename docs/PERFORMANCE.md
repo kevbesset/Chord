@@ -17,6 +17,7 @@ it does not ship.
 | Show a site's permission request | `permission.prompt` | 50 ms |
 | Show an extension's popup, once loaded | `extension.popup` | 50 ms |
 | Open the find bar (⌘F) | `find.open` | 50 ms |
+| Show ⌘Q's question | `quit.confirm` | 50 ms |
 | Launch to the first window | `app.launch` | 1,000 ms |
 | Scrolling and animations | — | 120 fps on ProMotion, no dropped frames |
 

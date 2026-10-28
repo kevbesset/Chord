@@ -4,7 +4,7 @@ import Combine
 /// User preferences. Stored in UserDefaults.
 public final class ChordSettings {
     public enum Key {
-        case edgeless, searchTemplate, appearance, addressBar, sidebarWidth, commandBar, shortcuts, pictureInPicture, archive
+        case edgeless, searchTemplate, appearance, addressBar, sidebarWidth, commandBar, shortcuts, pictureInPicture, archive, quit
     }
 
     /// How long a tab of today's tabs stays unused before it is archived, like Arc.
@@ -105,6 +105,12 @@ public final class ChordSettings {
     public var archiveAfter: ArchiveDelay {
         get { defaults.string(forKey: "archiveAfter").flatMap(ArchiveDelay.init(rawValue:)) ?? .twelveHours }
         set { set(newValue.rawValue, "archiveAfter", .archive) }
+    }
+
+    /// ⌘Q asks first, like Arc. "Quit and Don't Ask Again" turns it off.
+    public var confirmQuit: Bool {
+        get { defaults.object(forKey: "confirmQuit") as? Bool ?? true }
+        set { set(newValue, "confirmQuit", .quit) }
     }
 
     /// Whether the first launch's welcome was shown.

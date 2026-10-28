@@ -136,6 +136,10 @@ private struct GeneralPane: View {
                 Text(String(localized: "Automatic picture in picture", bundle: .chordUI))
                 Text(String(localized: "A playing video carries on in a floating window when you switch tabs or Spaces, and goes back to its page when you return.", bundle: .chordUI))
             }
+            Toggle(isOn: model.binding(\.confirmQuit)) {
+                Text(String(localized: "Ask before quitting", bundle: .chordUI))
+                Text(String(localized: "⌘Q asks first, like Arc.", bundle: .chordUI))
+            }
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {

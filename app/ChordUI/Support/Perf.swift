@@ -21,6 +21,7 @@ public enum Perf {
         "permission.prompt": 50,
         "find.open": 50,
         "extension.popup": 50,
+        "quit.confirm": 50,
         "app.launch": 1000,
     ]
 

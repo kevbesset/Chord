@@ -15,7 +15,7 @@ final class ShortcutSheetView: NSView {
         (String(localized: "Copy URL", bundle: .chordUI), #selector(C.copyURL(_:))),
         (String(localized: "Pin Tab", bundle: .chordUI), #selector(C.togglePinTab(_:))),
         (String(localized: "Next Space", bundle: .chordUI), #selector(C.nextSpace(_:))),
-        (String(localized: "Archived Tabs", bundle: .chordUI), #selector(C.showArchive(_:))),
+        (String(localized: "History", bundle: .chordUI), #selector(C.showHistory(_:))),
     ]
 
     override init(frame frameRect: NSRect) {

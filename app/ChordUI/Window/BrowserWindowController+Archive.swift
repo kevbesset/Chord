@@ -1,8 +1,8 @@
 import AppKit
 
-// The archive of today's tabs: its panel, from the sidebar or the Tabs menu.
+// The archive of today's tabs: its panel, from the File menu (⌥⌘A).
 extension BrowserWindowController {
-    /// Opens the archive's panel above its button in the sidebar, or at the window's
+    /// Opens the archive's panel above the sidebar's downloads button, or at the window's
     /// bottom left corner when the sidebar is hidden. Again, it closes.
     @objc public func showArchive(_ sender: Any?) {
         if archivePopover.isShown {
@@ -13,7 +13,7 @@ extension BrowserWindowController {
             let corner = NSRect(x: 12, y: 12, width: 1, height: 1)
             archivePopover.show(relativeTo: corner, of: rootView, preferredEdge: .maxY)
         } else {
-            let anchor = sidebar.archiveAnchor
+            let anchor = sidebar.downloadsAnchor
             archivePopover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .maxY)
         }
     }

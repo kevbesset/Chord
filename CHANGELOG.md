@@ -6,6 +6,23 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Added
+
+- When a new version of Chord is downloaded, an "Update Chord" button shows above the
+  Spaces, like Arc's: a click restarts Chord on it. Left alone, it installs at the
+  next quit.
+- ⌘Q asks before quitting, like Arc, on a glass card over the window: Quit (↩),
+  Cancel (esc) or "Quit and Don't Ask Again" (Settings › General › Ask before quitting
+  turns it back on). ⌘Q again quits.
+- ⌘Y shows the browsing history (History › Show All History, or "History" in the
+  command bar).
+
+### Changed
+
+- The archive no longer has a button at the bottom of the sidebar: it stays in
+  File › Archived Tabs (⌥⌘A). The command bar's cheat sheet shows ⌘Y for the history
+  in its place.
+
 ### Fixed
 
 - Submitting a form with an address no longer crashes Chord: "Save address?" and

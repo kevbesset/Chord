@@ -46,6 +46,8 @@ extension BrowserWindowController {
         actions += [
             CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Reopen Closed Tab", bundle: .chordUI), symbol: "arrow.uturn.backward", shortcut: "⇧⌘T",
                         action: .run { [weak self] in self?.reopenClosedTab(nil) }),
+            CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "History", bundle: .chordUI), subtitle: "chord://history", symbol: "clock.arrow.circlepath",
+                        shortcut: "⌘Y", action: .run { [weak self] in self?.showHistory(nil) }),
             CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Browser Settings", bundle: .chordUI), subtitle: "chord://settings", symbol: "gearshape",
                         action: .run { [weak self] in self?.openInternalPage("settings") }),
             CommandItem(section: String(localized: "Actions", bundle: .chordUI), title: String(localized: "Extensions", bundle: .chordUI), subtitle: "chord://extensions", symbol: "puzzlepiece.extension",

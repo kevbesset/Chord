@@ -1,5 +1,4 @@
 import AppKit
-import Sparkle
 
 /// ChordUI's entry point for the app that hosts it: Chromium (engine/chord).
 ///
@@ -16,9 +15,6 @@ public final class ChordUIHost: NSObject {
     private static let appActions = AppActions()
     /// Links that arrived before the window existed.
     private static var pendingURLs: [URL] = []
-    /// Chord's own updates, in the builds that say where to find them:
-    /// engine/scripts/package.sh writes the feed and its public key into Info.plist.
-    private static var updater: SPUStandardUpdaterController?
 
     /// Installs the menu and opens the browser window. `supportDirectory` keeps the
     /// session (Spaces, tabs, folders).
@@ -29,8 +25,8 @@ public final class ChordUIHost: NSObject {
         NSWindow.allowsAutomaticWindowTabbing = false
         let menu = MainMenu.build(appName: appName)
         MainMenu.setTarget(appActions, for: [#selector(AppActions.newWindow(_:)), #selector(AppActions.newPrivateWindow(_:)),
-                                          #selector(AppActions.makeDefaultBrowser(_:))], in: menu)
-        startUpdater(menu: menu)
+                                          #selector(AppActions.makeDefaultBrowser(_:)), #selector(AppActions.confirmQuit(_:))], in: menu)
+        Updates.shared.start(menu: menu)
         NSApp.mainMenu = menu
 
         self.engine = engine
@@ -50,21 +46,6 @@ public final class ChordUIHost: NSObject {
             controller.runPerfReplay(report: report)
         }
         DispatchQueue.main.async { launch.end() }
-    }
-
-    /// Checks for updates in the background and installs them at the next launch, as Arc
-    /// does; "Check for Updates…" checks now. Without a feed (development
-    /// builds) the item is hidden.
-    private static func startUpdater(menu: NSMenu) {
-        let check = #selector(SPUStandardUpdaterController.checkForUpdates(_:))
-        guard Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") != nil,
-              Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil else {
-            MainMenu.items(with: [check], in: menu).forEach { $0.isHidden = true }
-            return
-        }
-        let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-        MainMenu.setTarget(updater, for: [check], in: menu)
-        self.updater = updater
     }
 
     /// A new browser window on the shared Spaces (⌘N), next to the current one.
@@ -94,7 +75,7 @@ public final class ChordUIHost: NSObject {
     }
 
     /// The window the user is in, else the last one opened.
-    private static var currentWindow: BrowserWindowController? {
+    fileprivate static var currentWindow: BrowserWindowController? {
         windowControllers.first { $0.window?.isMainWindow == true }
             ?? windowControllers.last { $0.window?.isVisible == true }
     }
@@ -137,6 +118,37 @@ private final class AppActions: NSObject, NSMenuItemValidation {
     @objc func newWindow(_ sender: Any?) { ChordUIHost.openWindow() }
     @objc func newPrivateWindow(_ sender: Any?) { ChordUIHost.openPrivateWindow() }
     @objc func makeDefaultBrowser(_ sender: Any?) { DefaultBrowser.makeChord { _ in } }
+
+    /// ⌘Q asks first, like Arc, unless the user said not to: a card over the window in
+    /// front, or an alert when none can hold it. ⌘Q again while it asks quits. Quitting
+    /// from the Dock, at logout or for an update doesn't ask.
+    @objc func confirmQuit(_ sender: Any?) {
+        let settings = ChordSettings()
+        guard settings.confirmQuit else {
+            NSApp.terminate(sender)
+            return
+        }
+        let finish: (QuitConfirmationView.Answer) -> Void = { answer in
+            if answer == .quitAndStopAsking { settings.confirmQuit = false }
+            if answer != .cancel { NSApp.terminate(sender) }
+        }
+        NSApp.activate()
+        if let controller = ChordUIHost.currentWindow, controller.canAskToQuit || controller.quitConfirmation != nil {
+            controller.askToQuit(finish)
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Quit Chord?", bundle: .chordUI)
+        alert.informativeText = String(localized: "Your Spaces and tabs will be here when you come back.", bundle: .chordUI)
+        alert.addButton(withTitle: String(localized: "Quit", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Cancel", bundle: .chordUI))
+        alert.addButton(withTitle: String(localized: "Quit and Don't Ask Again", bundle: .chordUI))
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: finish(.quit)
+        case .alertThirdButtonReturn: finish(.quitAndStopAsking)
+        default: break
+        }
+    }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         menuItem.action != #selector(makeDefaultBrowser(_:)) || !DefaultBrowser.isChord
