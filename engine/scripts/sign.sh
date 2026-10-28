@@ -101,6 +101,46 @@ fi
 # build), the app is signed ad hoc without hardened runtime, which needs no entitlements.
 APP_ENTITLEMENTS=()
 [ -f "$ENTITLEMENTS/app-entitlements.plist" ] && APP_ENTITLEMENTS=(--entitlements "$ENTITLEMENTS/app-entitlements.plist")
+
+# Passkeys kept on this Mac (Touch ID) need the keychain group
+# FK3PG5SKWL.app.chord.Chord.webauthn, which macOS grants only with a provisioning
+# profile from Apple's developer site: engine/signing/DeveloperID.provisionprofile for
+# the Developer ID, engine/signing/Development.provisionprofile for an Apple
+# Development certificate (docs/RELEASING.md). Without one, the app keeps its usual
+# entitlements: macOS would refuse to open an app claiming the group unprovisioned.
+# The profile's own entitlements say what it allows (iCloud Keychain passkeys need
+# Apple's approval, com.apple.developer.web-browser.public-key-credential).
+PROFILE=""
+case "$ID" in
+  "Developer ID Application:"*) PROFILE="$ENGINE_DIR/signing/DeveloperID.provisionprofile" ;;
+  "Apple Development:"*) PROFILE="$ENGINE_DIR/signing/Development.provisionprofile" ;;
+esac
+if [ -n "$PROFILE" ] && [ -f "$PROFILE" ] && [ ${#APP_ENTITLEMENTS[@]} -gt 0 ]; then
+  WORK="$(mktemp -d)"
+  security cms -D -i "$PROFILE" > "$WORK/profile.plist"
+  /usr/libexec/PlistBuddy -x -c "Print :Entitlements" "$WORK/profile.plist" > "$WORK/allowed.plist"
+  cp "$ENTITLEMENTS/app-entitlements.plist" "$WORK/app.plist"
+  allows() { /usr/libexec/PlistBuddy -c "Print :$1" "$WORK/allowed.plist" >/dev/null 2>&1; }
+  # PlistBuddy, whose key paths use ":", since the keys have dots.
+  claim() {
+    /usr/libexec/PlistBuddy -c "Delete :$1" "$WORK/app.plist" >/dev/null 2>&1 || true
+    /usr/libexec/PlistBuddy -c "Add :$1 $2 ${3:-}" "$WORK/app.plist"
+  }
+  team="$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" "$WORK/profile.plist")"
+  # The profile may allow a pattern (TEAM.*, Xcode's development profile): the app
+  # names itself and its group.
+  allows com.apple.application-identifier && claim com.apple.application-identifier string "$team.app.chord.Chord"
+  allows com.apple.developer.team-identifier && claim com.apple.developer.team-identifier string "$team"
+  if allows keychain-access-groups; then
+    claim keychain-access-groups array
+    /usr/libexec/PlistBuddy -c "Add :keychain-access-groups: string $team.app.chord.Chord.webauthn" "$WORK/app.plist"
+  fi
+  allows com.apple.developer.web-browser.public-key-credential && \
+    claim com.apple.developer.web-browser.public-key-credential bool true
+  cp "$PROFILE" "$APP/Contents/embedded.provisionprofile"
+  APP_ENTITLEMENTS=(--entitlements "$WORK/app.plist")
+  echo "Provisioning profile: $(basename "$PROFILE")"
+fi
 sign --options restrict,library,runtime,kill ${APP_ENTITLEMENTS[@]+"${APP_ENTITLEMENTS[@]}"} "$APP"
 codesign --verify --deep --strict "$APP"
 echo "Signed: $([ "$ID" = "-" ] && echo "ad hoc" || echo "$ID")"

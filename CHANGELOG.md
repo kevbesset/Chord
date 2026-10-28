@@ -6,6 +6,32 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Added
+
+- A page sharing your screen, a window or a tab shows a purple badge in the sidebar:
+  a click stops sharing. The tab being shared shows it too.
+- A page that crashed says so, with a Reload Page button, instead of staying blank.
+- A page going full screen, or taking the pointer or the keyboard, says at the top how
+  to get out ("Press esc to exit full screen"), so that it cannot pass for the Mac.
+- "Save card?" and "Save IBAN?" in Chord's prompt at the top of the page, like
+  addresses: cards and IBANs are kept on this Mac, and forms offer them again (on by
+  default, like Chrome and Arc; Settings › Autofill › Payment methods).
+- Passkeys can be kept on this Mac and used with Touch ID ("Your Chord profile"),
+  besides a phone or a security key.
+- The color picker's eyedropper works (EyeDropper, `<input type="color">`).
+
+### Fixed
+
+- Connecting a USB, HID, serial or Bluetooth device from a page (WebUSB, WebHID, Web
+  Serial, Web Bluetooth) no longer crashes Chord: the device list shows under the
+  address.
+- The sign-in window of a site, the screen sharing picker and the passkey window show
+  over Chord's window, not on another screen.
+- "Not Secure" also shows for an HTTPS page whose certificate error you went past, or
+  with insecure content, not only for plain HTTP.
+- The Mac's questions for the camera, microphone, location and Bluetooth say Chord, not
+  Chromium.
+
 ## 0.3.1 — 2026-10-28
 
 Chord notarized by Apple, an Update button like Arc's, a question before quitting,

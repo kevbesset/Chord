@@ -2,7 +2,10 @@ import AppKit
 
 /// A short confirmation, like Arc's: a glass pill that rises at the bottom of the page
 /// area, stays a moment, then fades. Showing it again restarts it with the new text.
+/// At the top, it is a notice the page cannot cover (how to leave full screen).
 final class ToastView: NSView {
+    enum Edge { case top, bottom }
+
     private let shadowHost = ShadowHostView()
     private let glass = NSVisualEffectView()
     private let icon = NSImageView()
@@ -12,13 +15,16 @@ final class ToastView: NSView {
     private var hideWork: DispatchWorkItem?
     private weak var installedHost: NSView?
     private var bottomConstraint: NSLayoutConstraint?
+    private let edge: Edge
+    private let visibleDuration: TimeInterval
 
     static let height: CGFloat = 34
     private static let restingInset: CGFloat = 24
-    private static let visibleDuration: TimeInterval = 1.6
 
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
+    init(edge: Edge = .bottom, visibleDuration: TimeInterval = 1.6) {
+        self.edge = edge
+        self.visibleDuration = visibleDuration
+        super.init(frame: .zero)
         wantsLayer = true
         translatesAutoresizingMaskIntoConstraints = false
         alphaValue = 0
@@ -89,7 +95,9 @@ final class ToastView: NSView {
             host.addSubview(self)
             // Above the command bar too, which may be added to `host` later.
             layer?.zPosition = 200
-            let bottom = bottomAnchor.constraint(equalTo: area.bottomAnchor, constant: -Self.restingInset)
+            let bottom = edge == .bottom
+                ? bottomAnchor.constraint(equalTo: area.bottomAnchor, constant: -Self.restingInset)
+                : topAnchor.constraint(equalTo: area.topAnchor, constant: Self.restingInset)
             NSLayoutConstraint.activate([centerXAnchor.constraint(equalTo: area.centerXAnchor), bottom])
             bottomConstraint = bottom
             installedHost = host
@@ -108,7 +116,7 @@ final class ToastView: NSView {
         isHidden = false
         if !wasVisible {
             // Rises a few points while it fades in.
-            bottomConstraint?.constant = -Self.restingInset + 8
+            bottomConstraint?.constant = restingConstant + (edge == .bottom ? 8 : -8)
             host.layoutSubtreeIfNeeded()
         }
         NSAnimationContext.runAnimationGroup { context in
@@ -116,15 +124,18 @@ final class ToastView: NSView {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             context.allowsImplicitAnimation = true
             animator().alphaValue = 1
-            bottomConstraint?.animator().constant = -Self.restingInset
+            bottomConstraint?.animator().constant = restingConstant
             host.layoutSubtreeIfNeeded()
         }
 
         hideWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.hide() }
         hideWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.visibleDuration, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + visibleDuration, execute: work)
     }
+
+    /// Where the pill rests, from the area's edge.
+    private var restingConstant: CGFloat { edge == .bottom ? -Self.restingInset : Self.restingInset }
 
     /// The icon arrives with a small spring, so that a second confirmation still reads
     /// as new.

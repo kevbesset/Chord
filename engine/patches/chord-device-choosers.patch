@@ -1,0 +1,50 @@
+Chord: device choosers (WebUSB, WebHID, Web Serial, Web Bluetooth) hang from the page in Chord's windows, which are not BrowserViews; they crashed.
+--- a/chrome/browser/ui/views/bubble_anchor_util_views.cc
++++ b/chrome/browser/ui/views/bubble_anchor_util_views.cc
+@@ -10,6 +10,7 @@
+ #include "chrome/browser/ui/browser_window.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/bubble_anchor_util.h"
++#include "chrome/browser/ui/tabs/tab_strip_model.h"
+ #include "chrome/browser/ui/views/frame/app_menu_button.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
+ #include "chrome/browser/ui/views/frame/picture_in_picture_browser_frame_view.h"
+@@ -23,6 +24,7 @@
+ #include "chrome/browser/ui/webui/webui_embedding_context.h"
+ #include "components/content_settings/core/common/features.h"
+ #include "components/payments/core/features.h"
++#include "content/public/browser/web_contents.h"
+ #include "ui/base/interaction/element_highlighter.h"
+ #include "ui/views/bubble/bubble_border.h"
+ #include "ui/views/interaction/element_tracker_views.h"
+@@ -77,6 +79,12 @@
+     }
+   }
+ 
++  // Chord: no Views toolbar to hang from (Chord's windows are not BrowserViews):
++  // the bubble takes GetPageInfoAnchorRect().
++  if (!browser_view) {
++    return {};
++  }
++
+   if (anchor == Anchor::kLocationBar &&
+       browser_view->GetIsPictureInPictureType()) {
+     auto* frame_view = static_cast<PictureInPictureBrowserFrameView*>(
+@@ -183,6 +191,17 @@
+   DCHECK(GetPageInfoAnchorConfiguration(browser).anchor.IsNull());
+ 
+   BrowserView* browser_view = BrowserView::GetBrowserViewForBrowser(browser);
++  // Chord: Chord's windows are not BrowserViews. The bubble hangs from the top left
++  // of the page (WebUSB, WebHID, Web Serial and Web Bluetooth choosers crashed).
++  if (!browser_view) {
++    content::WebContents* contents =
++        browser->GetTabStripModel()->GetActiveWebContents();
++    gfx::Rect page = contents ? contents->GetContainerBounds()
++                              : browser->GetWindow()->GetBounds();
++    return gfx::Rect(
++        page.origin() + gfx::Vector2d(bubble_anchor_util::kNoToolbarLeftOffset, 0),
++        gfx::Size());
++  }
+   // Get position in view (taking RTL UI into account).
+   int x_within_browser_view = browser_view->GetMirroredXInView(
+       bubble_anchor_util::kNoToolbarLeftOffset);

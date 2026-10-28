@@ -152,6 +152,7 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
             cell.configure(tab: tab, selected: tab.id == selectedID, inSplit: splitIDs.contains(tab.id))
             cell.onClose = { [weak self] in self?.delegate?.sidebarClose(tab) }
             cell.onToggleMute = { [weak self] in self?.delegate?.sidebarToggleMute(tab) }
+            cell.onStopSharing = { tab.page?.stopSharing?() }
             return cell
         case let folder as Folder:
             let cell = outlineView.makeView(withIdentifier: FolderCellView.reuseID, owner: nil) as? FolderCellView ?? FolderCellView()

@@ -56,6 +56,24 @@ public final class Tab {
         return !(page.isAsleep ?? false)
     }
 
+    /// The address field says "Not Secure": Chromium's verdict while the page is awake
+    /// (a certificate error the user went past, mixed content), else the address's
+    /// scheme.
+    var isNotSecure: Bool {
+        guard let url else { return false }
+        switch isAwake ? page?.securityState : nil {
+        case "dangerous", "warning": return true
+        case "secure": return false
+        default: return url.isInsecure
+        }
+    }
+
+    /// The page shares its screen, a window or a tab, or is the tab being shared.
+    var isSharing: Bool {
+        guard let page else { return false }
+        return page.isSharingScreen == true || page.isBeingShared == true
+    }
+
     public var isPinned: Bool { section == .pinned }
     public var isFavorite: Bool { section == .favorites }
 

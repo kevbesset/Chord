@@ -10,6 +10,8 @@ import ObjectiveC
 final class PageHostView: NSView {
     private weak var page: ChordWebPage?
     private weak var devTools: NSView?
+    /// Over the page while its process is gone (crashed or killed), with Reload.
+    private var crashedView: PageCrashedView?
     private static var hostKey: UInt8 = 0
 
     static func host(for page: ChordWebPage) -> PageHostView {
@@ -73,7 +75,7 @@ final class PageHostView: NSView {
         }
         let tools = page.devToolsView ?? nil
         // The engine may give the page a new view (put to sleep, the old one is gone).
-        for view in subviews where view !== pageView && view !== tools && view !== devTools {
+        for view in subviews where view !== pageView && view !== tools && view !== devTools && view !== crashedView {
             view.removeFromSuperview()
         }
         if tools !== devTools {
@@ -86,7 +88,71 @@ final class PageHostView: NSView {
         }
         tools?.frame = bounds
         pageView.frame = tools == nil ? bounds : (page.pageFrame?(withDevToolsIn: bounds.size) ?? bounds)
+        layoutCrash(over: pageView)
     }
+
+    private func layoutCrash(over pageView: NSView) {
+        let crashed = page?.isCrashed == true
+        pageView.isHidden = crashed
+        guard crashed else {
+            crashedView?.removeFromSuperview()
+            crashedView = nil
+            return
+        }
+        if crashedView == nil {
+            let view = PageCrashedView { [weak self] in self?.page?.reload() }
+            addSubview(view)
+            crashedView = view
+        }
+        crashedView?.frame = pageView.frame
+    }
+}
+
+/// A page whose process crashed or was killed, like Chrome's "Aw, Snap!" but calm: what
+/// happened, and a way to load it again.
+final class PageCrashedView: NSView {
+    private let onReload: () -> Void
+
+    init(onReload: @escaping () -> Void) {
+        self.onReload = onReload
+        super.init(frame: .zero)
+        wantsLayer = true
+        let icon = NSImageView(image: NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil) ?? NSImage())
+        icon.symbolConfiguration = .init(pointSize: 28, weight: .light)
+        icon.contentTintColor = .tertiaryLabelColor
+        let title = NSTextField(labelWithString: String(localized: "This page crashed", bundle: .chordUI))
+        title.font = .systemFont(ofSize: 13, weight: .medium)
+        title.textColor = .secondaryLabelColor
+        let detail = NSTextField(labelWithString: String(localized: "The rest of Chord kept running. Reload to open it again.", bundle: .chordUI))
+        detail.font = .systemFont(ofSize: 12)
+        detail.textColor = .tertiaryLabelColor
+        let reload = NSButton(title: String(localized: "Reload Page", bundle: .chordUI), target: self, action: #selector(reloadClicked))
+        reload.bezelStyle = .push
+        reload.keyEquivalent = "\r"
+        let stack = NSStackView(views: [icon, title, detail, reload])
+        stack.orientation = .vertical
+        stack.spacing = 6
+        stack.setCustomSpacing(12, after: icon)
+        stack.setCustomSpacing(16, after: detail)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+    }
+
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    @objc private func reloadClicked() { onReload() }
 }
 
 /// What a window shows for a selected tab that another window shows: the page has a

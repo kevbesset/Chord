@@ -169,7 +169,7 @@ final class SidebarView: NSView {
         forwardButton.isEnabled = tab?.page?.canGoForward ?? false
         reloadButton.isEnabled = tab != nil
         reloadButton.showsStop(tab?.page?.isLoading ?? false)
-        addressPill.update(url: tab?.url)
+        addressPill.update(url: tab?.url, notSecure: tab?.isNotSecure ?? false)
     }
 
     /// Safari-style layout: the address and navigation move to a bar on top of the page.

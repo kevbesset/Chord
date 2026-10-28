@@ -17,3 +17,5 @@ chord-password-prompt.patch
 chord-username-first.patch
 chord-links.patch
 chord-autofill-bubbles.patch
+chord-device-choosers.patch
+chord-modal-dialogs.patch

@@ -199,6 +199,18 @@ import AppKit
     @objc optional func setMuted(_ muted: Bool)
     /// The page uses the camera or the microphone, or records the screen.
     @objc optional var isCapturingMedia: Bool { get }
+    /// The page shares a screen, a window or a tab with its site (a video call).
+    @objc optional var isSharingScreen: Bool { get }
+    /// Another page is sharing this tab.
+    @objc optional var isBeingShared: Bool { get }
+    /// Ends what the page shares, like Chrome's "Stop sharing".
+    @objc optional func stopSharing()
+    /// Chromium's verdict on the connection: "secure", "warning" (plain HTTP, mixed
+    /// content), "dangerous" (a certificate error the user went past) or "none"
+    /// (localhost, internal pages).
+    @objc optional var securityState: String { get }
+    /// The page's process crashed or was killed: the page area says so, with Reload.
+    @objc optional var isCrashed: Bool { get }
     /// An element of the page is in full screen (a video): the window shows the page
     /// alone.
     @objc optional var isFullscreen: Bool { get }

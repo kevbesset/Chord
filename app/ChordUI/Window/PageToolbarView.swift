@@ -86,7 +86,7 @@ final class PageToolbarView: NSView {
         reloadButton.isEnabled = tab != nil
         reloadButton.showsStop(tab?.page?.isLoading ?? false)
         copyButton.isEnabled = tab?.url != nil
-        address.update(url: tab?.url)
+        address.update(url: tab?.url, notSecure: tab?.isNotSecure ?? false)
     }
 
     @objc private func backClicked() { onAction?(.back) }
@@ -157,7 +157,7 @@ final class ToolbarAddressView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    func update(url: URL?) {
+    func update(url: URL?, notSecure: Bool = false) {
         guard let url else {
             icon.image = Theme.symbol("magnifyingglass", size: 10)
             icon.isHidden = false
@@ -170,9 +170,9 @@ final class ToolbarAddressView: NSView {
         }
         addressLabel.attributedStringValue = url.addressText(size: 12)
         icon.image = Theme.symbol("lock.slash", size: 10)
-        icon.isHidden = !url.isInsecure
-        insecureLabel.isHidden = !url.isInsecure
-        setAccessibilityLabel((url.isInsecure ? String(localized: "Not secure. ", bundle: .chordUI) : "") + String(localized: "Address: \(url.absoluteString)", bundle: .chordUI))
+        icon.isHidden = !notSecure
+        insecureLabel.isHidden = !notSecure
+        setAccessibilityLabel((notSecure ? String(localized: "Not secure. ", bundle: .chordUI) : "") + String(localized: "Address: \(url.absoluteString)", bundle: .chordUI))
         siteControlsButton.isHidden = false
     }
 

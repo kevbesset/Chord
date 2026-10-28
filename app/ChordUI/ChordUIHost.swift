@@ -102,6 +102,13 @@ public final class ChordUIHost: NSObject {
         NSApp.activate()
     }
 
+    /// A page went full screen, or took the pointer or the keyboard: the window says how
+    /// to get out.
+    @objc(showNotice:inWindow:)
+    public static func showNotice(_ text: String, inWindow window: NSWindow?) {
+        windowControllers.first { $0.window === window }?.showNotice(text)
+    }
+
     /// The menu the host must keep installed (Chromium rebuilds its own at times).
     @objc public static var mainMenu: NSMenu? { NSApp.mainMenu }
 

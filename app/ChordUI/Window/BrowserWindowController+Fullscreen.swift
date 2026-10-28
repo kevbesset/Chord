@@ -23,4 +23,9 @@ extension BrowserWindowController {
         }
         applyAppearanceSettings(animated: false)
     }
+
+    /// The engine's words for leaving full screen ("Press esc to exit full screen").
+    func showNotice(_ text: String) {
+        notice.show(text, symbol: "escape", in: rootView, over: pageArea, accent: .secondaryLabelColor)
+    }
 }

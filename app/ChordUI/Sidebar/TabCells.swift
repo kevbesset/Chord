@@ -69,12 +69,16 @@ final class TabCellView: SidebarRowCellView {
 
     var onClose: (() -> Void)?
     var onToggleMute: (() -> Void)?
+    var onStopSharing: (() -> Void)?
     private let tile = FaviconTileView(size: 16)
     private let titleLabel = NSTextField(labelWithString: "")
     private let splitIcon = NSImageView(image: Theme.symbol("rectangle.split.2x1", size: 10) ?? NSImage())
     private lazy var closeButton = IconButton(symbol: "xmark", label: String(localized: "Close Tab (⌘W)", bundle: .chordUI), target: self, action: #selector(closeClicked), size: 20, pointSize: 9)
     /// Shown while the page plays sound or is muted, like Arc's: a click mutes it.
     private lazy var audioButton = IconButton(symbol: "speaker.wave.2.fill", label: String(localized: "Mute Tab", bundle: .chordUI), target: self, action: #selector(audioClicked), size: 20, pointSize: 10)
+    /// Shown while the page shares a screen, a window or a tab (a click stops it), or
+    /// while another page shares this tab.
+    private lazy var sharingButton = IconButton(symbol: "rectangle.inset.filled.on.rectangle", label: String(localized: "Stop Sharing", bundle: .chordUI), target: self, action: #selector(sharingClicked), size: 20, pointSize: 10)
 
     init() {
         super.init(frame: .zero)
@@ -84,7 +88,8 @@ final class TabCellView: SidebarRowCellView {
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         splitIcon.contentTintColor = .tertiaryLabelColor
         splitIcon.toolTip = String(localized: "Split View", bundle: .chordUI)
-        for view in [tile, titleLabel, audioButton, splitIcon, closeButton] as [NSView] {
+        sharingButton.contentTintColor = .systemPurple
+        for view in [tile, titleLabel, sharingButton, audioButton, splitIcon, closeButton] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -93,7 +98,9 @@ final class TabCellView: SidebarRowCellView {
             tile.centerYAnchor.constraint(equalTo: centerYAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: 10),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: audioButton.leadingAnchor, constant: -2),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: sharingButton.leadingAnchor, constant: -2),
+            sharingButton.trailingAnchor.constraint(equalTo: audioButton.leadingAnchor, constant: -2),
+            sharingButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             audioButton.trailingAnchor.constraint(equalTo: splitIcon.leadingAnchor, constant: -2),
             audioButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             splitIcon.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -2),
@@ -119,6 +126,12 @@ final class TabCellView: SidebarRowCellView {
         let audioLabel = muted ? String(localized: "Unmute Tab", bundle: .chordUI) : String(localized: "Mute Tab", bundle: .chordUI)
         audioButton.toolTip = audioLabel
         audioButton.setAccessibilityLabel(audioLabel)
+        let sharing = tab.page?.isSharingScreen == true
+        sharingButton.isHidden = !tab.isSharing
+        sharingButton.isEnabled = sharing
+        let sharingLabel = sharing ? String(localized: "Stop Sharing", bundle: .chordUI) : String(localized: "This tab is being shared", bundle: .chordUI)
+        sharingButton.toolTip = sharingLabel
+        sharingButton.setAccessibilityLabel(sharingLabel)
         isSoftHighlighted = inSplit && !selected
         isActive = selected
     }
@@ -130,6 +143,7 @@ final class TabCellView: SidebarRowCellView {
 
     @objc private func closeClicked() { onClose?() }
     @objc private func audioClicked() { onToggleMute?() }
+    @objc private func sharingClicked() { onStopSharing?() }
 }
 
 final class NewTabCellView: SidebarRowCellView {

@@ -1,0 +1,31 @@
+Chord: tab-modal dialogs (sign-in, screen sharing picker, passkeys) show over Chord's windows, which are not Views widgets, instead of on whichever screen was active.
+--- a/components/constrained_window/constrained_window_views.cc
++++ b/components/constrained_window/constrained_window_views.cc
+@@ -108,7 +108,9 @@
+   views::Widget* const host_widget =
+       views::Widget::GetWidgetForNativeView(dialog_host->GetHostView());
+   if (!host_widget) {
+-    return gfx::Rect();
++    // Chord: a host that is not a Views widget (Chord's windows) gives the
++    // dialog's position in screen coordinates.
++    return gfx::Rect(dialog_host->GetDialogPosition(size), size);
+   }
+ 
+   gfx::Point position = dialog_host->GetDialogPosition(size);
+@@ -167,12 +169,11 @@
+   views::Widget* const host_widget =
+       views::Widget::GetWidgetForNativeView(dialog_host->GetHostView());
+ 
+-  // If the host view is not backed by a Views::Widget, just update the widget
+-  // size. This can happen on MacViews under the Cocoa browser where the window
+-  // modal dialogs are displayed as sheets, and their position is managed by a
+-  // ConstrainedWindowSheetController instance.
++  // Chord: a host that is not backed by a Views::Widget (Chord's windows) places
++  // the dialog in screen coordinates; only its size was set, and the dialog showed
++  // on whichever screen was active.
+   if (!host_widget) {
+-    widget->SetSize(size);
++    widget->SetBounds(GetModalDialogBounds(widget, dialog_host, size));
+     return;
+   }
+ 

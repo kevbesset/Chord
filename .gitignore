@@ -16,3 +16,6 @@ dist/
 
 # Sparkle private key, if exported here (docs/RELEASING.md): never in the repository
 sparkle-key
+
+# Provisioning profiles (engine/scripts/sign.sh): tied to Kevin's account and devices
+engine/signing/

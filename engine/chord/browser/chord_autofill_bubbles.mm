@@ -29,12 +29,17 @@
 #include "chrome/browser/ui/autofill/payments/omnibox_autofill_bubble_controller.h"
 #include "chrome/browser/ui/autofill/payments/payments_churned_users_bubble_controller.h"
 #include "chrome/browser/ui/autofill/payments/save_card_bubble_controller.h"
+#include "chrome/browser/ui/autofill/payments/save_card_ui.h"
+#include "chrome/browser/ui/autofill/payments/save_iban_ui.h"
 #include "chrome/browser/ui/autofill/payments/wallet_reminder_notice_bubble_controller.h"
 #include "chrome/browser/ui/autofill/save_address_bubble_controller.h"
 #include "chrome/browser/ui/autofill/update_address_bubble_controller.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "components/autofill/core/browser/data_model/addresses/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/addresses/autofill_profile_comparator.h"
+#include "components/autofill/core/browser/data_model/payments/credit_card.h"
+#include "components/autofill/core/browser/data_model/payments/iban.h"
+#include "components/autofill/core/browser/payments/payments_autofill_client.h"
 #include "components/autofill/core/browser/foundations/autofill_client.h"
 #include "components/autofill/core/browser/ui/addresses/autofill_address_util.h"
 #include "components/autofill/core/browser/ui/payments/payments_ui_closed_reasons.h"
@@ -204,6 +209,94 @@ class AddressPrompt : public AutofillBubbleBase {
   base::WeakPtrFactory<AddressPrompt> weak_factory_{this};
 };
 
+// "Save card?" or "Save IBAN?", kept on this Mac (Chord has no Google Payments),
+// asked through ChordUI like an address. Its controller belongs to the page and
+// outlives it: it takes the bubble back (Hide()) before it goes.
+class PaymentPrompt : public AutofillBubbleBase {
+ public:
+  struct Question {
+    std::u16string title;
+    std::u16string detail;
+    std::u16string accept;
+    std::u16string decline;
+  };
+
+  static AutofillBubbleBase* Show(
+      content::WebContents* web_contents,
+      const Question& question,
+      base::OnceClosure accept,
+      base::OnceCallback<void(PaymentsUiClosedReason)> closed) {
+    auto* prompt = new PaymentPrompt(std::move(accept), std::move(closed));
+    prompt->Ask(web_contents, question);
+    return prompt;
+  }
+
+  // AutofillBubbleBase:
+  void Hide() override { Close(PaymentsUiClosedReason::kNotInteracted); }
+  bool IsMouseHovered() const override { return false; }
+
+ private:
+  PaymentPrompt(base::OnceClosure accept,
+                base::OnceCallback<void(PaymentsUiClosedReason)> closed)
+      : accept_(std::move(accept)), closed_(std::move(closed)) {}
+
+  void Ask(content::WebContents* web_contents, const Question& question) {
+    NSString* site =
+        base::SysUTF8ToNSString(web_contents->GetLastCommittedURL().host());
+    base::WeakPtr<PaymentPrompt> weak = weak_factory_.GetWeakPtr();
+    ChordPermissionRequestImpl* request = [[ChordPermissionRequestImpl alloc]
+        initWithSite:site
+                asks:@[]
+              symbol:@"creditcard"
+              answer:^(NSInteger answer) {
+                if (PaymentPrompt* prompt = weak.get()) {
+                  prompt->Answer(static_cast<chord::Answer>(answer));
+                }
+              }];
+    request.question = base::SysUTF16ToNSString(question.title);
+    request.detail = base::SysUTF16ToNSString(question.detail);
+    request.allowTitle = base::SysUTF16ToNSString(question.accept);
+    request.blockTitle = @"";
+    request.dismissTitle = base::SysUTF16ToNSString(question.decline);
+    request_ = request;
+    if (!RequestPermission(web_contents, request)) {
+      request_ = nil;
+      base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+          FROM_HERE, base::BindOnce(&PaymentPrompt::Close, weak,
+                                    PaymentsUiClosedReason::kNotInteracted));
+    }
+  }
+
+  void Answer(chord::Answer answer) {
+    request_ = nil;
+    if (answer == kAllow) {
+      std::move(accept_).Run();
+      Close(PaymentsUiClosedReason::kAccepted);
+    } else {
+      Close(PaymentsUiClosedReason::kCancelled);
+    }
+  }
+
+  void Close(PaymentsUiClosedReason reason) {
+    if (finished_) {
+      return;
+    }
+    finished_ = true;
+    weak_factory_.InvalidateWeakPtrs();
+    ChordPermissionRequestImpl* request = request_;
+    request_ = nil;
+    [request cancel];
+    std::move(closed_).Run(reason);
+    base::SequencedTaskRunner::GetCurrentDefault()->DeleteSoon(FROM_HERE, this);
+  }
+
+  base::OnceClosure accept_;
+  base::OnceCallback<void(PaymentsUiClosedReason)> closed_;
+  ChordPermissionRequestImpl* request_;
+  bool finished_ = false;
+  base::WeakPtrFactory<PaymentPrompt> weak_factory_{this};
+};
+
 // The detail line holds one line: the summary's lines, comma-separated.
 std::u16string OneLine(const std::u16string& text) {
   std::u16string line;
@@ -286,7 +379,29 @@ AutofillBubbleBase* AutofillBubbles::ShowSaveCreditCardBubble(
     content::WebContents* web_contents,
     autofill::SaveCardBubbleController* controller,
     bool is_user_gesture) {
-  return ShowUnshown(controller);
+  autofill::PaymentsBubbleType type = controller->GetPaymentsBubbleType();
+  // Uploading to Google Payments, or asking for a missing name or date: not in
+  // Chord.
+  if ((type != autofill::PaymentsBubbleType::kLocalSave &&
+       type != autofill::PaymentsBubbleType::kLocalCvcSave) ||
+      controller->ShouldRequestNameFromUser() ||
+      controller->ShouldRequestExpirationDateFromUser()) {
+    return ShowUnshown(controller);
+  }
+  PaymentPrompt::Question question{
+      .title = controller->GetWindowTitle(),
+      .detail = controller->GetCard().CardNameAndLastFourDigits(),
+      .accept = controller->GetAcceptButtonText(),
+      .decline = controller->GetDeclineButtonText(),
+  };
+  return PaymentPrompt::Show(
+      web_contents, question,
+      base::BindOnce(&autofill::SaveCardBubbleController::OnSaveButton,
+                     base::Unretained(controller),
+                     autofill::payments::PaymentsAutofillClient::
+                         UserProvidedCardDetails()),
+      base::BindOnce(&autofill::SaveCardBubbleController::OnBubbleClosed,
+                     base::Unretained(controller)));
 }
 
 AutofillBubbleBase* AutofillBubbles::ShowSaveCardConfirmationBubble(
@@ -300,7 +415,21 @@ AutofillBubbleBase* AutofillBubbles::ShowIbanBubble(
     autofill::IbanBubbleController* controller,
     bool is_user_gesture,
     autofill::IbanBubbleType bubble_type) {
-  return ShowUnshown(controller);
+  if (bubble_type != autofill::IbanBubbleType::kLocalSave) {
+    return ShowUnshown(controller);
+  }
+  PaymentPrompt::Question question{
+      .title = controller->GetWindowTitle(),
+      .detail = controller->GetIban().GetIdentifierStringForAutofillDisplay(),
+      .accept = controller->GetAcceptButtonText(),
+      .decline = controller->GetDeclineButtonText(),
+  };
+  return PaymentPrompt::Show(
+      web_contents, question,
+      base::BindOnce(&autofill::IbanBubbleController::OnAcceptButton,
+                     base::Unretained(controller), std::u16string_view()),
+      base::BindOnce(&autofill::IbanBubbleController::OnBubbleClosed,
+                     base::Unretained(controller)));
 }
 
 AutofillBubbleBase* AutofillBubbles::ShowSaveIbanConfirmationBubble(

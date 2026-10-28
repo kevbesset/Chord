@@ -18,6 +18,22 @@ that installed Chords read (decision 0005).
   Development certificate. The Developer ID certificate expires on February 1, 2027:
   versions signed before stay valid (secure timestamp), a new one is needed to sign
   after.
+- Passkeys kept on the Mac (Touch ID, "Your Chord profile"), done on October 28,
+  2026: the App ID `app.chord.Chord` and two provisioning profiles, made by Xcode
+  (`xcodebuild -allowProvisioningUpdates`, the Apple account in Xcode › Settings ›
+  Accounts): `engine/signing/DeveloperID.provisionprofile` ("Mac Team Direct
+  Provisioning Profile: app.chord.Chord", until 2044) and
+  `engine/signing/Development.provisionprofile` ("Mac Team Provisioning Profile: *",
+  this Mac only, until October 2027). They are ignored by git: on another Mac, build
+  and export (Developer ID) any app with that bundle id and team once, and copy the
+  profiles from `~/Library/Developer/Xcode/UserData/Provisioning Profiles`. `sign.sh`
+  embeds the profile and claims the keychain group
+  `FK3PG5SKWL.app.chord.Chord.webauthn` that Chromium looks for; without a profile it
+  leaves passkeys to phones and security keys. Passkeys from iCloud Keychain also need
+  Apple to grant the "Web Browser Public Key Credential Requests" capability
+  (developer.apple.com › Identifiers › app.chord.Chord › Capability Requests),
+  requested on October 28, 2026 (request 5G4Q8J6C8K, Apple answers by email); once
+  granted, make the profiles again and `sign.sh` passes it on.
 
 ## For each version
 

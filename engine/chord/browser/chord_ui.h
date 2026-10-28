@@ -87,6 +87,11 @@
 @property(nonatomic, readonly) BOOL isMuted;
 - (void)setMuted:(BOOL)muted;
 @property(nonatomic, readonly) BOOL isCapturingMedia;
+@property(nonatomic, readonly) BOOL isSharingScreen;
+@property(nonatomic, readonly) BOOL isBeingShared;
+- (void)stopSharing;
+@property(nonatomic, readonly, copy) NSString* securityState;
+@property(nonatomic, readonly) BOOL isCrashed;
 @property(nonatomic, readonly) BOOL isFullscreen;
 @property(nonatomic, readonly) BOOL hasMedia;
 @property(nonatomic, readonly) BOOL isPlayingMedia;
@@ -166,6 +171,10 @@
 + (NSMenu*)mainMenu;
 + (NSWindow*)mainWindow;
 + (void)saveNow;
+@optional
+// A page went full screen or took the pointer or the keyboard: `text` says how to get
+// out ("Press esc to exit full screen"), shown at the top of the page for a moment.
++ (void)showNotice:(NSString*)text inWindow:(NSWindow*)window;
 @end
 
 #endif  // CHORD_BROWSER_CHORD_UI_H_

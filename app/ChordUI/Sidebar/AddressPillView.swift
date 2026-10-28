@@ -80,7 +80,7 @@ final class AddressPillView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    func update(url: URL?) {
+    func update(url: URL?, notSecure: Bool = false) {
         guard let url else {
             icon.image = Theme.symbol("magnifyingglass", size: 11)
             icon.isHidden = false
@@ -94,9 +94,9 @@ final class AddressPillView: NSView {
         }
         addressLabel.attributedStringValue = url.addressText(size: 13)
         icon.image = Theme.symbol("lock.slash", size: 11)
-        icon.isHidden = !url.isInsecure
-        insecureLabel.isHidden = !url.isInsecure
-        setAccessibilityLabel((url.isInsecure ? String(localized: "Not secure. ", bundle: .chordUI) : "") + String(localized: "Address: \(url.absoluteString)", bundle: .chordUI))
+        icon.isHidden = !notSecure
+        insecureLabel.isHidden = !notSecure
+        setAccessibilityLabel((notSecure ? String(localized: "Not secure. ", bundle: .chordUI) : "") + String(localized: "Address: \(url.absoluteString)", bundle: .chordUI))
         hasURL = true
         refreshButtons()
     }

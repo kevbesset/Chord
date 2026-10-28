@@ -32,6 +32,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     let permissionPrompt = PermissionPromptController()
     let extensionPopup = ExtensionPopupController()
     let toast = ToastView()
+    /// How to leave full screen, at the top of the page, when a page takes the screen
+    /// (or the pointer, or the keyboard): long enough to read, so that a page cannot
+    /// pass for the Mac's screen.
+    let notice = ToastView(edge: .top, visibleDuration: 4)
     /// The page searched with ⌘F while the find bar is up.
     weak var findPage: ChordWebPage?
     /// True while a swipe hands its Space to the state, which needs no slide of its own.

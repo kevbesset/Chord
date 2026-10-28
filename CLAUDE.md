@@ -121,8 +121,19 @@ errors before handing back.
   without Google's server (chord-username-first.patch). The Arc import also brings
   the values typed in forms. Autofill's "Save address?" / "Update address?" go
   through the same prompt (`chord_autofill_bubbles.mm`, Chord's
-  `AutofillBubbleHandler`, chord-autofill-bubbles.patch); its card, IBAN and Google
-  Pay bubbles close unseen.
+  `AutofillBubbleHandler`, chord-autofill-bubbles.patch), and so do "Save card?" and
+  "Save IBAN?" (kept on the Mac); Google Payments' bubbles close unseen.
+- Chromium's Views dialogs in Chord's windows: tab-modal ones (sign-in, screen sharing
+  picker, passkeys) are placed by `ChordModalDialogHost` in screen coordinates
+  (chord-modal-dialogs.patch); device choosers (WebUSB, HID, serial, Bluetooth) hang
+  from the page (chord-device-choosers.patch). A Views bubble anchored to `BrowserView`
+  crashes in Chord's windows: route it to ChordUI or give it an anchor.
+- Page states from the engine: `securityState` ("Not Secure" for a certificate error
+  passed), `isCrashed` (a Reload Page view), `isSharingScreen` / `isBeingShared` (a
+  purple badge in the sidebar, click stops); the fullscreen notice ("Press esc…") goes
+  through `ChordUIHost.showNotice`. Passkeys on the Mac (Touch ID) come from the provisioning
+  profiles in `engine/signing/` (ignored by git), which `sign.sh` embeds; iCloud
+  Keychain passkeys wait for Apple's capability (docs/RELEASING.md).
 - Sleeping tabs keep their history, scroll position and forms (Chromium's tab
   discarding, woken when shown); tabs playing sound or using the camera, microphone or
   screen stay awake. A speaker in the sidebar mutes a tab playing sound.

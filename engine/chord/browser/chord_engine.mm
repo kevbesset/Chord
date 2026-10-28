@@ -48,6 +48,8 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/profiles/profile_metrics.h"
 #include "chrome/browser/resource_coordinator/tab_lifecycle_unit_external.h"
+#include "chrome/browser/ssl/chrome_security_state_util.h"
+#include "components/security_state/core/security_state.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/browser/ui/browser_active_state_manager/browser_active_state_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -124,6 +126,50 @@ ChordPage* PageFor(content::WebContents* contents) {
   auto it = Pages().find(contents);
   return it == Pages().end() ? nil : it->second;
 }
+
+// Tells a page when it starts or stops sharing a screen, a window or a tab, or when
+// it is the tab being shared: the sidebar shows it, with a way to stop.
+class CaptureWatcher : public MediaStreamCaptureIndicator::Observer {
+ public:
+  static void Ensure() { static base::NoDestructor<CaptureWatcher> watcher; }
+
+  CaptureWatcher()
+      : indicator_(MediaCaptureDevicesDispatcher::GetInstance()
+                       ->GetMediaStreamCaptureIndicator()) {
+    indicator_->AddObserver(this);
+  }
+
+  // MediaStreamCaptureIndicator::Observer:
+  void OnIsCapturingVideoChanged(content::WebContents* contents,
+                                 bool capturing) override {
+    Update(contents);
+  }
+  void OnIsCapturingAudioChanged(content::WebContents* contents,
+                                 bool capturing) override {
+    Update(contents);
+  }
+  void OnIsBeingMirroredChanged(content::WebContents* contents,
+                                bool mirrored) override {
+    Update(contents);
+  }
+  void OnIsCapturingTabChanged(content::WebContents* contents,
+                               bool capturing) override {
+    Update(contents);
+  }
+  void OnIsCapturingWindowChanged(content::WebContents* contents,
+                                  bool capturing) override {
+    Update(contents);
+  }
+  void OnIsCapturingDisplayChanged(content::WebContents* contents,
+                                   bool capturing) override {
+    Update(contents);
+  }
+
+ private:
+  void Update(content::WebContents* contents);
+
+  scoped_refptr<MediaStreamCaptureIndicator> indicator_;
+};
 
 // The tab ChordUI is making active, so that the tab watcher tells it apart from a
 // tab Chromium activates by itself (the picture-in-picture "back to tab" button).
@@ -310,6 +356,10 @@ HostContentSettingsMap* SettingsFor(content::WebContents* contents, GURL* url) {
 - (void)resetMedia;
 @end
 
+void CaptureWatcher::Update(content::WebContents* contents) {
+  [PageFor(contents) notifyUpdate];
+}
+
 namespace {
 
 // Forwards what changes on a page to ChordUI.
@@ -384,6 +434,14 @@ class PageObserver : public content::WebContentsObserver,
     [page_ mediaDidChange:NO];
   }
   void DidUpdateAudioMutingState(bool muted) override { [page_ notifyUpdate]; }
+  // A certificate error the user went past, mixed content: the address field says
+  // the page is not secure.
+  void DidChangeVisibleSecurityState() override { [page_ notifyUpdate]; }
+  // The page's renderer crashed or was killed: ChordUI says so, with a way to reload.
+  void PrimaryMainFrameRenderProcessGone(
+      base::TerminationStatus status) override {
+    [page_ notifyUpdate];
+  }
   void WebContentsDestroyed() override { [page_ detach]; }
 
  private:
@@ -419,6 +477,7 @@ class PageObserver : public content::WebContentsObserver,
     _webContents = contents;
     _observer = std::make_unique<PageObserver>(contents, self);
     Pages()[contents] = self;
+    CaptureWatcher::Ensure();
   }
   return self;
 }
@@ -490,6 +549,7 @@ class PageObserver : public content::WebContentsObserver,
   _webContents = contents;
   _observer = std::make_unique<PageObserver>(contents, self);
   Pages()[contents] = self;
+  CaptureWatcher::Ensure();
   [self notifyUpdate];
 }
 
@@ -936,6 +996,66 @@ class PageObserver : public content::WebContentsObserver,
          indicator->IsBeingMirrored(_webContents);
 }
 
+// Sharing a screen, a window or a tab with the site (a video call).
+- (BOOL)isSharingScreen {
+  if (!_webContents) {
+    return NO;
+  }
+  scoped_refptr<MediaStreamCaptureIndicator> indicator =
+      MediaCaptureDevicesDispatcher::GetInstance()
+          ->GetMediaStreamCaptureIndicator();
+  return indicator->IsCapturingTab(_webContents) ||
+         indicator->IsCapturingWindow(_webContents) ||
+         indicator->IsCapturingDisplay(_webContents);
+}
+
+// The tab another page is sharing.
+- (BOOL)isBeingShared {
+  if (!_webContents) {
+    return NO;
+  }
+  return MediaCaptureDevicesDispatcher::GetInstance()
+      ->GetMediaStreamCaptureIndicator()
+      ->IsBeingMirrored(_webContents);
+}
+
+// Ends what the page shares (its screen, window or tab), as Chrome's "Stop sharing".
+- (void)stopSharing {
+  if (!_webContents) {
+    return;
+  }
+  MediaCaptureDevicesDispatcher::GetInstance()
+      ->GetMediaStreamCaptureIndicator()
+      ->StopMediaCapturing(
+          _webContents,
+          static_cast<int>(MediaStreamCaptureIndicator::MediaType::kDisplayMedia));
+}
+
+// Chromium's verdict on the connection: "secure", "warning" (plain HTTP, mixed
+// content), "dangerous" (a certificate error the user went past, a flagged site) or
+// "none" (localhost, internal pages).
+- (NSString*)securityState {
+  if (!_webContents) {
+    return @"none";
+  }
+  switch (chrome_security_state::GetSecurityLevel(_webContents)) {
+    case security_state::SECURE:
+      return @"secure";
+    case security_state::WARNING:
+      return @"warning";
+    case security_state::DANGEROUS:
+      return @"dangerous";
+    default:
+      return @"none";
+  }
+}
+
+// The renderer crashed or was killed (not a sleeping tab, which has none either).
+- (BOOL)isCrashed {
+  return _webContents && _webContents->IsCrashed() &&
+         !_webContents->WasDiscarded();
+}
+
 // A page element in full screen (a video): the browser window is in full screen
 // with it, and ChordUI shows only the page.
 - (BOOL)isFullscreen {
@@ -1253,6 +1373,9 @@ void DeleteProfileAt(const base::FilePath& path) {
   // Chrome and Arc do by default.
   profile->GetPrefs()->SetDefaultPrefValue(
       autofill::prefs::kAutofillProfileEnabled, base::Value(true));
+  // Cards and IBANs too, kept on this Mac ("Save card?" in Chord's prompt).
+  profile->GetPrefs()->SetDefaultPrefValue(
+      autofill::prefs::kAutofillCreditCardEnabled, base::Value(true));
   // ungoogled-chromium asks where to save each download; Chrome and Arc save them in
   // Downloads, which Chord's panel shows. A choice made in chord://settings stays.
   profile->GetPrefs()->SetDefaultPrefValue(prefs::kPromptForDownload,

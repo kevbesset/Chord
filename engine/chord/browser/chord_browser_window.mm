@@ -5,6 +5,9 @@
 #import <AppKit/AppKit.h>
 
 #include "base/functional/bind.h"
+#include "base/i18n/case_conversion.h"
+#include "base/strings/string_util.h"
+#include "base/strings/sys_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
 #import "chord/browser/chord_autofill_bubbles.h"
 #import "chord/browser/chord_engine.h"
@@ -16,6 +19,7 @@
 #include "chrome/browser/ui/browser_manager_service.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/exclusive_access/exclusive_access_bubble_type.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
@@ -24,12 +28,16 @@
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/unload_controller.h"
 #include "chrome/browser/ui/views/bubble_anchor_util_views.h"
+#include "chrome/browser/ui/views/eye_dropper/eye_dropper.h"
+#include "components/url_formatter/elide_url.h"
 #include "components/input/native_web_keyboard_event.h"
 #include "components/web_modal/web_contents_modal_dialog_host.h"
 #include "content/public/browser/eye_dropper.h"
 #include "content/public/browser/keyboard_event_processing_result.h"
 #include "content/public/browser/web_contents.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/mojom/window_show_state.mojom.h"
+#include "ui/strings/grit/ui_strings.h"
 #include "ui/color/color_provider_manager.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/mac/coordinate_conversion.h"
@@ -96,12 +104,27 @@ class ChordLocationBar : public LocationBar {
 
 // MARK: - Dialogs
 
-// Where tab-modal dialogs (alert, confirm, permission prompts) go: centred over the
-// page, at its top edge.
+// Where tab-modal dialogs (alert, sign-in, screen sharing, passkeys) go: centred over
+// the page, at its top edge. The host view is not a Views widget, so the position is
+// in screen coordinates (chord-modal-dialogs.patch), and dialogs follow the window
+// when it is resized.
 class ChordModalDialogHost : public web_modal::WebContentsModalDialogHost {
  public:
-  explicit ChordModalDialogHost(ChordBrowserWindow* window) : window_(window) {}
+  explicit ChordModalDialogHost(ChordBrowserWindow* window) : window_(window) {
+    resize_observer_ = [NSNotificationCenter.defaultCenter
+        addObserverForName:NSWindowDidResizeNotification
+                    object:nil
+                     queue:nil
+                usingBlock:^(NSNotification* notification) {
+                  if (notification.object ==
+                      window_->GetNativeWindow().GetNativeNSWindow()) {
+                    observers_.Notify(&web_modal::ModalDialogHostObserver::
+                                          OnPositionRequiresUpdate);
+                  }
+                }];
+  }
   ~ChordModalDialogHost() override {
+    [NSNotificationCenter.defaultCenter removeObserver:resize_observer_];
     observers_.Notify(&web_modal::ModalDialogHostObserver::OnHostDestroying);
   }
 
@@ -111,9 +134,11 @@ class ChordModalDialogHost : public web_modal::WebContentsModalDialogHost {
     return gfx::NativeView(window.contentView);
   }
   gfx::Point GetDialogPosition(const gfx::Size& size) override {
-    gfx::Rect contents = window_->GetContentsBoundsInWindow();
-    return gfx::Point(contents.x() + (contents.width() - size.width()) / 2,
-                      contents.y());
+    content::WebContents* contents =
+        window_->browser()->GetTabStripModel()->GetActiveWebContents();
+    gfx::Rect page =
+        contents ? contents->GetContainerBounds() : window_->GetBounds();
+    return gfx::Point(page.x() + (page.width() - size.width()) / 2, page.y());
   }
   bool ShouldActivateDialog() const override { return true; }
   gfx::Size GetMaximumDialogSize() override {
@@ -129,6 +154,7 @@ class ChordModalDialogHost : public web_modal::WebContentsModalDialogHost {
  private:
   const raw_ptr<ChordBrowserWindow> window_;
   base::ObserverList<web_modal::ModalDialogHostObserver> observers_;
+  id resize_observer_;
 };
 
 // MARK: - Fullscreen
@@ -178,9 +204,34 @@ class ChordExclusiveAccessContext : public ExclusiveAccessContext {
       [Window() toggleFullScreen:nil];
     }
   }
+  // A page in full screen, holding the pointer or the keyboard: ChordUI says so at
+  // the top of the page, with Chromium's words ("Press esc to exit full screen"), so
+  // that a page cannot pass for the Mac's screen.
   void UpdateExclusiveAccessBubble(
       const ExclusiveAccessBubbleParams& params,
       ExclusiveAccessBubbleHideCallback first_hide_callback) override {
+    if (params.type != EXCLUSIVE_ACCESS_BUBBLE_TYPE_NONE &&
+        !exclusive_access_bubble::IsExclusiveAccessModeBrowserFullscreen(
+            params.type)) {
+      std::optional<std::u16string> site;
+      if (!params.origin.opaque()) {
+        site = url_formatter::FormatOriginForSecurityDisplay(
+            params.origin,
+            url_formatter::SchemeDisplay::OMIT_HTTP_AND_HTTPS);
+      }
+      std::u16string text = exclusive_access_bubble::GetInstructionTextForType(
+          params.type,
+          base::i18n::ToLower(l10n_util::GetStringUTF16(IDS_APP_ESC_KEY)),
+          site, params.has_download, /*notify_overridden=*/false);
+      // The key's name comes between pipes, for Views to draw it as a key.
+      base::RemoveChars(text, u"|", &text);
+      Class host = NSClassFromString(@"ChordUIHost");
+      if ([host respondsToSelector:@selector(showNotice:inWindow:)]) {
+        [(Class<ChordUIHostInterface>)host
+            showNotice:base::SysUTF16ToNSString(text)
+              inWindow:Window()];
+      }
+    }
     if (first_hide_callback) {
       std::move(first_hide_callback)
           .Run(ExclusiveAccessBubbleHideReason::kNotShown);
@@ -570,7 +621,7 @@ void ChordBrowserWindow::ShowEmojiPanel() {
 std::unique_ptr<content::EyeDropper> ChordBrowserWindow::OpenEyeDropper(
     content::RenderFrameHost* frame,
     content::EyeDropperListener* listener) {
-  return nullptr;
+  return ShowEyeDropper(frame, listener);
 }
 
 void ChordBrowserWindow::ShowCaretBrowsingDialog() {}

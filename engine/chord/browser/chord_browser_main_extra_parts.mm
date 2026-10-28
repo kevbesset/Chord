@@ -34,6 +34,7 @@
 #include "chord/browser/chord_data_migration.h"
 #include "chrome/common/chrome_constants.h"
 #include "chrome/grit/branded_strings.h"
+#include "chrome/grit/generated_resources.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/pref_names.h"
@@ -183,6 +184,17 @@ void NameChordInChromiumStrings() {
       continue;
     }
     base::ReplaceSubstringsAfterOffset(&text, 0, u"Chromium", u"Chord");
+    bundle.OverrideLocaleStringResource(id, text);
+  }
+  // A few unbranded strings say Chrome: the passkeys kept in the profile (Touch ID).
+  static constexpr int kChromeStrings[] = {
+      IDS_WEBAUTHN_YOUR_CHROME_PROFILE,
+      IDS_WEBAUTHN_SOURCE_CHROME_PROFILE,
+      IDS_WEBAUTHN_BLUETOOTH_PERMISSION,
+  };
+  for (int id : kChromeStrings) {
+    std::u16string text = bundle.GetLocalizedString(id);
+    base::ReplaceSubstringsAfterOffset(&text, 0, u"Chrome", u"Chord");
     bundle.OverrideLocaleStringResource(id, text);
   }
 }

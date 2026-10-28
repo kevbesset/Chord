@@ -87,5 +87,10 @@ for framework in ChordUI Sparkle; do
   [ -d "$REPO_DIR/app/build/release/$framework.framework" ] && \
     cp -R "$REPO_DIR/app/build/release/$framework.framework" "$FRAMEWORKS/"
 done
+# The Mac's privacy questions (camera, microphone, location, Bluetooth, passkeys) name
+# Chord: Chromium's text names Chromium in every language.
+for strings in "$APP"/Contents/Resources/*.lproj/InfoPlist.strings; do
+  perl -pi -e 's/Chromium/Chord/g if /^"?NS\w+UsageDescription"?\s*=/' "$strings"
+done
 "$ENGINE_DIR/scripts/sign.sh" "$APP"
 echo "Ready: $APP"

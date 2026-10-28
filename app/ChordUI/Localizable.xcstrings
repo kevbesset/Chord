@@ -5137,6 +5137,22 @@
         }
       }
     },
+    "Stop Sharing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar de compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le partage"
+          }
+        }
+      }
+    },
     "Stop loading": {
       "localizations": {
         "es": {
@@ -5233,6 +5249,22 @@
         }
       }
     },
+    "The rest of Chord kept running. Reload to open it again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resto de Chord sigue funcionando. Vuelve a cargarla para abrirla de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le reste de Chord fonctionne toujours. Rechargez pour la rouvrir."
+          }
+        }
+      }
+    },
     "This is the last Space on its profile: the profile will be deleted too, with its logins, cookies, history, extensions and favorites.": {
       "localizations": {
         "es": {
@@ -5245,6 +5277,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "C'est le dernier Space de son profil : le profil sera supprimé aussi, avec ses connexions, cookies, historique, extensions et favoris."
+          }
+        }
+      }
+    },
+    "This page crashed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta página se ha bloqueado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette page a planté"
+          }
+        }
+      }
+    },
+    "This tab is being shared": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se está compartiendo esta pestaña"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet onglet est partagé"
           }
         }
       }
