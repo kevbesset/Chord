@@ -9,6 +9,8 @@ source_set("browser") {
   sources = [
     "browser/chord_arc_import.h",
     "browser/chord_arc_import.mm",
+    "browser/chord_autofill_bubbles.h",
+    "browser/chord_autofill_bubbles.mm",
     "browser/chord_browser_main_extra_parts.mm",
     "browser/chord_browser_window.h",
     "browser/chord_browser_window.mm",
@@ -54,6 +56,8 @@ source_set("browser") {
     "//chrome/browser/profiles:profile_manager",
     "//chrome/browser/profiles:profile_util",
     "//chrome/browser/ui",
+    "//chrome/browser/ui/autofill",
+    "//chrome/browser/ui/autofill/payments",
     "//chrome/browser/ui:browser_window_deleter",
     "//chrome/browser/ui/browser_active_state_manager",
     "//chrome/browser/ui/browser_window:create_browser_window",

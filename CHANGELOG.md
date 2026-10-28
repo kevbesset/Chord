@@ -6,6 +6,12 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Fixed
+
+- Submitting a form with an address no longer crashes Chord: "Save address?" and
+  "Update address?" now show in Chord's prompt at the top of the page, like a site's
+  permission. Saving a card or an IBAN shows no prompt for now (it crashed too).
+
 ## 0.3.0 — 2026-10-27
 
 Arc's archive, Peek and downloads wired to Chromium, imports from other browsers, a

@@ -6,6 +6,7 @@
 
 #include "base/functional/bind.h"
 #include "base/task/sequenced_task_runner.h"
+#import "chord/browser/chord_autofill_bubbles.h"
 #import "chord/browser/chord_engine.h"
 #import "chord/browser/chord_ui.h"
 #include "chrome/browser/profiles/profile.h"
@@ -218,7 +219,8 @@ ChordBrowserWindow::ChordBrowserWindow(BrowserWindowInterface* browser)
       location_bar_(std::make_unique<ChordLocationBar>(browser)),
       modal_dialog_host_(std::make_unique<ChordModalDialogHost>(this)),
       exclusive_access_context_(
-          std::make_unique<ChordExclusiveAccessContext>(this)) {
+          std::make_unique<ChordExclusiveAccessContext>(this)),
+      autofill_bubbles_(std::make_unique<chord::AutofillBubbles>(browser)) {
   chord::WatchBrowser(browser);
 }
 
@@ -411,7 +413,7 @@ void ChordBrowserWindow::SetContentsSize(const gfx::Size& size) {}
 
 autofill::AutofillBubbleHandler*
 ChordBrowserWindow::GetAutofillBubbleHandler() {
-  return nullptr;
+  return autofill_bubbles_.get();
 }
 
 LocationBar* ChordBrowserWindow::GetLocationBar() const {

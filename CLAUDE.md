@@ -119,7 +119,10 @@ errors before handing back.
   autocomplete are on by default (ungoogled-chromium turns them off); Chromium's
   suggestion list fills the fields; email-first sign-ins get the saved usernames
   without Google's server (chord-username-first.patch). The Arc import also brings
-  the values typed in forms.
+  the values typed in forms. Autofill's "Save address?" / "Update address?" go
+  through the same prompt (`chord_autofill_bubbles.mm`, Chord's
+  `AutofillBubbleHandler`, chord-autofill-bubbles.patch); its card, IBAN and Google
+  Pay bubbles close unseen.
 - Sleeping tabs keep their history, scroll position and forms (Chromium's tab
   discarding, woken when shown); tabs playing sound or using the camera, microphone or
   screen stay awake. A speaker in the sidebar mutes a tab playing sound.

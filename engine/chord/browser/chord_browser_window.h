@@ -17,6 +17,10 @@ class ChordExclusiveAccessContext;
 class ChordLocationBar;
 class ChordModalDialogHost;
 
+namespace chord {
+class AutofillBubbles;
+}
+
 // The window of a normal Chromium browser in Chord. It has no views of its own:
 // ChordUI draws the window (sidebar, Spaces, tabs) and places each tab's page in it.
 // Chromium keeps its Browser and tab model behind it, which extensions, DevTools and
@@ -179,6 +183,7 @@ class ChordBrowserWindow : public BrowserWindow, public ui::AcceleratorProvider 
   std::unique_ptr<ChordLocationBar> location_bar_;
   std::unique_ptr<ChordModalDialogHost> modal_dialog_host_;
   std::unique_ptr<ChordExclusiveAccessContext> exclusive_access_context_;
+  std::unique_ptr<chord::AutofillBubbles> autofill_bubbles_;
   bool closing_ = false;
   base::WeakPtrFactory<ChordBrowserWindow> weak_factory_{this};
 };
