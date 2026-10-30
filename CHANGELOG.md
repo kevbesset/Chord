@@ -22,6 +22,7 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- Opening a tab while the find bar is searching a page (⌘F) no longer crashes Chord.
 - Connecting a USB, HID, serial or Bluetooth device from a page (WebUSB, WebHID, Web
   Serial, Web Bluetooth) no longer crashes Chord: the device list shows under the
   address.

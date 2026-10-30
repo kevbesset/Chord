@@ -6,6 +6,7 @@
 
 #include "base/functional/bind.h"
 #include "base/i18n/case_conversion.h"
+#include "base/memory/raw_ptr.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
@@ -41,7 +42,54 @@
 #include "ui/color/color_provider_manager.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/mac/coordinate_conversion.h"
+#include "ui/gfx/range/range.h"
 #include "ui/native_theme/native_theme.h"
+
+// MARK: - Find bar
+
+// Chord's find bar is ChordUI's (FindBarView), which searches through FindTabHelper.
+// Chromium still creates its FindBarController when a tab is inserted while the active
+// one has a search going, and that controller needs a FindBar: this one shows nothing.
+class ChordFindBar : public FindBar {
+ public:
+  ChordFindBar() = default;
+  ~ChordFindBar() override = default;
+
+  // FindBar:
+  FindBarController* GetFindBarController() const override {
+    return find_bar_controller_;
+  }
+  void SetFindBarController(FindBarController* find_bar_controller) override {
+    find_bar_controller_ = find_bar_controller;
+  }
+  void Show(bool animate, bool focus) override {}
+  void Hide(bool animate) override {}
+  void SetFocusAndSelection() override {}
+  void ClearResults(
+      const find_in_page::FindNotificationDetails& results) override {}
+  void StopAnimation() override {}
+  void MoveWindowIfNecessary() override {}
+  void SetFindTextAndSelectedRange(const std::u16string& find_text,
+                                   const gfx::Range& selected_range) override {}
+  std::u16string_view GetFindText() const override { return {}; }
+  gfx::Range GetSelectedRange() const override { return gfx::Range(); }
+  void UpdateUIForFindResult(
+      const find_in_page::FindNotificationDetails& result,
+      const std::u16string& find_text) override {}
+  void AudibleAlert() override {}
+  bool IsFindBarVisible() const override { return false; }
+  void RestoreSavedFocus() override {}
+  bool HasGlobalFindPasteboard() const override { return true; }
+  void UpdateFindBarForChangedWebContents() override {}
+  bool CanPopulateFromSelectedText() override { return false; }
+  const FindBarTesting* GetFindBarTesting() const override { return nullptr; }
+  bool HasFocus() const override { return false; }
+  void CloseOverlappingBubbles() override {}
+  views::Widget* GetHostWidget() override { return nullptr; }
+
+ private:
+  raw_ptr<FindBarController> find_bar_controller_ = nullptr;
+};
 
 // MARK: - Location bar
 
@@ -572,7 +620,7 @@ bool ChordBrowserWindow::HandleKeyboardEvent(
 }
 
 std::unique_ptr<FindBar> ChordBrowserWindow::CreateFindBar() {
-  return nullptr;
+  return std::make_unique<ChordFindBar>();
 }
 
 web_modal::WebContentsModalDialogHost*
