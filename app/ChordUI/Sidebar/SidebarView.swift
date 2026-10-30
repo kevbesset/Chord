@@ -112,6 +112,8 @@ final class SidebarView: NSView {
     private var topRowCenter: NSLayoutConstraint!
     private var topRowLeading: NSLayoutConstraint!
     private weak var state: BrowserState?
+    /// The selection of the window this sidebar belongs to.
+    var selection: WindowSelection?
     private var swipe: Swipe?
     /// The page is gliding to its place after a swipe; a new one waits for the end.
     private var swipeSettling = false
@@ -362,6 +364,13 @@ final class SidebarView: NSView {
     /// as the sidebar moves left. There is no Space before the first or after the last:
     /// the sidebar only gives a little, like a scroll view at its end.
     override func scrollWheel(with event: NSEvent) {
+        // Scrolling goes to the window under the pointer, key or not: the swipe starts
+        // from this window's Space, not from the one the key window shows.
+        guard let state, let selection else { return }
+        state.withWindow(selection) { followScroll(event) }
+    }
+
+    private func followScroll(_ event: NSEvent) {
         guard event.momentumPhase.isEmpty else { return }
         switch event.phase {
         case .began:

@@ -73,11 +73,11 @@ extension BrowserState {
     }
 
     /// The tab the sidebar's media controls show, like Arc's mini player: the most
-    /// recently used tab playing sound or video (or paused from the controls) that is
-    /// not on screen.
+    /// recently used tab of the active Space (a favorite of its profile included) playing
+    /// sound or video, or paused from the controls, that is not on screen.
     public var mediaTab: Tab? {
         let visible = Set(visibleTabs.map(\.id))
-        return everyTab
+        return sidebarTabs(in: activeSpace)
             .filter { !visible.contains($0.id) && $0.page?.hasMedia == true }
             .max { $0.lastSelected < $1.lastSelected }
     }

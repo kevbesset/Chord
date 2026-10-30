@@ -22,6 +22,12 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- With several windows, swiping through the Spaces in a window that isn't the front one
+  goes to the next Space, without skipping the one the other window shows.
+- Videos whose player covers them with its own layers, like Twitch lives, go to picture
+  in picture too, when leaving the tab or with ⌃⌘P.
+- The media controls at the bottom of the sidebar only show on the Space of the tab
+  playing, not on the other Spaces.
 - Opening a tab while the find bar is searching a page (⌘F) no longer crashes Chord.
 - Connecting a USB, HID, serial or Bluetooth device from a page (WebUSB, WebHID, Web
   Serial, Web Bluetooth) no longer crashes Chord: the device list shows under the

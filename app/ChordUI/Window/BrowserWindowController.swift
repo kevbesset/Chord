@@ -163,6 +163,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         window.contentView = rootView
 
         sidebar.delegate = self
+        sidebar.selection = selection
         edgeHover.isHidden = true
         edgeHover.onEnter = { [weak self] in self?.scheduleReveal() }
         edgeHover.onExit = { [weak self] in self?.pendingReveal?.cancel() }

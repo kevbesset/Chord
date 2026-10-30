@@ -76,8 +76,7 @@
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/render_frame_host.h"
 #include "chrome/common/chrome_isolated_world_ids.h"
-#include "third_party/blink/public/mojom/frame/media_player_action.mojom.h"
-#include "ui/gfx/geometry/point.h"
+#include "third_party/blink/public/mojom/frame/user_activation_notification_type.mojom.h"
 #include "content/public/browser/reload_type.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_observer.h"
@@ -182,22 +181,30 @@ bool IsInPictureInPicture(content::WebContents* contents) {
 }
 
 // Finds the largest playing video of the page, in the page's own world (the page's
-// scripts cannot see it run), and returns its centre in CSS pixels with the
-// viewport's width, or null.
+// scripts cannot see it run), keeps it for kRequestPictureInPicture and says whether
+// there is one.
 constexpr char16_t kFindPlayingVideo[] = uR"((() => {
   let best = null, area = 0;
   for (const video of document.querySelectorAll('video')) {
     if (video.paused || video.ended || video.readyState < 2 || video.disablePictureInPicture) continue;
     const r = video.getBoundingClientRect();
-    if (r.width * r.height > area) { area = r.width * r.height; best = r; }
+    if (r.width * r.height > area) { area = r.width * r.height; best = video; }
   }
-  return best ? [best.left + best.width / 2, best.top + best.height / 2, window.innerWidth] : null;
+  window.chordPlayingVideo = best;
+  return !!best;
 })())";
 
-// Puts the page's playing video in picture-in-picture, the way the context menu's
-// "Picture in picture" item does: an action on the video under a point. It works for
-// any video, muted ones included. A video the script cannot reach (inside another
-// site's frame) goes through the media session instead, for the ones it knows.
+constexpr char16_t kRequestPictureInPicture[] = uR"((() => {
+  window.chordPlayingVideo?.requestPictureInPicture().catch(() => {});
+  window.chordPlayingVideo = null;
+})())";
+
+// Puts the page's playing video in picture-in-picture. It works for any video, muted
+// ones and those under the player's own layers included (Twitch's cover the video, so
+// the context menu's action on the video under a point would find nothing). The API
+// asks for a user activation, which the user leaving the tab or pressing the shortcut
+// stands for. A video the script cannot reach (inside another site's frame) goes
+// through the media session instead, for the ones it knows.
 void EnterPictureInPicture(content::WebContents* contents) {
   base::WeakPtr<content::WebContents> weak = contents->GetWeakPtr();
   contents->GetPrimaryMainFrame()->ExecuteJavaScriptInIsolatedWorld(
@@ -208,26 +215,16 @@ void EnterPictureInPicture(content::WebContents* contents) {
             if (!contents || IsInPictureInPicture(contents)) {
               return;
             }
-            const base::ListValue* list = result.GetIfList();
-            if (!list || list->size() != 3) {
+            if (!result.GetIfBool().value_or(false)) {
               content::MediaSession::Get(contents)->EnterPictureInPicture();
               return;
             }
-            // CSS pixels to the view's DIPs: the page zoom, read from the viewport.
-            double viewport = (*list)[2].GetIfDouble().value_or(
-                (*list)[2].GetIfInt().value_or(0));
-            int width = contents->GetContainerBounds().width();
-            double scale = viewport > 0 && width > 0 ? width / viewport : 1;
-            auto coordinate = [&](const base::Value& value) {
-              return static_cast<int>(
-                  value.GetIfDouble().value_or(value.GetIfInt().value_or(0)) *
-                  scale);
-            };
-            contents->GetPrimaryMainFrame()->ExecuteMediaPlayerActionAtLocation(
-                gfx::Point(coordinate((*list)[0]), coordinate((*list)[1])),
-                blink::mojom::MediaPlayerAction(
-                    blink::mojom::MediaPlayerActionType::kPictureInPicture,
-                    /*enable=*/true));
+            content::RenderFrameHost* frame = contents->GetPrimaryMainFrame();
+            frame->NotifyUserActivation(
+                blink::mojom::UserActivationNotificationType::kInteraction);
+            frame->ExecuteJavaScriptInIsolatedWorld(
+                kRequestPictureInPicture, base::DoNothing(),
+                ISOLATED_WORLD_ID_CHROME_INTERNAL);
           },
           weak),
       ISOLATED_WORLD_ID_CHROME_INTERNAL);
