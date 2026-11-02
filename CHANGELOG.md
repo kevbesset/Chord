@@ -26,6 +26,8 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- A link opened in a little window gives the keyboard to the page instead of the address,
+  and the window opens faster.
 - The command bar has a fixed maximum size: a very long address no longer widens it,
   or the window with it, and a long list of results scrolls.
 - In a private window, opening a link in a new tab with a middle click no longer brings

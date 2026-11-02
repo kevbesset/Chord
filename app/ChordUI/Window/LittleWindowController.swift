@@ -63,6 +63,9 @@ final class LittleWindowController: NSWindowController, NSWindowDelegate, NSText
         if let url {
             page.load(url)
             updateAddress(url: url)
+            // The keyboard goes to the page. Left alone, AppKit starts editing the
+            // address, and laying out its text took most of the window's opening.
+            window.initialFirstResponder = page.view
         }
         window.center()
         window.setFrameOrigin(NSPoint(x: window.frame.minX + 120, y: window.frame.minY - 60))
