@@ -87,7 +87,7 @@ errors before handing back.
   history and site data of each Arc profile into the Chord profile of its Spaces), home
   page (when no tab is open: closing a tab goes back to the last tab still active, never
   to a sleeping tab), downloads (Arc-style panel, ⇧⌘J), session.
-- **Chord on Chromium** (spike 0, `engine/`): ChordUI runs in Chromium 155
+- **Chord on Chromium** (spike 0, `engine/`): ChordUI runs in Chromium 156
   (ungoogled-chromium), built by `engine/scripts/build.sh`. Verified: pages show in
   Chord's windows, extensions work (content scripts, `chrome.tabs`, tabs opened by an
   extension adopted by ChordUI), DevTools (⌥⌘I) docked in the window on the right, left

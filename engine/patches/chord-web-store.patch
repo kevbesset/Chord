@@ -43,7 +43,19 @@ Chord: the real Chrome Web Store, which ungoogled-chromium cut off: its pages in
      // chrome/common/extensions/webstore_override.cc
 --- a/extensions/browser/webstore_installer.cc
 +++ b/extensions/browser/webstore_installer.cc
-@@ -481,6 +481,21 @@
+@@ -98,6 +98,11 @@
+ 
+ constexpr base::TimeDelta kTimeRemainingThreshold = base::Seconds(1);
+ 
++// Folder for downloading crx files from the webstore. This is used so that the
++// crx files don't go via the usual downloads folder.
++const base::FilePath::CharType kWebstoreDownloadFolder[] =
++    FILE_PATH_LITERAL("Webstore Downloads");
++
+ base::FilePath* g_download_directory_for_tests = nullptr;
+ 
+ [[maybe_unused]]
+@@ -481,6 +486,21 @@
  
  void WebstoreInstaller::DownloadCrx(const ExtensionId& extension_id,
                                      InstallSource source) {
@@ -65,7 +77,7 @@ Chord: the real Chrome Web Store, which ungoogled-chromium cut off: its pages in
  }
  
  // http://crbug.com/40957413
-@@ -635,6 +650,24 @@
+@@ -635,6 +655,24 @@
  void WebstoreInstaller::StartCrxInstaller(const DownloadItem& download) {
    DCHECK_CURRENTLY_ON(BrowserThread::UI);
    DCHECK(!crx_installer_.get());

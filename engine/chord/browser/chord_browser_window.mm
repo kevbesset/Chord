@@ -523,6 +523,10 @@ ui::AcceleratorProvider* ChordBrowserWindow::GetAcceleratorProvider() {
   return this;
 }
 
+PinnedToolbarActions* ChordBrowserWindow::GetPinnedToolbarActions() {
+  return nullptr;
+}
+
 void ChordBrowserWindow::SetFocusToLocationBar(bool is_user_initiated) {}
 void ChordBrowserWindow::UpdateReloadStopState(bool is_loading, bool force) {}
 void ChordBrowserWindow::UpdateToolbar(content::WebContents* contents) {}

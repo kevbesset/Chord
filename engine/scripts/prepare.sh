@@ -18,7 +18,7 @@ ARCH="${1:-arm64}"
 # depot_tools wants Python 3.13 or older; Homebrew's comes first if installed.
 export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 # Chromium's bundled linker cannot read the macOS 27 SDK (Xcode 27): use 26.5, the SDK
-# Chromium 155 is built with, from the Command Line Tools.
+# Chromium 156 is built with, from the Command Line Tools.
 export SDKROOT="${SDKROOT:-/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk}"
 
 if [ -f "$DONE" ]; then

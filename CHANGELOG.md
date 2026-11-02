@@ -20,6 +20,10 @@ What changes in Chord, version by version. Each change adds a line under
   besides a phone or a security key.
 - The color picker's eyedropper works (EyeDropper, `<input type="color">`).
 
+### Changed
+
+- Chord now runs on Chromium 156 (156.0.8078.47).
+
 ### Fixed
 
 - The command bar has a fixed maximum size: a very long address no longer widens it,

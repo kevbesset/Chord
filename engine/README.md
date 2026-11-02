@@ -32,7 +32,7 @@ the next ones only recompile what changed.
 
 Good to know:
 
-- **macOS SDK 26.5.** The linker that ships with Chromium 155 can't read Xcode 27's
+- **macOS SDK 26.5.** The linker that ships with Chromium 156 can't read Xcode 27's
   macOS 27 SDK. The scripts use the Command Line Tools one
   (`/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk`), linked into the output
   folder for GN.
@@ -60,9 +60,9 @@ Good to know:
   the Objective-C runtime (`NSClassFromString(@"ChordUIHost")`). The protocols have
   fixed Objective-C names, mirrored in `engine/chord/browser/chord_ui.h`.
 
-## Status (October 24, 2026)
+## Status (November 2, 2026)
 
-Chord runs on Chromium 155. Verified through the DevTools protocol: pages show in
+Chord runs on Chromium 156. Verified through the DevTools protocol: pages show in
 ChordUI's windows (little window included); an unpacked extension injects its content
 scripts into Chord's pages; `chrome.tabs` sees Chord's tabs; a tab created by an
 extension appears in today's tabs. DevTools (⌥⌘I) dock into Chord's window: they fill

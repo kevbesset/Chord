@@ -15,7 +15,7 @@ Chord: the app is Chord (name, bundle id, team: the keychain group of passkeys k
 +PRODUCT_INSTALLER_FULLNAME=Chord Installer
 +PRODUCT_INSTALLER_SHORTNAME=Chord Installer
  COPYRIGHT=Copyright @LASTCHANGE_YEAR@ The Chromium Authors. All rights reserved.
--MAC_BUNDLE_ID=org.chromium.Chromium
+-MAC_BUNDLE_ID=io.ungoogled-software.ungoogled-chromium
 +MAC_BUNDLE_ID=app.chord.Chord
  MAC_CREATOR_CODE=Cr24
 -MAC_TEAM_ID=

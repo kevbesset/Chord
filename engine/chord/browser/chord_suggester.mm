@@ -22,10 +22,11 @@ Suggester::Suggester(Profile* profile)
           std::make_unique<ChromeAutocompleteProviderClient>(profile),
           // Pages only: ChordUI makes its own search row, with its own engine.
           AutocompleteControllerConfig{
-              .provider_types = AutocompleteProvider::TYPE_HISTORY_QUICK |
-                                AutocompleteProvider::TYPE_HISTORY_URL |
-                                AutocompleteProvider::TYPE_BOOKMARK |
-                                AutocompleteProvider::TYPE_SHORTCUTS})) {
+              .provider_types =
+                  static_cast<int>(AutocompleteProvider::Type::kHistoryQuick |
+                                   AutocompleteProvider::Type::kHistoryUrl |
+                                   AutocompleteProvider::Type::kBookmark |
+                                   AutocompleteProvider::Type::kShortcuts)})) {
   controller_->AddObserver(this);
 }
 
@@ -52,7 +53,7 @@ void Suggester::OnResultChanged(AutocompleteController* controller,
   for (const AutocompleteMatch& match : controller->result()) {
     if (!match.destination_url.is_valid() ||
         AutocompleteMatch::IsSearchType(match.type) ||
-        match.type == AutocompleteMatchType::URL_WHAT_YOU_TYPED) {
+        match.type == omnibox::AutocompleteMatchType::kUrlWhatYouTyped) {
       continue;
     }
     bool top_hit = match.allowed_to_be_default_match &&
