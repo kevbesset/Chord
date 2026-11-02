@@ -25,6 +25,7 @@ What changes in Chord, version by version. Each change adds a line under
 ### Changed
 
 - Chord now runs on Chromium 156 (156.0.8078.47).
+- The command bar opens faster.
 
 ### Fixed
 

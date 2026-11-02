@@ -144,6 +144,9 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         field.cell?.usesSingleLineMode = true
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         field.delegate = self
+        // Left unset, AppKit looks for one-time codes to fill each time the field takes
+        // the focus, and builds a window for them while the bar opens.
+        field.contentType = .URL
 
         header.setViews([searchIcon, field], in: .leading)
         header.orientation = .horizontal

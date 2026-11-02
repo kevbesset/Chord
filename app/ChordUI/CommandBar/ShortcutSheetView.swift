@@ -5,6 +5,7 @@ import AppKit
 final class ShortcutSheetView: NSView {
     private typealias C = BrowserWindowController
     private let grid = NSGridView()
+    private var shownShortcuts: [String?]?
 
     /// The actions shown, in reading order; the shortcuts come from the menu bar.
     private static let entries: [(title: String, action: Selector)] = [
@@ -40,11 +41,15 @@ final class ShortcutSheetView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    /// Reads the shortcuts again: they may have been remapped since.
+    /// Reads the shortcuts again: they may have been remapped since. The grid is a good
+    /// part of the bar's opening, so it is only built again when one has.
     func refresh() {
+        let shortcuts = Self.entries.map { MainMenu.shortcutDisplay(for: $0.action) }
+        guard shortcuts != shownShortcuts else { return }
+        shownShortcuts = shortcuts
         while grid.numberOfRows > 0 { grid.removeRow(at: 0) }
-        var cells: [NSView] = Self.entries.compactMap { entry in
-            MainMenu.shortcutDisplay(for: entry.action).map { cell(keys: $0, title: entry.title) }
+        var cells: [NSView] = zip(Self.entries, shortcuts).compactMap { entry, keys in
+            keys.map { cell(keys: $0, title: entry.title) }
         }
         // Peek has no menu item: it is a ⇧-click on a link, like Arc's.
         cells.append(cell(keys: String(localized: "⇧-click", bundle: .chordUI), title: String(localized: "Peek", bundle: .chordUI)))
