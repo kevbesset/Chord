@@ -43,7 +43,8 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
     private var anchoredLeading: NSLayoutConstraint!
     private var anchoredTop: NSLayoutConstraint!
     private var anchoredWidth: NSLayoutConstraint!
-    private let results = NSStackView()
+    private let results = ResultsStackView()
+    private let resultsScroll = NSScrollView()
     /// The shortcuts, under the results while nothing is typed.
     private let shortcutSheet = ShortcutSheetView()
     private var isCompact = false
@@ -61,6 +62,9 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
 
     private static let maxTabs = 6
     private static let maxHistory = 6
+    private static let maxWidth: CGFloat = 680
+    /// Nine rows and part of the next, which says that the list scrolls.
+    private static let maxResultsHeight: CGFloat = 420
 
     init(state: BrowserState, settings: ChordSettings) {
         self.state = state
@@ -150,6 +154,16 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         results.alignment = .width
         results.spacing = 0
         results.edgeInsets = NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+        results.distribution = .fill
+        results.setHuggingPriority(.required, for: .vertical)
+        results.translatesAutoresizingMaskIntoConstraints = false
+        resultsScroll.documentView = results
+        resultsScroll.drawsBackground = false
+        resultsScroll.contentView.drawsBackground = false
+        resultsScroll.hasVerticalScroller = true
+        resultsScroll.autohidesScrollers = true
+        resultsScroll.scrollerStyle = .overlay
+        resultsScroll.translatesAutoresizingMaskIntoConstraints = false
 
         // Mockup: navigation hints on the left, "esc to close" on the right.
         let hints = NSTextField(labelWithString: String(localized: "↑ ↓ navigate      ↩ open      ⌘↩ new tab", bundle: .chordUI))
@@ -172,7 +186,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         footerViews = [footerRule, footer]
         let sheetRule = makeRule()
         shortcutSheet.translatesAutoresizingMaskIntoConstraints = false
-        let column = NSStackView(views: [header, makeRule(), results, sheetRule, shortcutSheet, footerRule, footer])
+        let column = NSStackView(views: [header, makeRule(), resultsScroll, sheetRule, shortcutSheet, footerRule, footer])
         sheetViews = [sheetRule, shortcutSheet]
         column.orientation = .vertical
         column.alignment = .width
@@ -187,12 +201,15 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         panelHost.addSubview(panel)
         panel.addSubview(column)
 
-        // 680 pt like the mockup, narrower when the page area is.
-        let preferredWidth = panelHost.widthAnchor.constraint(equalToConstant: 680)
-        preferredWidth.priority = .defaultHigh
+        // 680 pt like the mockup, narrower when the page area is, and never wider. This
+        // wish, and what is inside, stay below the priority that holds the window's size
+        // (500), or they would push the page area, and through it the window.
+        let preferredWidth = panelHost.widthAnchor.constraint(equalToConstant: Self.maxWidth)
+        preferredWidth.priority = NSLayoutConstraint.Priority(490)
         centeredConstraints = [
             panelHost.centerXAnchor.constraint(equalTo: area.centerXAnchor),
             panelHost.topAnchor.constraint(equalTo: host.topAnchor, constant: 140),
+            panelHost.widthAnchor.constraint(lessThanOrEqualToConstant: Self.maxWidth),
             panelHost.widthAnchor.constraint(lessThanOrEqualTo: area.widthAnchor, constant: -40),
             preferredWidth,
         ]
@@ -200,7 +217,18 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         anchoredTop = panelHost.topAnchor.constraint(equalTo: host.topAnchor)
         anchoredWidth = panelHost.widthAnchor.constraint(equalToConstant: 560)
         headerHeight = header.heightAnchor.constraint(equalToConstant: 60)
+        // As tall as its results, up to a fixed height and what the window leaves: then it
+        // scrolls. Below the priority that holds the window's size, like the width.
+        let resultsHeight = resultsScroll.heightAnchor.constraint(equalTo: results.heightAnchor)
+        resultsHeight.priority = NSLayoutConstraint.Priority(490)
         NSLayoutConstraint.activate([
+            panelHost.bottomAnchor.constraint(lessThanOrEqualTo: host.bottomAnchor, constant: -16),
+            resultsScroll.heightAnchor.constraint(lessThanOrEqualToConstant: Self.maxResultsHeight),
+            resultsHeight,
+            results.topAnchor.constraint(equalTo: resultsScroll.contentView.topAnchor),
+            results.leadingAnchor.constraint(equalTo: resultsScroll.contentView.leadingAnchor),
+            results.trailingAnchor.constraint(equalTo: resultsScroll.contentView.trailingAnchor),
+
             scrim.topAnchor.constraint(equalTo: host.topAnchor),
             scrim.leadingAnchor.constraint(equalTo: host.leadingAnchor),
             scrim.trailingAnchor.constraint(equalTo: host.trailingAnchor),
@@ -219,7 +247,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             // Every row of the column spans the panel: a nested stack view would otherwise
             // shrink to its content and drift to one side.
             header.widthAnchor.constraint(equalTo: column.widthAnchor),
-            results.widthAnchor.constraint(equalTo: column.widthAnchor),
+            resultsScroll.widthAnchor.constraint(equalTo: column.widthAnchor),
             footer.widthAnchor.constraint(equalTo: column.widthAnchor),
             shortcutSheet.widthAnchor.constraint(equalTo: column.widthAnchor),
             headerHeight,
@@ -414,6 +442,17 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             addFullWidth(sectionLabel(String(localized: "No Results", bundle: .chordUI)))
         }
         updateSelection()
+        revealSelection()
+    }
+
+    /// Keeps the selected row in the list's view, and the first one with its section title.
+    private func revealSelection() {
+        if selectedIndex > 0, rows.indices.contains(selectedIndex) {
+            results.layoutSubtreeIfNeeded()
+            rows[selectedIndex].scrollToVisible(rows[selectedIndex].bounds)
+        } else {
+            results.scroll(.zero)
+        }
     }
 
     /// A stack view's .width alignment alone leaves rows at their fitting size, pushed
@@ -451,6 +490,7 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
         selectedIndex = ((selectedIndex + delta) % items.count + items.count) % items.count
         selectionMoved = true
         updateSelection()
+        revealSelection()
         // The focus stays in the field: VoiceOver says which result is picked.
         let item = items[selectedIndex]
         let spoken = [item.title, item.subtitle, item.section].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
@@ -519,4 +559,9 @@ final class CommandBarController: NSObject, NSTextFieldDelegate {
             return false
         }
     }
+}
+
+/// Flipped, so that the list scrolls from its first row.
+private final class ResultsStackView: NSStackView {
+    override var isFlipped: Bool { true }
 }

@@ -22,6 +22,10 @@ What changes in Chord, version by version. Each change adds a line under
 
 ### Fixed
 
+- The command bar has a fixed maximum size: a very long address no longer widens it,
+  or the window with it, and a long list of results scrolls.
+- In a private window, opening a link in a new tab with a middle click no longer brings
+  up the command bar.
 - With several windows, swiping through the Spaces in a window that isn't the front one
   goes to the next Space, without skipping the one the other window shows.
 - Videos whose player covers them with its own layers, like Twitch lives, go to picture

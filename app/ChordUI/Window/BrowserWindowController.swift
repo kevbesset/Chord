@@ -27,6 +27,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     let pageArea = PageAreaView()
     let edgeHover = EdgeHoverView()
     lazy var commandBar = CommandBarController(state: state, settings: settings)
+    private var hasBeenShown = false
     let siteControls = SiteControlsController()
     var siteControlsTabID: UUID?
     let permissionPrompt = PermissionPromptController()
@@ -134,6 +135,10 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     public override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
         positionTrafficLights()
+        // Shown again for the Dock, and each time Chromium opens a link (a middle click):
+        // what a new window starts with only comes once.
+        guard !hasBeenShown else { return }
+        hasBeenShown = true
         if state.isPrivate {
             DispatchQueue.main.async { [weak self] in self?.newTab(nil) }
         } else if PerfReplay.isActive {

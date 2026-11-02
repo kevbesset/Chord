@@ -24,11 +24,14 @@ final class ShortcutSheetView: NSView {
         grid.columnSpacing = 14
         grid.translatesAutoresizingMaskIntoConstraints = false
         addSubview(grid)
+        // In a narrow bar the grid is cut at the edge: it must not widen the bar.
+        let trailing = grid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -22)
+        trailing.priority = .defaultLow
         NSLayoutConstraint.activate([
             grid.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             grid.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
             grid.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
-            grid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -22),
+            trailing,
         ])
         setAccessibilityElement(true)
         setAccessibilityRole(.group)

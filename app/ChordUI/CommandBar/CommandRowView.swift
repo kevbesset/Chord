@@ -44,6 +44,9 @@ final class CommandRowView: NSView {
         subtitle.lineBreakMode = .byTruncatingTail
         subtitle.isHidden = (item.subtitle ?? "").isEmpty
         subtitle.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        // Just above the title's, and far below what holds the window's size: a long address
+        // truncates, it never widens the bar or the window.
+        subtitle.setContentCompressionResistancePriority(NSLayoutConstraint.Priority(251), for: .horizontal)
 
         let shortcut = NSTextField(labelWithString: item.shortcut ?? "")
         shortcut.font = .systemFont(ofSize: 12)
@@ -65,6 +68,8 @@ final class CommandRowView: NSView {
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            // A long address leaves room for the title.
+            subtitle.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, multiplier: 0.45),
         ])
 
         setAccessibilityElement(true)
