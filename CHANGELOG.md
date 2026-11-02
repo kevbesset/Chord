@@ -6,6 +6,8 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-02
+
 ### Added
 
 - A page sharing your screen, a window or a tab shows a purple badge in the sidebar:
