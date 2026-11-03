@@ -157,9 +157,9 @@ final class SidebarView: NSView {
     }
 
     /// The update button above the Spaces, for a downloaded version, or nothing.
-    func updateAvailableVersion(_ version: String?) {
-        if let version { updateButton.update(version: version) }
-        let shown = version != nil
+    func updateAvailable(_ update: Updates.State?) {
+        if let update { updateButton.update(state: update) }
+        let shown = update != nil
         guard updateButton.isHidden == shown else { return }
         updateButton.isHidden = !shown
         updateHeight.constant = shown ? UpdateButton.height : 0

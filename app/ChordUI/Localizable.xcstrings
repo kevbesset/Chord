@@ -1163,6 +1163,22 @@
         }
       }
     },
+    "Chord restarts on the new version once it is downloaded": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chord se reinicia con la nueva versión en cuanto se descarga"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chord redémarre sur la nouvelle version dès qu'elle est téléchargée"
+          }
+        }
+      }
+    },
     "Clear": {
       "localizations": {
         "es": {
@@ -1739,6 +1755,22 @@
         }
       }
     },
+    "Download and install the new version": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargar e instalar la nueva versión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Télécharger et installer la nouvelle version"
+          }
+        }
+      }
+    },
     "Download failed": {
       "localizations": {
         "es": {
@@ -1767,6 +1799,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Téléchargé depuis une adresse non sécurisée"
+          }
+        }
+      }
+    },
+    "Downloading Update…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargando…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargement…"
           }
         }
       }

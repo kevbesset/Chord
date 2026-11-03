@@ -435,11 +435,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
         NotificationCenter.default.publisher(for: PageHostView.didMoveNotification)
             .sink { [weak self] _ in self?.pagesDidMove() }
             .store(in: &cancellables)
-        // A new version of Chord, downloaded: its button above the Spaces.
-        NotificationCenter.default.publisher(for: Updates.readyNotification)
-            .sink { [weak self] _ in self?.sidebar.updateAvailableVersion(Updates.shared.readyVersion) }
+        // A new version of Chord: its button above the Spaces.
+        NotificationCenter.default.publisher(for: Updates.stateNotification)
+            .sink { [weak self] _ in self?.sidebar.updateAvailable(Updates.shared.state) }
             .store(in: &cancellables)
-        sidebar.updateAvailableVersion(Updates.shared.readyVersion)
+        sidebar.updateAvailable(Updates.shared.state)
         commandBar.actionsProvider = { [weak self] in self?.commandActions() ?? [] }
         commandBar.onDismiss = { [weak self] in self?.focusPage() }
         permissionPrompt.onClose = { [weak self] in self?.permissionPromptClosed() }

@@ -1,7 +1,8 @@
 import AppKit
 
-/// The sidebar's update button, above the Spaces, like Arc's: shown once a new version
-/// of Chord is downloaded. A click restarts Chord on it.
+/// The sidebar's update button, above the Spaces, like Arc's: shown as soon as a new
+/// version of Chord is found. A click installs it and restarts Chord on it, once it is
+/// downloaded.
 final class UpdateButton: NSView {
     var onClick: (() -> Void)?
 
@@ -37,7 +38,6 @@ final class UpdateButton: NSView {
             version.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             version.firstBaselineAnchor.constraint(equalTo: title.firstBaselineAnchor),
         ])
-        toolTip = String(localized: "Restart Chord on the new version", bundle: .chordUI)
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel(title.stringValue)
@@ -45,10 +45,28 @@ final class UpdateButton: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    /// The version waiting to be installed ("0.4.0").
-    func update(version: String) {
+    /// The new version ("0.4.0") and where it stands.
+    func update(state: Updates.State) {
+        let version: String
+        icon.contentTintColor = .controlAccentColor
+        title.stringValue = String(localized: "Update Chord", bundle: .chordUI)
+        switch state {
+        case .available(let v):
+            version = v
+            toolTip = String(localized: "Download and install the new version", bundle: .chordUI)
+        case .downloading(let v):
+            version = v
+            icon.contentTintColor = .secondaryLabelColor
+            title.stringValue = String(localized: "Downloading Update…", bundle: .chordUI)
+            toolTip = String(localized: "Chord restarts on the new version once it is downloaded", bundle: .chordUI)
+        case .ready(let v):
+            version = v
+            toolTip = String(localized: "Restart Chord on the new version", bundle: .chordUI)
+        }
         self.version.stringValue = version
+        setAccessibilityLabel(title.stringValue)
         setAccessibilityValue(version)
+        setAccessibilityHelp(toolTip)
     }
 
     override var wantsUpdateLayer: Bool { true }

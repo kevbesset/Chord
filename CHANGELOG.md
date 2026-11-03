@@ -6,6 +6,12 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Changed
+
+- Chord looks for a new version every hour, and at launch, instead of once a day. Its
+  Update Chord button shows above the Spaces as soon as one is found, while it downloads:
+  a click installs it and restarts Chord, waiting for the download if needed.
+
 ## 0.4.0 — 2026-11-02
 
 ### Added
