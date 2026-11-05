@@ -11,6 +11,14 @@ What changes in Chord, version by version. Each change adds a line under
 - Chord looks for a new version every hour, and at launch, instead of once a day. Its
   Update Chord button shows above the Spaces as soon as one is found, while it downloads:
   a click installs it and restarts Chord, waiting for the download if needed.
+- New tabs go to the bottom of today's tabs instead of the top, and the sidebar scrolls
+  to show the tab just opened. So do reopened (⇧⌘T) and restored archived tabs.
+
+### Fixed
+
+- The top of the page no longer moves the window: a click on a search field there (on
+  Amazon, for example) reaches the page. Only the gap around the page moves it, like
+  the empty space of the sidebar.
 
 ## 0.4.0 — 2026-11-02
 

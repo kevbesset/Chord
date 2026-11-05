@@ -5,7 +5,7 @@ import Combine
 extension BrowserState {
     // MARK: - Tabs
 
-    /// Opens a tab at the top of today's tabs, in the active Space or in `space`. `page`,
+    /// Opens a tab at the bottom of today's tabs, in the active Space or in `space`. `page`,
     /// when given, is adopted as it is (from a Peek or a little window) instead of
     /// loading the URL again.
     @discardableResult
@@ -18,7 +18,7 @@ extension BrowserState {
             page.delegate = self
             tab.page = page
         }
-        space.today.insert(tab, at: 0)
+        space.today.append(tab)
         changes.send(.tabs)
         if select { self.select(tab) }
         scheduleSave()
@@ -97,7 +97,7 @@ extension BrowserState {
         let space = spaces.first { $0.id == closed.spaceID } ?? activeSpace
         let tab = Tab(snapshot: closed.snapshot, section: .today)
         removeFromArchive(id: tab.id)
-        space.today.insert(tab, at: 0)
+        space.today.append(tab)
         changes.send(.tabs)
         select(tab)
     }

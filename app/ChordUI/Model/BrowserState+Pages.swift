@@ -240,7 +240,7 @@ extension BrowserState: ChordWebPageDelegate {
 }
 
 extension BrowserState: ChordWebEngineDelegate {
-    /// A page the engine opened by itself goes to the top of today's tabs, in the Space
+    /// A page the engine opened by itself goes to the bottom of today's tabs, in the Space
     /// of the page that opened it.
     public func engine(_ engine: ChordWebEngine, didOpen page: ChordWebPage, opener: ChordWebPage?, inBackground: Bool) {
         guard tab(owning: page) == nil else { return }

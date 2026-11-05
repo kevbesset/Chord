@@ -88,6 +88,7 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     func update(space: Space, spaces: [Space], selectedID: UUID?, splitIDs: Set<UUID>) {
+        let selectionChanged = selectedID != self.selectedID
         self.space = space
         self.spaces = spaces
         self.selectedID = selectedID
@@ -100,6 +101,12 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
         restoringExpansion = true
         expandSaved(space.pinnedItems)
         restoringExpansion = false
+        // New tabs go to the bottom of the list: the one just selected stays in sight.
+        if selectionChanged, let selectedID,
+           let tab = space.allTabs.first(where: { $0.id == selectedID }) {
+            let row = outline.row(forItem: tab)
+            if row >= 0 { outline.scrollRowToVisible(row) }
+        }
     }
 
     private func expandSaved(_ items: [PinnedItem]) {

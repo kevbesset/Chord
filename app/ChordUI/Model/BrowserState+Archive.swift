@@ -63,7 +63,7 @@ extension BrowserState {
         changes.send(.archive)
     }
 
-    /// Opens an archived tab again at the top of today's tabs, in its Space when it still
+    /// Opens an archived tab again at the bottom of today's tabs, in its Space when it still
     /// exists, and selects it.
     public func restore(_ archived: ArchivedTab) {
         let space = spaces.first { $0.id == archived.spaceID } ?? activeSpace
@@ -71,7 +71,7 @@ extension BrowserState {
         closedTabs.removeAll { $0.snapshot.id == archived.id }
         let tab = Tab(snapshot: archived.snapshot, section: .today)
         tab.lastSelected = Date()
-        space.today.insert(tab, at: 0)
+        space.today.append(tab)
         changes.send(.tabs)
         select(tab)
     }
