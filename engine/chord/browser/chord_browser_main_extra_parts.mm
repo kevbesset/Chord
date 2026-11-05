@@ -4,7 +4,6 @@
 #include "chord/browser/chord_hooks.h"
 
 #import <AppKit/AppKit.h>
-#import <objc/runtime.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -140,34 +139,6 @@ void GoBackToTabOnPictureInPictureDoubleClick() {
   }];
 }
 
-// The top of a page does not move Chord's windows. Chromium's page view says a click
-// can move its window, so that `-webkit-app-region: drag` works in app windows. In
-// ChordUI's windows the title bar lies over the top of the page (full-size content),
-// and the window server moved the window from there instead of giving the page the
-// click (a search field at the top of the page). Only the gap around the page card
-// moves them now. Chromium's own Views windows keep the original behavior.
-void KeepPagesFromMovingChordWindows() {
-  Class page_view = NSClassFromString(@"RenderWidgetHostViewCocoa");
-  SEL selector = @selector(mouseDownCanMoveWindow);
-  Method method =
-      page_view ? class_getInstanceMethod(page_view, selector) : nullptr;
-  if (!method) {
-    LOG(ERROR) << "Chord: no -[RenderWidgetHostViewCocoa mouseDownCanMoveWindow]";
-    return;
-  }
-  Class views_window = NSClassFromString(@"NativeWidgetMacNSWindow");
-  using Original = BOOL (*)(id, SEL);
-  Original original =
-      reinterpret_cast<Original>(method_getImplementation(method));
-  method_setImplementation(
-      method, imp_implementationWithBlock(^BOOL(NSView* view) {
-        if (views_window && [view.window isKindOfClass:views_window]) {
-          return original(view, selector);
-        }
-        return NO;
-      }));
-}
-
 void StartChordUI() {
   if (g_started || !LoadChordUI()) {
     return;
@@ -191,7 +162,6 @@ void StartChordUI() {
           isDirectory:YES];
   [Host() startWithEngine:engine appName:@"Chord" supportDirectory:support];
   GoBackToTabOnPictureInPictureDoubleClick();
-  KeepPagesFromMovingChordWindows();
 }
 
 // Chromium's own pages (settings, "About") name the product in every language:

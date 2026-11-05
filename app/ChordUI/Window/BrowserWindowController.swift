@@ -20,7 +20,7 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
     /// Called once the window has closed, for its host to let it go.
     public var onClose: ((BrowserWindowController) -> Void)?
 
-    let rootView = NSVisualEffectView()
+    let rootView = WindowGlassView()
     let frostView = GlassFrostView()
     let tintView = SpaceTintView()
     let sidebar = SidebarView()
@@ -347,14 +347,11 @@ public final class BrowserWindowController: NSWindowController, NSWindowDelegate
                 })
             }
         }
-        // Only as wide as the lights: across the whole window, the title bar would catch
-        // the clicks on the top of the page (a search field there moved the window). The
-        // gap above the page card still moves the window, like Arc's.
         let height = Theme.titleRowCenter * 2
-        let width = Theme.trafficLightsWidth
         var frame = container.frame
-        if frame.height != height || frame.maxY != window.frame.height || frame.width != width || frame.minX != 0 {
-            frame = NSRect(x: 0, y: window.frame.height - height, width: width, height: height)
+        if frame.height != height || frame.maxY != window.frame.height {
+            frame.size.height = height
+            frame.origin.y = window.frame.height - height
             container.frame = frame
         }
         titlebar.frame = container.bounds

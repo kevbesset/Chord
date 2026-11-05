@@ -370,3 +370,15 @@ func makeRule() -> NSView {
     rule.translatesAutoresizingMaskIntoConstraints = false
     return rule
 }
+
+/// The browser window's glass, its content view. The title bar lies over the top of the
+/// page (full-size content, taller for the traffic lights), and the page is drawn out of
+/// process, so it looks transparent to AppKit: the window server moved the window from
+/// the top of the page instead of giving the page the click (a search field there).
+/// Like Chromium's own windows, the whole content view says it is opaque for window
+/// moves (an undocumented AppKit method): the window server leaves every click to
+/// Chord, and only what can move the window does (the gap around the page, the
+/// sidebar's empty space).
+final class WindowGlassView: NSVisualEffectView {
+    @objc func _opaqueRectForWindowMoveWhenInTitlebar() -> NSRect { bounds }
+}

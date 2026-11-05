@@ -17,8 +17,8 @@ What changes in Chord, version by version. Each change adds a line under
 ### Fixed
 
 - The top of the page no longer moves the window: a click on a search field there (on
-  Amazon, for example) reaches the page. Only the gap around the page moves it, like
-  the empty space of the sidebar.
+  Amazon, for example) reaches the page. The gap above the page and the sidebar's
+  empty space still move it.
 
 ## 0.4.0 — 2026-11-02
 
