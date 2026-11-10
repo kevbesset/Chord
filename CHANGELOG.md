@@ -6,6 +6,11 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+## 0.4.1 — 2026-11-10
+
+Tabs dragged out of Chord open in a new window, the top of the page no longer moves
+the window, and new tabs go to the bottom.
+
 ### Added
 
 - A tab or a favorite dragged out of Chord and dropped elsewhere (on the desktop, say)
