@@ -17,6 +17,7 @@ public enum Perf {
         "peek.open": 100,
         "split.toggle": 100,
         "littlewindow.open": 100,
+        "tab.tearoff": 100,
         "sitecontrols.open": 50,
         "permission.prompt": 50,
         "find.open": 50,

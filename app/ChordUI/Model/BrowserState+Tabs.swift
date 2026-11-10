@@ -68,27 +68,45 @@ extension BrowserState {
         }
         removeFromSplits(tab)
 
-        if wasSelected {
-            // Back to the other pane of a split, else to the most recently used tab that is
-            // still awake, like Arc. Sleeping tabs are not woken up: with none awake, the
-            // Space shows Chord's home page.
-            let next: Tab?
-            if let partner = splitPartners.first.flatMap({ id in self.tab(withID: id) }), wasVisible {
-                next = partner
-            } else {
-                next = sidebarTabs(in: space)
-                    .filter { $0 !== tab && $0.isAwake }
-                    .max { $0.lastSelected < $1.lastSelected }
-            }
-            space.selectedTabID = next?.id
-            if let next, space.id == activeSpaceID {
-                next.lastSelected = Date()
-                for visible in visibleTabs { page(for: visible) }
-            }
-        }
+        if wasSelected { selectNext(after: tab, in: space, splitPartners: splitPartners, wasVisible: wasVisible) }
         changes.send(.tabs)
         if wasSelected || wasVisible { changes.send(.selection) }
         scheduleSave()
+    }
+
+    /// The loaded window lets `tab` go to another window (dragged out of Chord): it
+    /// leaves this window's split, and the window shows what it would after closing it.
+    public func leave(_ tab: Tab) {
+        guard let space = owningSpace(of: tab),
+              space.selectedTabID == tab.id || space.split.contains(tab.id) else { return }
+        let wasVisible = visibleTabs.contains { $0 === tab }
+        let splitPartners = space.split.filter { $0 != tab.id }
+        space.split.removeAll { $0 == tab.id }
+        if space.split.count < 2 { space.split = [] }
+        if space.selectedTabID == tab.id {
+            selectNext(after: tab, in: space, splitPartners: splitPartners, wasVisible: wasVisible)
+        }
+        changes.send(.selection)
+        scheduleSave()
+    }
+
+    /// After the selected tab leaves: back to the other pane of a split, else to the most
+    /// recently used tab that is still awake, like Arc. Sleeping tabs are not woken up:
+    /// with none awake, the Space shows Chord's home page.
+    private func selectNext(after tab: Tab, in space: Space, splitPartners: [UUID], wasVisible: Bool) {
+        let next: Tab?
+        if let partner = splitPartners.first.flatMap({ id in self.tab(withID: id) }), wasVisible {
+            next = partner
+        } else {
+            next = sidebarTabs(in: space)
+                .filter { $0 !== tab && $0.isAwake }
+                .max { $0.lastSelected < $1.lastSelected }
+        }
+        space.selectedTabID = next?.id
+        if let next, space.id == activeSpaceID {
+            next.lastSelected = Date()
+            for visible in visibleTabs { page(for: visible) }
+        }
     }
 
     /// ⇧⌘T: brings back the last tab closed with ⌘W.

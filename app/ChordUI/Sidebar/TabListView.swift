@@ -233,6 +233,15 @@ final class TabListView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate,
 
     /// Where a drop lands. In a folder; or at the top level: the pinned tabs down to the
     /// "Today" header, today's tabs from "New Tab" down.
+    /// A tab dropped outside Chord opens in a new window there, like Arc.
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession,
+                     endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        guard TabDragOut.opensWindow(endedAt: screenPoint, operation: operation),
+              let id = session.draggingPasteboard.string(forType: .chordTab).flatMap(UUID.init(uuidString:)),
+              let tab = delegate?.sidebarTab(withID: id) else { return }
+        delegate?.sidebarOpenInNewWindow(tab, at: screenPoint)
+    }
+
     private func destination(item: Any?, index: Int) -> TabDestination? {
         guard let space else { return nil }
         if let folder = item as? Folder {
@@ -364,6 +373,13 @@ final class SidebarOutlineView: NSOutlineView {
     /// A middle click on a row, like a browser's on a tab: closes it.
     var onMiddleClick: (Int) -> Void = { _ in }
     private var middleClickRow: Int?
+
+    /// A tab dragged outside Chord: other apps may take its address, not the desktop or
+    /// Finder (see `TabDragOut`). A folder stays in Chord.
+    override func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        guard context == .outsideApplication else { return super.draggingSession(session, sourceOperationMaskFor: context) }
+        return session.draggingPasteboard.types?.contains(.chordTab) == true ? TabDragOut.operationOutside() : []
+    }
 
     override func mouseDown(with event: NSEvent) {
         let row = self.row(at: convert(event.locationInWindow, from: nil))

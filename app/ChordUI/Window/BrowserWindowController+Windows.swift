@@ -26,6 +26,26 @@ extension BrowserWindowController {
         DispatchQueue.main.async { interval.end() }
     }
 
+    // MARK: - Tabs dragged out
+
+    /// A tab dropped outside Chord opens in a new window under the pointer, like Arc. This
+    /// window lets it go: it shows what it would after closing the tab.
+    func sidebarOpenInNewWindow(_ tab: Tab, at screenPoint: NSPoint) {
+        let interval = Perf.begin("tab.tearoff")
+        state.withWindow(selection) { state.leave(tab) }
+        ChordUIHost.openWindow(like: self) { controller in
+            state.withWindow(controller.selection) { state.select(tab) }
+            guard let window = controller.window else { return }
+            // The pointer lands on the new window's sidebar, near its top, as if it had
+            // carried the window there.
+            var frame = window.frame
+            frame.origin = NSPoint(x: screenPoint.x - 120, y: screenPoint.y + 16 - frame.height)
+            let screen = NSScreen.screens.first { $0.frame.contains(screenPoint) } ?? window.screen
+            window.setFrame(window.constrainFrameRect(frame, to: screen), display: false)
+        }
+        DispatchQueue.main.async { interval.end() }
+    }
+
     // MARK: - Arc import
 
     func offerArcImport() {

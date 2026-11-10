@@ -318,7 +318,13 @@ final class FavoriteTileView: NSView, NSDraggingSource {
     }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-        context == .withinApplication ? .move : .copy
+        context == .withinApplication ? .move : TabDragOut.operationOutside()
+    }
+
+    /// Dropped outside Chord: the favorite opens in a new window there, like Arc.
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        guard let tab, TabDragOut.opensWindow(endedAt: screenPoint, operation: operation) else { return }
+        delegate?.sidebarOpenInNewWindow(tab, at: screenPoint)
     }
 
     private func snapshotImage() -> NSImage {

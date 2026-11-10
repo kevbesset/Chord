@@ -6,6 +6,13 @@ What changes in Chord, version by version. Each change adds a line under
 
 ## Unreleased
 
+### Added
+
+- A tab or a favorite dragged out of Chord and dropped elsewhere (on the desktop, say)
+  opens in a new window there, like Arc; the window it came from shows another tab.
+  Apps that take links (a message, a note) still get its address, but the desktop and
+  Finder no longer make a shortcut file of it.
+
 ### Changed
 
 - Chord looks for a new version every hour, and at launch, instead of once a day. Its

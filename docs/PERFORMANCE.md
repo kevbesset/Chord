@@ -13,6 +13,7 @@ it does not ship.
 | Open a Peek | `peek.open` | 100 ms |
 | Enter or exit split view | `split.toggle` | 100 ms |
 | Open a little window | `littlewindow.open` | 100 ms |
+| Open a tab dragged out of Chord in a new window | `tab.tearoff` | 100 ms |
 | Open the site settings | `sitecontrols.open` | 50 ms |
 | Show a site's permission request | `permission.prompt` | 50 ms |
 | Show an extension's popup, once loaded | `extension.popup` | 50 ms |

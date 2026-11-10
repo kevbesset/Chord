@@ -57,6 +57,16 @@ public final class ChordUIHost: NSObject {
         return controller
     }
 
+    /// Another window on the same state as `source` (its Spaces, or its private browsing),
+    /// set up by `prepare` before it shows: a tab dragged out of Chord.
+    @discardableResult
+    static func openWindow(like source: BrowserWindowController, prepare: (BrowserWindowController) -> Void) -> BrowserWindowController {
+        let controller = BrowserWindowController(state: source.state, settings: ChordSettings(), cascadingFrom: source.window)
+        prepare(controller)
+        show(controller)
+        return controller
+    }
+
     /// A private browsing window (⇧⌘N): the engine's private profile, its own tabs,
     /// nothing saved.
     static func openPrivateWindow() {

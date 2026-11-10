@@ -22,6 +22,8 @@ protocol SidebarDelegate: AnyObject {
     func sidebarMove(_ tab: Tab, toSpace space: Space)
     func sidebarMove(_ folder: Folder, into parent: Folder?, at index: Int)
     func sidebarOpen(_ urls: [URL], at destination: TabDestination)
+    /// A tab was dragged out of Chord and dropped at `screenPoint`.
+    func sidebarOpenInNewWindow(_ tab: Tab, at screenPoint: NSPoint)
     func sidebarNewFolder(with tab: Tab?)
     func sidebarRename(_ folder: Folder)
     func sidebarUngroup(_ folder: Folder)
